@@ -36,7 +36,7 @@ type Match struct {
 }
 
 const (
-	Default = iota // ""
+	Default = iota
 	Debug
 	Informational
 	Notice
@@ -52,12 +52,12 @@ var priorityCheckRegex *regexp.Regexp
 var priorityComparatorRegex *regexp.Regexp
 
 func CreateRules() *Rules {
-	yfile, err := ioutil.ReadFile("rules.yaml")
+	yamlRulesFile, err := ioutil.ReadFile("rules.yaml")
 	if err != nil {
 		log.Fatalf("%v\n", err.Error())
 	}
 
-	err2 := yaml.Unmarshal(yfile, &rules)
+	err2 := yaml.Unmarshal(yamlRulesFile, &rules)
 
 	if err2 != nil {
 		log.Fatalf("%v\n", err2.Error())
@@ -91,8 +91,8 @@ func (rule *Rule) SetPriorityNumberComparator() error {
 	return nil
 }
 
-func getPriorityNumber(p string) int {
-	switch strings.ToLower(p) {
+func getPriorityNumber(priority string) int {
+	switch strings.ToLower(priority) {
 	case "emergency":
 		return Emergency
 	case "alert":
@@ -118,17 +118,18 @@ func GetRules() *Rules {
 	return rules
 }
 
-func CompareEventToRule(input event.Event, rule Rule) bool {
-	if !rulesMatch(input, rule) {
+func (rule *Rule) CompareEvent(input event.Event) bool {
+	if !rule.checkRule(input) {
 		return false
 	}
-	if !outputFieldsMatch(input, rule) {
+	if !rule.checkOutputFields(input) {
 		return false
 	}
+	// compare to priority
 	return true
 }
 
-func rulesMatch(input event.Event, rule Rule) bool {
+func (rule *Rule) checkRule(input event.Event) bool {
 	if len(rule.Match.Rules) == 0 {
 		return true
 	}
@@ -140,7 +141,7 @@ func rulesMatch(input event.Event, rule Rule) bool {
 	return false
 }
 
-func outputFieldsMatch(input event.Event, rule Rule) bool {
+func (rule *Rule) checkOutputFields(input event.Event) bool {
 	if len(rule.Match.OutputFields) == 0 {
 		return true
 	}
@@ -153,7 +154,7 @@ func outputFieldsMatch(input event.Event, rule Rule) bool {
 	return true
 }
 
-func tagsMatch(input event.Event, rule Rule) bool {
+func (rule *Rule) checkTags(input event.Event) bool {
 	if len(rule.Match.Tags) == 0 {
 		return true
 	}
@@ -169,4 +170,30 @@ func tagsMatch(input event.Event, rule Rule) bool {
 		return false
 	}
 	return true
+}
+
+func (rule *Rule) checkPriority(input event.Event) bool {
+	switch rule.Match.PriorityComparator {
+	case ">":
+		if getPriorityNumber(input.Priority) > rule.Match.PriorityNumber {
+			return true
+		}
+	case ">=":
+		if getPriorityNumber(input.Priority) >= rule.Match.PriorityNumber {
+			return true
+		}
+	case "<":
+		if getPriorityNumber(input.Priority) < rule.Match.PriorityNumber {
+			return true
+		}
+	case "<=":
+		if getPriorityNumber(input.Priority) <= rule.Match.PriorityNumber {
+			return true
+		}
+	default:
+		if getPriorityNumber(input.Priority) == rule.Match.PriorityNumber {
+			return true
+		}
+	}
+	return false
 }

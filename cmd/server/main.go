@@ -9,18 +9,18 @@ import (
 	"github.com/Issif/falco-reactionner/internal/rule"
 )
 
+var config *configuration.Configuration
+var rules *rule.Rules
+
 func init() {
-	configuration.CreateConfiguration()
-	rule.CreateRules()
-	rules := rule.GetRules()
+	config = configuration.CreateConfiguration()
+	rules = rule.CreateRules()
 	for _, i := range *rules {
 		fmt.Printf("%#v\n", i)
 	}
 }
 
 func main() {
-	config := configuration.GetConfiguration()
-
 	http.HandleFunc("/", mainHandler)
 	http.HandleFunc("/ping", pingHandler)
 	http.HandleFunc("/healthz", healthHandler)
