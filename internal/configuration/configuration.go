@@ -2,6 +2,9 @@ package configuration
 
 var config *Configuration
 
+// TODO
+// manage configuration with file and env vars
+
 type Configuration struct {
 	ListenAddress string
 	ListenPort    int

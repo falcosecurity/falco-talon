@@ -11,6 +11,10 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
+// TODO
+// allow to set rule by file or CRD
+// watch CRD and update rules
+
 type Rules []*Rule
 
 type Rule struct {
