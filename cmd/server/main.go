@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/Issif/falco-reactionner/internal/configuration"
 	"github.com/Issif/falco-reactionner/internal/rule"
+	"github.com/Issif/falco-reactionner/internal/utils"
 )
 
 var config *configuration.Configuration
@@ -25,9 +25,9 @@ func main() {
 	http.HandleFunc("/ping", pingHandler)
 	http.HandleFunc("/healthz", healthHandler)
 
-	log.Printf("[INFO]  : Falco Reactionner is up and listening on %s:%d", config.ListenAddress, config.ListenPort)
+	utils.PrintLog("info", fmt.Sprintf("Falco Talon is up and listening on %s:%d", config.ListenAddress, config.ListenPort))
 
 	if err := http.ListenAndServe(fmt.Sprintf("%s:%d", config.ListenAddress, config.ListenPort), nil); err != nil {
-		log.Fatalf("[ERROR] : %v", err.Error())
+		utils.PrintLog("critical", fmt.Sprintf("%v", err.Error()))
 	}
 }

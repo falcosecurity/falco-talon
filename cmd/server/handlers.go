@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/Issif/falco-reactionner/internal/event"
+	"github.com/Issif/falco-reactionner/internal/rule"
+	"github.com/Issif/falco-reactionner/internal/utils"
 )
 
 func mainHandler(w http.ResponseWriter, r *http.Request) {
@@ -23,18 +25,36 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(decodedEvent)
+	// fmt.Println(decodedEvent)
+
+	rules := rule.GetRules()
+	for _, i := range *rules {
+		go func(r *rule.Rule) {
+			if r.CompareEvent(&decodedEvent) {
+				if namespacePodPresent(&decodedEvent) {
+					utils.PrintLog("info", fmt.Sprintf("MATCH: '%v' ACTION: '%v' POD: '%v' NAMESPACE: '%v'", r.Name, r.Action.Name, decodedEvent.OutputFields["k8s.pod.name"], decodedEvent.OutputFields["k8s.ns.name"]))
+				} else {
+					utils.PrintLog("info", fmt.Sprintf("MATCH: '%v' ACTION: 'none' (missing pod or namespace in event)", r.Name))
+				}
+			}
+		}(i)
+	}
 }
 
 // pingHandler is a simple handler to test if daemon is UP.
 func pingHandler(w http.ResponseWriter, r *http.Request) {
-	// #nosec G104 nothing to be done if the following fails
 	w.Write([]byte("pong\n"))
 }
 
 // healthHandler is a simple handler to test if daemon is UP.
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
-	// #nosec G104 nothing to be done if the following fails
 	w.Write([]byte(`{"status": "ok"}`))
+}
+
+func namespacePodPresent(input *event.Event) bool {
+	if input.OutputFields["k8s.ns.name"] != nil && input.OutputFields["k8s.pod.name"] != nil {
+		return true
+	}
+	return false
 }

@@ -1,28 +1,31 @@
 - name: Rule 1
   match:
-    priority: ">=Warning"
     rules:
-      - rule A
-      - rule B
-    tags:
-      - tag A
-      - tag B
-    output_fields:
-      keyA: value A
-      keyB: value B
+      - Create Disallowed Namespace
+      - K8s Serviceaccount Created
+  action:
+    name: terminate
+    options:
+      graceperiod: 3
 - name: Rule 2
   match:
     priority: "<Critical"
-    rules:
-      - rule C
-      - rule D
-    tags:
-      - tag C
-      - tag D
-    output_fields:
-      keyA: value C
-      keyB: value D
+  action:
+    name: label
+    options:
+      key: KEY
+      value: newValue
 - name: Rule 3
   match:
-    rules:
-      - rule E
+    priority: ">=Warning"
+  action:
+    name: terminate
+- name: Rule 4
+  match:
+    tags:
+      - mitre_discovery
+  action:
+    name: label
+    options:
+      key: KEY
+      value: ""

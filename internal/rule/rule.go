@@ -2,12 +2,13 @@ package rule
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"regexp"
-	"strings"
 
 	"github.com/Issif/falco-reactionner/internal/event"
+	"github.com/Issif/falco-reactionner/internal/utils"
 	yaml "gopkg.in/yaml.v3"
 )
 
@@ -39,18 +40,6 @@ type Match struct {
 	Tags               []string               `yaml:"tags"`
 }
 
-const (
-	Default = iota
-	Debug
-	Informational
-	Notice
-	Warning
-	Error
-	Critical
-	Alert
-	Emergency
-)
-
 var rules *Rules
 var priorityCheckRegex *regexp.Regexp
 var priorityComparatorRegex *regexp.Regexp
@@ -72,11 +61,11 @@ func CreateRules() *Rules {
 
 	for _, i := range *rules {
 		if i.Name == "" {
-			log.Fatalf("[ERROR] All rules must have a name\n", i.Name)
+			utils.PrintLog("critical", "All rules must have a name")
 		}
 		err := i.SetPriorityNumberComparator()
 		if err != nil {
-			log.Fatalf("[ERROR] Incorrect Priority for Rule: %v\n", i.Name)
+			utils.PrintLog("critical", fmt.Sprintf("Incorrect Priority for Rule: %v\n", i.Name))
 		}
 	}
 
@@ -95,45 +84,25 @@ func (rule *Rule) SetPriorityNumberComparator() error {
 	return nil
 }
 
-func getPriorityNumber(priority string) int {
-	switch strings.ToLower(priority) {
-	case "emergency":
-		return Emergency
-	case "alert":
-		return Alert
-	case "critical":
-		return Critical
-	case "error":
-		return Error
-	case "warning":
-		return Warning
-	case "notice":
-		return Notice
-	case "informational":
-		return Informational
-	case "debug":
-		return Debug
-	default:
-		return Default
-	}
-}
-
 func GetRules() *Rules {
 	return rules
 }
 
-func (rule *Rule) CompareEvent(input event.Event) bool {
+func (rule *Rule) CompareEvent(input *event.Event) bool {
 	if !rule.checkRule(input) {
 		return false
 	}
 	if !rule.checkOutputFields(input) {
 		return false
 	}
+	if !rule.checkPriority(input) {
+		return false
+	}
 	// compare to priority
 	return true
 }
 
-func (rule *Rule) checkRule(input event.Event) bool {
+func (rule *Rule) checkRule(input *event.Event) bool {
 	if len(rule.Match.Rules) == 0 {
 		return true
 	}
@@ -145,7 +114,7 @@ func (rule *Rule) checkRule(input event.Event) bool {
 	return false
 }
 
-func (rule *Rule) checkOutputFields(input event.Event) bool {
+func (rule *Rule) checkOutputFields(input *event.Event) bool {
 	if len(rule.Match.OutputFields) == 0 {
 		return true
 	}
@@ -158,7 +127,7 @@ func (rule *Rule) checkOutputFields(input event.Event) bool {
 	return true
 }
 
-func (rule *Rule) checkTags(input event.Event) bool {
+func (rule *Rule) checkTags(input *event.Event) bool {
 	if len(rule.Match.Tags) == 0 {
 		return true
 	}
@@ -176,7 +145,10 @@ func (rule *Rule) checkTags(input event.Event) bool {
 	return true
 }
 
-func (rule *Rule) checkPriority(input event.Event) bool {
+func (rule *Rule) checkPriority(input *event.Event) bool {
+	if rule.Match.PriorityNumber == 0 {
+		return true
+	}
 	switch rule.Match.PriorityComparator {
 	case ">":
 		if getPriorityNumber(input.Priority) > rule.Match.PriorityNumber {
