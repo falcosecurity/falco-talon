@@ -5,19 +5,22 @@ import (
 	"net/http"
 
 	"github.com/Issif/falco-reactionner/internal/configuration"
+	"github.com/Issif/falco-reactionner/internal/kubernetes"
 	"github.com/Issif/falco-reactionner/internal/rule"
 	"github.com/Issif/falco-reactionner/internal/utils"
 )
 
 var config *configuration.Configuration
 var rules *rule.Rules
+var client kubernetes.Client
 
 func init() {
 	config = configuration.CreateConfiguration()
 	rules = rule.CreateRules()
-	for _, i := range *rules {
-		fmt.Printf("%#v\n", i)
-	}
+	client = kubernetes.CreateClient()
+	// for _, i := range *rules {
+	// 	fmt.Printf("%#v\n", i)
+	// }
 }
 
 func main() {

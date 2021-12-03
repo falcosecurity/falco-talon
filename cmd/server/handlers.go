@@ -31,10 +31,19 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 	for _, i := range *rules {
 		go func(r *rule.Rule) {
 			if r.CompareEvent(&decodedEvent) {
-				if namespacePodPresent(&decodedEvent) {
-					utils.PrintLog("info", fmt.Sprintf("MATCH: '%v' ACTION: '%v' POD: '%v' NAMESPACE: '%v'", r.Name, r.Action.Name, decodedEvent.OutputFields["k8s.pod.name"], decodedEvent.OutputFields["k8s.ns.name"]))
+				if pod, namespace := utils.ExtractPodAndNamespace(&decodedEvent); pod != "" && namespace != "" {
+					utils.PrintLog("info", fmt.Sprintf("MATCH: '%v' ACTION: '%v' POD: '%v' NAMESPACE: '%v'", r.Name, r.Action.Name, pod, namespace))
+					switch r.Action.Name {
+					case "terminate":
+						if err := client.Terminate(pod, namespace, r.Action.Options); err != nil {
+							utils.PrintLog("error", fmt.Sprintf("ACTION: '%v' POD: '%v' NAMESPACE: '%v' ACTION: '%v' STATUS: 'Fail'", r.Action.Name, r.Name, pod, namespace))
+						} else {
+							utils.PrintLog("info", fmt.Sprintf("ACTION: '%v' POD: '%v' NAMESPACE: '%v' STATUS: 'Success'", r.Action.Name, pod, namespace))
+						}
+					case "label":
+					}
 				} else {
-					utils.PrintLog("info", fmt.Sprintf("MATCH: '%v' ACTION: 'none' (missing pod or namespace in event)", r.Name))
+					utils.PrintLog("info", fmt.Sprintf("MATCH: '%v' ACTION: 'none' (missing pod or namespace)", r.Name))
 				}
 			}
 		}(i)
@@ -50,11 +59,4 @@ func pingHandler(w http.ResponseWriter, r *http.Request) {
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	w.Write([]byte(`{"status": "ok"}`))
-}
-
-func namespacePodPresent(input *event.Event) bool {
-	if input.OutputFields["k8s.ns.name"] != nil && input.OutputFields["k8s.pod.name"] != nil {
-		return true
-	}
-	return false
 }

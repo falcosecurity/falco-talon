@@ -1,3 +1,11 @@
+- name: Rule 0
+  match:
+    rules:
+      - Test Terminate
+  action:
+    name: terminate
+    options:
+      gracePeriodSeconds: 5
 - name: Rule 1
   match:
     rules:
@@ -6,7 +14,7 @@
   action:
     name: terminate
     options:
-      graceperiod: 3
+      gracePeriodSeconds: 3
 - name: Rule 2
   match:
     priority: "<Critical"
@@ -20,6 +28,8 @@
     priority: ">=Warning"
   action:
     name: terminate
+    options:
+      gracePeriodSeconds: 1
 - name: Rule 4
   match:
     tags:

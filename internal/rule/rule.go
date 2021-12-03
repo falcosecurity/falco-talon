@@ -1,7 +1,6 @@
 package rule
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -42,6 +41,7 @@ type Match struct {
 
 var rules *Rules
 var priorityCheckRegex *regexp.Regexp
+var ruleCheckRegex *regexp.Regexp
 var priorityComparatorRegex *regexp.Regexp
 
 func CreateRules() *Rules {
@@ -56,12 +56,19 @@ func CreateRules() *Rules {
 		log.Fatalf("%v\n", err2.Error())
 	}
 
-	priorityCheckRegex, _ = regexp.Compile("(?i)^(<|>)?(=)?(Debug|Informational|Notice|Warning|Error|Critical|Alert|Emergency)")
+	priorityCheckRegex, _ = regexp.Compile("(?i)^(<|>)?(=)?(|Debug|Informational|Notice|Warning|Error|Critical|Alert|Emergency)")
+	ruleCheckRegex, _ = regexp.Compile("(?i)(terminate|label)")
 	priorityComparatorRegex, _ = regexp.Compile("^(<|>)?(=)?")
 
 	for _, i := range *rules {
 		if i.Name == "" {
 			utils.PrintLog("critical", "All rules must have a name")
+		}
+		if !priorityCheckRegex.MatchString(i.Match.Priority) {
+			utils.PrintLog("critical", fmt.Sprintf("Incorrect priority for rule '%v'\n", i.Name))
+		}
+		if !ruleCheckRegex.MatchString(i.Action.Name) {
+			utils.PrintLog("critical", fmt.Sprintf("Unknown action for rule '%v'\n", i.Name))
 		}
 		err := i.SetPriorityNumberComparator()
 		if err != nil {
@@ -75,9 +82,6 @@ func CreateRules() *Rules {
 func (rule *Rule) SetPriorityNumberComparator() error {
 	if rule.Match.Priority == "" {
 		return nil
-	}
-	if !priorityCheckRegex.MatchString(rule.Match.Priority) {
-		return errors.New("Wrong priority")
 	}
 	rule.Match.PriorityComparator = priorityComparatorRegex.FindAllString(rule.Match.Priority, -1)[0]
 	rule.Match.PriorityNumber = getPriorityNumber(priorityComparatorRegex.ReplaceAllString(rule.Match.Priority, ""))
@@ -98,7 +102,6 @@ func (rule *Rule) CompareEvent(input *event.Event) bool {
 	if !rule.checkPriority(input) {
 		return false
 	}
-	// compare to priority
 	return true
 }
 
