@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Issif/falco-reactionner/internal/event"
+	evt "github.com/Issif/falco-reactionner/internal/event"
 	"github.com/Issif/falco-reactionner/internal/rule"
 	"github.com/Issif/falco-reactionner/internal/utils"
 )
@@ -20,7 +20,7 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	decodedEvent, err := event.DecodeEvent(r.Body)
+	event, err := evt.DecodeEvent(r.Body)
 	if err != nil {
 		return
 	}
@@ -28,25 +28,45 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 	// fmt.Println(decodedEvent)
 
 	rules := rule.GetRules()
+	triggeredRules := make([]*rule.Rule, 0)
 	for _, i := range *rules {
-		go func(r *rule.Rule) {
-			if r.CompareEvent(&decodedEvent) {
-				if pod, namespace := utils.ExtractPodAndNamespace(&decodedEvent); pod != "" && namespace != "" {
-					utils.PrintLog("info", fmt.Sprintf("MATCH: '%v' ACTION: '%v' POD: '%v' NAMESPACE: '%v'", r.Name, r.Action.Name, pod, namespace))
-					switch r.Action.Name {
-					case "terminate":
-						if err := client.Terminate(pod, namespace, r.Action.Options); err != nil {
-							utils.PrintLog("error", fmt.Sprintf("ACTION: '%v' POD: '%v' NAMESPACE: '%v' ACTION: '%v' STATUS: 'Fail'", r.Action.Name, r.Name, pod, namespace))
-						} else {
-							utils.PrintLog("info", fmt.Sprintf("ACTION: '%v' POD: '%v' NAMESPACE: '%v' STATUS: 'Success'", r.Action.Name, pod, namespace))
-						}
-					case "label":
-					}
-				} else {
-					utils.PrintLog("info", fmt.Sprintf("MATCH: '%v' ACTION: 'none' (missing pod or namespace)", r.Name))
-				}
-			}
-		}(i)
+		if i.CompareEvent(&event) {
+			triggeredRules = append(triggeredRules, i)
+		}
+	}
+
+	triggerAction := func(rule *rule.Rule, event *evt.Event) {
+		pod, namespace := utils.ExtractPodAndNamespace(event)
+		if pod == "" || namespace == "" {
+			utils.PrintLog("info", fmt.Sprintf("MATCH: '%v' ACTION: 'none' (missing pod or namespace)", rule.Name))
+			return
+		}
+		utils.PrintLog("info", fmt.Sprintf("MATCH: '%v' ACTION: '%v' POD: '%v' NAMESPACE: '%v'", rule.Name, rule.Action.Name, pod, namespace))
+		var err error
+		switch rule.Action.Name {
+		case "terminate":
+			err = client.Terminate(pod, namespace, rule.Action.Options)
+		case "label":
+			err = client.Label(pod, namespace, rule.Action.Options)
+		}
+		if err != nil {
+			utils.PrintLog("error", fmt.Sprintf("ACTION: '%v' POD: '%v' NAMESPACE: '%v' ACTION: '%v' STATUS: 'Fail'", rule.Action.Name, rule.Name, pod, namespace))
+		} else {
+			utils.PrintLog("info", fmt.Sprintf("ACTION: '%v' POD: '%v' NAMESPACE: '%v' STATUS: 'Success'", rule.Action.Name, pod, namespace))
+		}
+	}
+
+	// if one "terminate" rule matches, we trigger it and stop
+	for _, i := range triggeredRules {
+		if i.Action.Name == "terminate" {
+			triggerAction(i, &event)
+		}
+	}
+	// if no "terminate" rule matches, we trigger all rules
+	for _, i := range triggeredRules {
+		if i.Action.Name != "terminate" {
+			triggerAction(i, &event)
+		}
 	}
 }
 

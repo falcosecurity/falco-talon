@@ -6,6 +6,7 @@ import (
 	"log"
 	"regexp"
 
+	"github.com/Issif/falco-reactionner/internal/configuration"
 	"github.com/Issif/falco-reactionner/internal/event"
 	"github.com/Issif/falco-reactionner/internal/utils"
 	yaml "gopkg.in/yaml.v3"
@@ -39,13 +40,14 @@ type Match struct {
 	Tags               []string               `yaml:"tags"`
 }
 
-var rules *Rules
+var rules *[]*Rule
 var priorityCheckRegex *regexp.Regexp
 var ruleCheckRegex *regexp.Regexp
 var priorityComparatorRegex *regexp.Regexp
 
-func CreateRules() *Rules {
-	yamlRulesFile, err := ioutil.ReadFile("rules.yaml")
+func CreateRules() *[]*Rule {
+	config := configuration.GetConfiguration()
+	yamlRulesFile, err := ioutil.ReadFile(*config.RulesFile)
 	if err != nil {
 		log.Fatalf("%v\n", err.Error())
 	}
@@ -88,41 +90,41 @@ func (rule *Rule) SetPriorityNumberComparator() error {
 	return nil
 }
 
-func GetRules() *Rules {
+func GetRules() *[]*Rule {
 	return rules
 }
 
-func (rule *Rule) CompareEvent(input *event.Event) bool {
-	if !rule.checkRule(input) {
+func (rule *Rule) CompareEvent(event *event.Event) bool {
+	if !rule.checkRule(event) {
 		return false
 	}
-	if !rule.checkOutputFields(input) {
+	if !rule.checkOutputFields(event) {
 		return false
 	}
-	if !rule.checkPriority(input) {
+	if !rule.checkPriority(event) {
 		return false
 	}
 	return true
 }
 
-func (rule *Rule) checkRule(input *event.Event) bool {
+func (rule *Rule) checkRule(event *event.Event) bool {
 	if len(rule.Match.Rules) == 0 {
 		return true
 	}
 	for _, i := range rule.Match.Rules {
-		if input.Rule == i {
+		if event.Rule == i {
 			return true
 		}
 	}
 	return false
 }
 
-func (rule *Rule) checkOutputFields(input *event.Event) bool {
+func (rule *Rule) checkOutputFields(event *event.Event) bool {
 	if len(rule.Match.OutputFields) == 0 {
 		return true
 	}
 	for i, j := range rule.Match.OutputFields {
-		if input.OutputFields[i] == j {
+		if event.OutputFields[i] == j {
 			continue
 		}
 		return false
@@ -130,13 +132,13 @@ func (rule *Rule) checkOutputFields(input *event.Event) bool {
 	return true
 }
 
-func (rule *Rule) checkTags(input *event.Event) bool {
+func (rule *Rule) checkTags(event *event.Event) bool {
 	if len(rule.Match.Tags) == 0 {
 		return true
 	}
 	count := 0
 	for _, i := range rule.Match.Tags {
-		for _, j := range input.Tags {
+		for _, j := range event.Tags {
 			if i == j {
 				count++
 			}
@@ -148,29 +150,29 @@ func (rule *Rule) checkTags(input *event.Event) bool {
 	return true
 }
 
-func (rule *Rule) checkPriority(input *event.Event) bool {
+func (rule *Rule) checkPriority(event *event.Event) bool {
 	if rule.Match.PriorityNumber == 0 {
 		return true
 	}
 	switch rule.Match.PriorityComparator {
 	case ">":
-		if getPriorityNumber(input.Priority) > rule.Match.PriorityNumber {
+		if getPriorityNumber(event.Priority) > rule.Match.PriorityNumber {
 			return true
 		}
 	case ">=":
-		if getPriorityNumber(input.Priority) >= rule.Match.PriorityNumber {
+		if getPriorityNumber(event.Priority) >= rule.Match.PriorityNumber {
 			return true
 		}
 	case "<":
-		if getPriorityNumber(input.Priority) < rule.Match.PriorityNumber {
+		if getPriorityNumber(event.Priority) < rule.Match.PriorityNumber {
 			return true
 		}
 	case "<=":
-		if getPriorityNumber(input.Priority) <= rule.Match.PriorityNumber {
+		if getPriorityNumber(event.Priority) <= rule.Match.PriorityNumber {
 			return true
 		}
 	default:
-		if getPriorityNumber(input.Priority) == rule.Match.PriorityNumber {
+		if getPriorityNumber(event.Priority) == rule.Match.PriorityNumber {
 			return true
 		}
 	}

@@ -14,7 +14,7 @@ func PrintLog(level, message string) {
 	var prefix string
 	switch level {
 	case "error", "critical":
-		prefix = "[ERROR] "
+		prefix = "[ERROR]"
 	case "info":
 		prefix = "[INFO] "
 	}

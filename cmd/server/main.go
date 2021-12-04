@@ -11,16 +11,18 @@ import (
 )
 
 var config *configuration.Configuration
-var rules *rule.Rules
+var rules *[]*rule.Rule
 var client kubernetes.Client
 
 func init() {
 	config = configuration.CreateConfiguration()
+
 	rules = rule.CreateRules()
 	client = kubernetes.CreateClient()
 	// for _, i := range *rules {
 	// 	fmt.Printf("%#v\n", i)
 	// }
+	utils.PrintLog("info", fmt.Sprintf("%v Rules have been successfully loaded", len(*rules)))
 }
 
 func main() {
@@ -28,9 +30,9 @@ func main() {
 	http.HandleFunc("/ping", pingHandler)
 	http.HandleFunc("/healthz", healthHandler)
 
-	utils.PrintLog("info", fmt.Sprintf("Falco Talon is up and listening on %s:%d", config.ListenAddress, config.ListenPort))
+	utils.PrintLog("info", fmt.Sprintf("Falco Talon is up and listening on '%s:%d'", *config.ListenAddress, *config.ListenPort))
 
-	if err := http.ListenAndServe(fmt.Sprintf("%s:%d", config.ListenAddress, config.ListenPort), nil); err != nil {
+	if err := http.ListenAndServe(fmt.Sprintf("%s:%d", *config.ListenAddress, *config.ListenPort), nil); err != nil {
 		utils.PrintLog("critical", fmt.Sprintf("%v", err.Error()))
 	}
 }
