@@ -67,7 +67,7 @@ func (client Client) Label(pod, namespace string, options map[string]interface{}
 	for i, j := range options {
 		operation := "replace"
 		if j.(string) == "" {
-			operation = "remove"
+			continue
 		}
 		payload = append(payload, patch{
 			Op:    operation,
@@ -80,5 +80,18 @@ func (client Client) Label(pod, namespace string, options map[string]interface{}
 	if err != nil {
 		return err
 	}
+	payload = []patch{}
+	for i, j := range options {
+		operation := "remove"
+		if j.(string) != "" {
+			continue
+		}
+		payload = append(payload, patch{
+			Op:   operation,
+			Path: "/metadata/labels/" + i,
+		})
+	}
+	payloadBytes, _ = json.Marshal(payload)
+	client.Clientset.CoreV1().Pods(namespace).Patch(context.Background(), pod, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
 	return nil
 }
