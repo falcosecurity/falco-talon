@@ -13,9 +13,9 @@
   action:
     name: label
     options:
-      keyA: "valueA"
-      keyB: valueB
-      keyC: "valueC"
+      keyA: "value"
+      keyB: value
+      keyC: ""
       # key: ""
 # - name: Rule 1
 #   match:

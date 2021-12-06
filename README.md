@@ -1,6 +1,6 @@
 # Falco Talon
 
-`Falco Talon` is a Response Engine for managing threats in your Kubernetes. It's enhanced the solutions proposed by Falco community with a dedicated, no-code, solution. With easy rules, you can `Terminate` or `Labelize` compromised pods.
+`Falco Talon` is a Response Engine for managing threats in your Kubernetes. It enhances the solutions proposed by Falco community with a dedicated, no-code, solution. With easy rules, you can `Terminate` or `Labelize` compromised pods.
 
 ```
 ┌──────────┐                 ┌───────────────┐                    ┌─────────────┐
@@ -43,7 +43,7 @@ Actions to trigger for events are set with rules with this syntax:
 
 With:
 
-* `name`: (mandatory) Name of your rule
+* `name`: (*mandatory*) Name of your rule
 * `match`:
   * `rules`: (*list*) (`OR` logic) Falco rules to match. If empty, all rules match.
   * `priority`: Priority to match. If empty, all priorities match. Syntax is like `>=Critical`.
@@ -55,7 +55,9 @@ With:
     * for `terminate`:
       * `gracePeriodSeconds`: (*numeric*) Time to wait before terminate the pod
     * for `label`:
-      * `key: value`: (*list*) Labels to *add*/*modify*. If `value` is empty, the label is removed.
+      * `"key": "value"`: (*list*) Labels to *add*/*modify*. If `value` is empty, the label is removed.
+
+> :bulb: Rules with `terminate` as action are compared first, if one matches, all other rules are ignored.
 
 Examples:
 

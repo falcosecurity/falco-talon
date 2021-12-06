@@ -4,19 +4,17 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/Issif/falco-reactionner/internal/configuration"
 	"github.com/Issif/falco-reactionner/internal/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8s "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
 // TODO
-// get configuration for auth
-// check input (namespace + pod name are mandatory)
-// create k8s client
-// func terminate pod
-// func modify label (remove if value "")
+// config for inCluster
 
 type Client struct {
 	*k8s.Clientset
@@ -25,14 +23,20 @@ type Client struct {
 var client Client
 
 func CreateClient() Client {
-	config, err := clientcmd.BuildConfigFromFlags("", "./kubeconfig.yaml")
-	// config, err = rest.InClusterConfig()
+	config := configuration.GetConfiguration()
+	var k8sconfig *rest.Config
+	var err error
+	if *config.KubeConfig != "" {
+		k8sconfig, err = clientcmd.BuildConfigFromFlags("", *config.KubeConfig)
+	} else {
+		k8sconfig, err = rest.InClusterConfig()
+	}
 	if err != nil {
 		utils.PrintLog("critical", err.Error())
 	}
 
 	// creates the clientset
-	client.Clientset, err = k8s.NewForConfig(config)
+	client.Clientset, err = k8s.NewForConfig(k8sconfig)
 	if err != nil {
 		utils.PrintLog("critical", err.Error())
 	}

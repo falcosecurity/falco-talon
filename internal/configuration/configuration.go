@@ -11,6 +11,7 @@ type Configuration struct {
 	ListenAddress *string
 	ListenPort    *int
 	RulesFile     *string
+	KubeConfig    *string
 }
 
 func CreateConfiguration() *Configuration {
@@ -18,6 +19,7 @@ func CreateConfiguration() *Configuration {
 	config.ListenAddress = kingpin.Flag("address", "Listen Address").Short('a').Default("0.0.0.0").String()
 	config.ListenPort = kingpin.Flag("port", "Listen Port").Short('p').Default("2803").Int()
 	config.RulesFile = kingpin.Flag("rules", "Rules file").Short('r').Default("./rules.yaml").ExistingFile()
+	config.KubeConfig = kingpin.Flag("kubeconfig", "Kube Config").Short('k').ExistingFile()
 	kingpin.Parse()
 	return config
 }
