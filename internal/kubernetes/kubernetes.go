@@ -13,9 +13,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// TODO
-// config for inCluster
-
 type Client struct {
 	*k8s.Clientset
 }
@@ -50,8 +47,7 @@ func GetClient() Client {
 func (client Client) Terminate(pod, namespace string, options map[string]interface{}) error {
 	gracePeriodSeconds := new(int64)
 	if options["gracePeriodSeconds"] != nil {
-		g := int64(options["gracePeriodSeconds"].(int))
-		*gracePeriodSeconds = g
+		*gracePeriodSeconds = int64(options["gracePeriodSeconds"].(int))
 	}
 	err := client.Clientset.CoreV1().Pods(namespace).Delete(context.Background(), pod, metav1.DeleteOptions{GracePeriodSeconds: gracePeriodSeconds})
 	if err != nil {
@@ -66,17 +62,16 @@ type patch struct {
 	Value string `json:"value,omitempty"`
 }
 
-func (client Client) Label(pod, namespace string, options map[string]interface{}) error {
-	payload := []patch{}
-	for i, j := range options {
-		operation := "replace"
-		if j.(string) == "" {
+func (client Client) Label(pod, namespace string, labels map[string]string) error {
+	payload := make([]patch, 0)
+	for i, j := range labels {
+		if j == "" {
 			continue
 		}
 		payload = append(payload, patch{
-			Op:    operation,
+			Op:    "replace",
 			Path:  "/metadata/labels/" + i,
-			Value: j.(string),
+			Value: j,
 		})
 	}
 	payloadBytes, _ := json.Marshal(payload)
@@ -84,14 +79,13 @@ func (client Client) Label(pod, namespace string, options map[string]interface{}
 	if err != nil {
 		return err
 	}
-	payload = []patch{}
-	for i, j := range options {
-		operation := "remove"
-		if j.(string) != "" {
+	payload = make([]patch, 0)
+	for i, j := range labels {
+		if j != "" {
 			continue
 		}
 		payload = append(payload, patch{
-			Op:   operation,
+			Op:   "remove",
 			Path: "/metadata/labels/" + i,
 		})
 	}

@@ -7,9 +7,6 @@ import (
 	"github.com/Issif/falco-reactionner/internal/event"
 )
 
-// TODO
-// better logs
-
 func PrintLog(level, message string) {
 	var prefix string
 	switch level {

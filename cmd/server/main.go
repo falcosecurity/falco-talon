@@ -16,12 +16,8 @@ var client kubernetes.Client
 
 func init() {
 	config = configuration.CreateConfiguration()
-
 	rules = rule.CreateRules()
 	client = kubernetes.CreateClient()
-	// for _, i := range *rules {
-	// 	fmt.Printf("%#v\n", i)
-	// }
 	utils.PrintLog("info", fmt.Sprintf("%v Rules have been successfully loaded", len(*rules)))
 }
 

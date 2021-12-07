@@ -1,3 +1,13 @@
+- name: Rule Test Label
+  match:
+    priority: "<Critical"
+  action:
+    name: label
+    labels:
+      keyA: "valueA"
+      keyB: valueB
+      keyC: "valueC"
+      run: ""
 - name: Rule Test Terminate
   match:
     rules:
@@ -5,18 +15,7 @@
   action:
     name: terminate
     options:
-      gracePeriodSeconds: 5
-- name: Rule Test Label
-  match:
-    rules:
-      - Test Label
-  action:
-    name: label
-    options:
-      keyA: "value"
-      keyB: value
-      keyC: ""
-      # key: ""
+      gracePeriodSeconds: 0
 # - name: Rule 1
 #   match:
 #     rules:

@@ -16,8 +16,6 @@ import (
 // allow to set rule by file or CRD
 // watch CRD and update rules
 
-type Rules []*Rule
-
 type Rule struct {
 	Name   string `yaml:"name"`
 	Action Action `yaml:"action"`
@@ -27,7 +25,8 @@ type Rule struct {
 
 type Action struct {
 	Name    string                 `yaml:"name"`
-	Options map[string]interface{} `yaml:"options"`
+	Options map[string]interface{} `yaml:"options,omitempty"`
+	Labels  map[string]string      `yaml:"labels,omitempty"`
 }
 
 type Match struct {
