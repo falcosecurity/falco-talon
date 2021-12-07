@@ -6,6 +6,10 @@
 ┌──────────┐                 ┌───────────────┐                    ┌─────────────┐
 │  Falco   ├─────────────────► Falcosidekick ├────────────────────► Falco Talon │
 └──────────┘                 └───────────────┘                    └─────────────┘
+or
+┌──────────┐                 ┌─────────────┐
+│  Falco   ├────────────────-► Falco Talon │
+└──────────┘                 └─────────────┘
 ```
 
 ## Configuration
@@ -14,10 +18,11 @@
 usage: falco-talon [<flags>]
 
 Flags:
-      --help                Show context-sensitive help (also try --help-long and --help-man).
-  -a, --address="0.0.0.0"   Listen Address
-  -p, --port=2803           Listen Port
-  -r, --rules=./rules.yaml  Rules file
+      --help                   Show context-sensitive help (also try --help-long and --help-man).
+  -a, --address="0.0.0.0"      Listen Address
+  -p, --port=2803              Listen Port
+  -r, --rules=./rules.yaml     Rules file
+  -k, --kubeconfig=KUBECONFIG  Kube Config
 ```
 
 ## Rules
@@ -51,11 +56,10 @@ With:
   * `output_fields`: (*list*) (`AND`) Output fields to match. If emtpy, all output fields match.
 * `action`:
   * `name`: `terminate` or `label`
-  * `options`:
-    * for `terminate`:
-      * `gracePeriodSeconds`: (*numeric*) Time to wait before terminate the pod
-    * for `label`:
-      * `"key": "value"`: (*list*) Labels to *add*/*modify*. If `value` is empty, the label is removed.
+  * `options`: for `terminate` action
+    * `gracePeriodSeconds`: (*numeric*) Time to wait before terminate the pod
+  * `labels`: for `label` action
+    * `"key": "value"`: (*list*) Labels to *add*/*modify*. If `value` is empty, the label is removed.
 
 > :bulb: Rules with `terminate` as action are compared first, if one matches, all other rules are ignored.
 
@@ -76,7 +80,7 @@ Examples:
     priority: "<Critical"
   action:
     name: label
-    options:
+    labels:
       suspicious: "true"
 ```
 
