@@ -11,6 +11,10 @@ import (
 	"github.com/Issif/falco-talon/internal/utils"
 )
 
+const (
+	terminateStr = "terminate"
+)
+
 func mainHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Please send with POST http method", http.StatusBadRequest)
@@ -39,16 +43,16 @@ func mainHandler(w http.ResponseWriter, r *http.Request) {
 
 	// if one "terminate" rule matches, we trigger it and stop
 	for _, i := range triggeredRules {
-		if i.Action.Name == "terminate" {
+		if i.Action.Name == terminateStr {
 			triggerAction(i, &event)
 			return
 		}
 	}
 	// if no "terminate" rule matches, we trigger all rules
 	for _, i := range triggeredRules {
-		if i.Action.Name != "terminate" {
+		if i.Action.Name != terminateStr {
 			triggerAction(i, &event)
-			if i.Continue == false {
+			if !i.Continue {
 				break
 			}
 		}
@@ -68,7 +72,7 @@ func triggerAction(rule *rule.Rule, event *evt.Event) {
 	utils.PrintLog("info", fmt.Sprintf("MATCH: '%v' ACTION: '%v' POD: '%v' NAMESPACE: '%v'", rule.Name, rule.Action.Name, pod, namespace))
 	var err error
 	switch rule.Action.Name {
-	case "terminate":
+	case terminateStr:
 		err = client.Terminate(pod, namespace, rule.Action.Options)
 	case "label":
 		err = client.Label(pod, namespace, rule.Action.Labels)
@@ -91,11 +95,11 @@ func triggerNotification(rule, action, pod, namespace, status string) {
 
 // pingHandler is a simple handler to test if daemon is UP.
 func pingHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("pong\n"))
+	_, _ = w.Write([]byte("pong\n"))
 }
 
 // healthHandler is a simple handler to test if daemon is UP.
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
-	w.Write([]byte(`{"status": "ok"}`))
+	_, _ = w.Write([]byte(`{"status": "ok"}`))
 }

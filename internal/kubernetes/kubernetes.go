@@ -84,11 +84,13 @@ func (client Client) Label(pod, namespace string, labels map[string]string) erro
 			Value: j,
 		})
 	}
+
 	payloadBytes, _ := json.Marshal(payload)
 	_, err := client.Clientset.CoreV1().Pods(namespace).Patch(context.Background(), pod, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
 	if err != nil {
 		return err
 	}
+
 	payload = make([]patch, 0)
 	for i, j := range labels {
 		if j != "" {
@@ -99,7 +101,12 @@ func (client Client) Label(pod, namespace string, labels map[string]string) erro
 			Path: "/metadata/labels/" + i,
 		})
 	}
+
 	payloadBytes, _ = json.Marshal(payload)
-	client.Clientset.CoreV1().Pods(namespace).Patch(context.Background(), pod, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
+	_, err = client.Clientset.CoreV1().Pods(namespace).Patch(context.Background(), pod, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
