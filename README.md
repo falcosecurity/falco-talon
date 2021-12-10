@@ -49,16 +49,16 @@ Actions to trigger for events are set with rules with this syntax:
 ```yaml
 - name: <string>
   match:
-    rules: 
+    rules:
       - <string>
       - <string>
     priority: <string>
-    tags: 
+    tags:
       <string>: <string>
       <string>: <string>
   action:
     name: <string>
-    options: 
+    options:
       <string>: <string>
       <string>: <string>
   continue: <bool>
@@ -106,4 +106,3 @@ Examples:
       suspicious: "true"
   continue: false
 ```
-
