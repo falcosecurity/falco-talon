@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Issif/falco-reactionner/internal/utils"
 	"github.com/spf13/viper"
 	"gopkg.in/alecthomas/kingpin.v2"
+
+	"github.com/Issif/falco-talon/internal/utils"
 )
 
 var config *Configuration

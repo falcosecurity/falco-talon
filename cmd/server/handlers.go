@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Issif/falco-reactionner/internal/configuration"
-	evt "github.com/Issif/falco-reactionner/internal/event"
-	"github.com/Issif/falco-reactionner/internal/notifier"
-	"github.com/Issif/falco-reactionner/internal/rule"
-	"github.com/Issif/falco-reactionner/internal/utils"
+	"github.com/Issif/falco-talon/internal/configuration"
+	evt "github.com/Issif/falco-talon/internal/event"
+	"github.com/Issif/falco-talon/internal/notifier"
+	"github.com/Issif/falco-talon/internal/rule"
+	"github.com/Issif/falco-talon/internal/utils"
 )
 
 func mainHandler(w http.ResponseWriter, r *http.Request) {

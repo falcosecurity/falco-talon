@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/Issif/falco-reactionner/internal/event"
+	"github.com/Issif/falco-talon/internal/event"
 )
 
 func PrintLog(level, message string) {

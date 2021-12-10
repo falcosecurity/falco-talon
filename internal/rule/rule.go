@@ -6,10 +6,11 @@ import (
 	"log"
 	"regexp"
 
-	"github.com/Issif/falco-reactionner/internal/configuration"
-	"github.com/Issif/falco-reactionner/internal/event"
-	"github.com/Issif/falco-reactionner/internal/utils"
 	yaml "gopkg.in/yaml.v3"
+
+	"github.com/Issif/falco-talon/internal/configuration"
+	"github.com/Issif/falco-talon/internal/event"
+	"github.com/Issif/falco-talon/internal/utils"
 )
 
 // TODO

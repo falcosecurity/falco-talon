@@ -3,8 +3,8 @@ package notifier
 import (
 	"fmt"
 
-	"github.com/Issif/falco-reactionner/internal/configuration"
-	"github.com/Issif/falco-reactionner/internal/utils"
+	"github.com/Issif/falco-talon/internal/configuration"
+	"github.com/Issif/falco-talon/internal/utils"
 )
 
 const (

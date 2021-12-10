@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Issif/falco-reactionner/internal/configuration"
-	"github.com/Issif/falco-reactionner/internal/kubernetes"
-	"github.com/Issif/falco-reactionner/internal/rule"
-	"github.com/Issif/falco-reactionner/internal/utils"
+	"github.com/Issif/falco-talon/internal/configuration"
+	"github.com/Issif/falco-talon/internal/kubernetes"
+	"github.com/Issif/falco-talon/internal/rule"
+	"github.com/Issif/falco-talon/internal/utils"
 )
 
 var config *configuration.Configuration
