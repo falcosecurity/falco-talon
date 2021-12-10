@@ -1,0 +1,12 @@
+defaultBaseImage: gcr.io/distroless/static-debian11
+
+builds:
+- id: falco-talon
+  dir: .
+  main: ./cmd/server
+  env:
+  - CGO_ENABLED=0
+  flags:
+  - -trimpath
+  ldflags:
+  - -extldflags "-static"
