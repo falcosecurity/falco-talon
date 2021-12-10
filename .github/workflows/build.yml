@@ -26,6 +26,11 @@ jobs:
       with:
         go-version: ${{ matrix.go-version }}
 
+    - name: Install GoReleaser
+      uses: goreleaser/goreleaser-action@v2
+      with:
+        install-only: true
+
     - name: Run Mage
       uses: magefile/mage-action@v1
       with:
