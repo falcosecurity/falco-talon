@@ -6,6 +6,7 @@ import (
 
 	"github.com/Issif/falco-reactionner/internal/configuration"
 	"github.com/Issif/falco-reactionner/internal/utils"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8s "k8s.io/client-go/kubernetes"
@@ -23,8 +24,8 @@ func CreateClient() Client {
 	config := configuration.GetConfiguration()
 	var k8sconfig *rest.Config
 	var err error
-	if *config.KubeConfig != "" {
-		k8sconfig, err = clientcmd.BuildConfigFromFlags("", *config.KubeConfig)
+	if config.KubeConfig != "" {
+		k8sconfig, err = clientcmd.BuildConfigFromFlags("", config.KubeConfig)
 	} else {
 		k8sconfig, err = rest.InClusterConfig()
 	}
@@ -42,6 +43,14 @@ func CreateClient() Client {
 
 func GetClient() Client {
 	return client
+}
+
+func (client Client) GetPod(pod, namespace string) (*corev1.Pod, error) {
+	p, err := client.Clientset.CoreV1().Pods(namespace).Get(context.Background(), pod, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
 }
 
 func (client Client) Terminate(pod, namespace string, options map[string]interface{}) error {

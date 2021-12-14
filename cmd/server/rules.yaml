@@ -6,6 +6,14 @@
     labels:
       keyA: "valueA"
       keyB: valueB
+      run: ""
+  continue: false
+- name: Rule Test Label 2
+  match:
+    priority: "<Critical"
+  action:
+    name: label
+    labels:
       keyC: "valueC"
       run: ""
 - name: Rule Test Terminate

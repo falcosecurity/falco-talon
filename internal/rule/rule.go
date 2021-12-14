@@ -17,10 +17,12 @@ import (
 // watch CRD and update rules
 
 type Rule struct {
-	Name   string `yaml:"name"`
-	Action Action `yaml:"action"`
-	Match  Match  `yaml:"match"`
-	Weight int    `yaml:"weight"`
+	Name         string `yaml:"name"`
+	Action       Action `yaml:"action"`
+	Match        Match  `yaml:"match"`
+	Continue     bool   `yaml:"continue"`
+	Notification string `yaml:"notification"`
+	// Weight   int    `yaml:"weight"`
 }
 
 type Action struct {
@@ -46,7 +48,7 @@ var priorityComparatorRegex *regexp.Regexp
 
 func CreateRules() *[]*Rule {
 	config := configuration.GetConfiguration()
-	yamlRulesFile, err := ioutil.ReadFile(*config.RulesFile)
+	yamlRulesFile, err := ioutil.ReadFile(config.RulesFile)
 	if err != nil {
 		log.Fatalf("%v\n", err.Error())
 	}
@@ -101,6 +103,9 @@ func (rule *Rule) CompareEvent(event *event.Event) bool {
 		return false
 	}
 	if !rule.checkPriority(event) {
+		return false
+	}
+	if !rule.checkTags(event) {
 		return false
 	}
 	return true

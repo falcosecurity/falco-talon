@@ -26,9 +26,9 @@ func main() {
 	http.HandleFunc("/ping", pingHandler)
 	http.HandleFunc("/healthz", healthHandler)
 
-	utils.PrintLog("info", fmt.Sprintf("Falco Talon is up and listening on '%s:%d'", *config.ListenAddress, *config.ListenPort))
+	utils.PrintLog("info", fmt.Sprintf("Falco Talon is up and listening on '%s:%d'", config.ListenAddress, config.ListenPort))
 
-	if err := http.ListenAndServe(fmt.Sprintf("%s:%d", *config.ListenAddress, *config.ListenPort), nil); err != nil {
+	if err := http.ListenAndServe(fmt.Sprintf("%s:%d", config.ListenAddress, config.ListenPort), nil); err != nil {
 		utils.PrintLog("critical", fmt.Sprintf("%v", err.Error()))
 	}
 }
