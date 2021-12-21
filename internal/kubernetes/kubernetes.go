@@ -4,14 +4,15 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/Issif/falco-reactionner/internal/configuration"
-	"github.com/Issif/falco-reactionner/internal/utils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8s "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/Issif/falco-talon/internal/configuration"
+	"github.com/Issif/falco-talon/internal/utils"
 )
 
 type Client struct {
@@ -83,11 +84,13 @@ func (client Client) Label(pod, namespace string, labels map[string]string) erro
 			Value: j,
 		})
 	}
+
 	payloadBytes, _ := json.Marshal(payload)
 	_, err := client.Clientset.CoreV1().Pods(namespace).Patch(context.Background(), pod, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
 	if err != nil {
 		return err
 	}
+
 	payload = make([]patch, 0)
 	for i, j := range labels {
 		if j != "" {
@@ -98,7 +101,12 @@ func (client Client) Label(pod, namespace string, labels map[string]string) erro
 			Path: "/metadata/labels/" + i,
 		})
 	}
+
 	payloadBytes, _ = json.Marshal(payload)
-	client.Clientset.CoreV1().Pods(namespace).Patch(context.Background(), pod, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
+	_, err = client.Clientset.CoreV1().Pods(namespace).Patch(context.Background(), pod, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

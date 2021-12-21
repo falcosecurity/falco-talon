@@ -3,8 +3,8 @@ package notifier
 import (
 	"fmt"
 
-	"github.com/Issif/falco-reactionner/internal/configuration"
-	"github.com/Issif/falco-reactionner/internal/utils"
+	"github.com/Issif/falco-talon/internal/configuration"
+	"github.com/Issif/falco-talon/internal/utils"
 )
 
 const (
@@ -24,9 +24,9 @@ type Attachment struct {
 	Fallback   string  `json:"fallback"`
 	Color      string  `json:"color"`
 	Text       string  `json:"text,omitempty"`
-	Fields     []Field `json:"fields"`
 	Footer     string  `json:"footer,omitempty"`
 	FooterIcon string  `json:"footer_icon,omitempty"`
+	Fields     []Field `json:"fields"`
 }
 
 // Payload

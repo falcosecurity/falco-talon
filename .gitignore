@@ -1,1 +1,3 @@
 **/falco-talon.yaml
+/falco-talon
+dist/*

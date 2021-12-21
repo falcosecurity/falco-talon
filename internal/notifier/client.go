@@ -4,17 +4,20 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
+
+	"github.com/Issif/falco-talon/internal/utils"
 )
 
-var ErrHeaderMissing = errors.New("Header missing")                   // ErrHeaderMissing = 400
-var ErrClientAuthenticationError = errors.New("Authentication Error") // ErrClientAuthenticationError = 401
-var ErrForbidden = errors.New("Access Denied")                        // ErrForbidden = 403
-var ErrNotFound = errors.New("Resource not found")                    // ErrNotFound = 404
-var ErrUnprocessableEntityError = errors.New("Bad Request")           // ErrUnprocessableEntityError = 422
-var ErrTooManyRequest = errors.New("Exceeding post rate limit")       // ErrTooManyRequest = 429
+var ErrHeaderMissing = errors.New("missing header")                   // ErrHeaderMissing = 400
+var ErrClientAuthenticationError = errors.New("authentication Error") // ErrClientAuthenticationError = 401
+var ErrForbidden = errors.New("access Denied")                        // ErrForbidden = 403
+var ErrNotFound = errors.New("resource not found")                    // ErrNotFound = 404
+var ErrUnprocessableEntityError = errors.New("bad Request")           // ErrUnprocessableEntityError = 422
+var ErrTooManyRequest = errors.New("exceeding post rate limit")       // ErrTooManyRequest = 429
 
 const DefaultContentType = "application/json; charset=utf-8"
 const UserAgent = "Falco-Talon"
@@ -43,6 +46,7 @@ func (c *HTTPClient) Post(payload interface{}) error {
 	// defer + recover to catch panic if output doesn't respond
 	defer func() {
 		if err := recover(); err != nil {
+			utils.PrintLog("error", fmt.Sprintf("in recover: %v", err))
 		}
 	}()
 
@@ -70,19 +74,19 @@ func (c *HTTPClient) Post(payload interface{}) error {
 	defer resp.Body.Close()
 
 	switch resp.StatusCode {
-	case http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent: //200, 201, 202, 204
+	case http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent: // 200, 201, 202, 204
 		return nil
-	case http.StatusBadRequest: //400
+	case http.StatusBadRequest: // 400
 		return ErrHeaderMissing
-	case http.StatusUnauthorized: //401
+	case http.StatusUnauthorized: // 401
 		return ErrClientAuthenticationError
-	case http.StatusForbidden: //403
+	case http.StatusForbidden: // 403
 		return ErrForbidden
-	case http.StatusNotFound: //404
+	case http.StatusNotFound: // 404
 		return ErrNotFound
-	case http.StatusUnprocessableEntity: //422
+	case http.StatusUnprocessableEntity: // 422
 		return ErrUnprocessableEntityError
-	case http.StatusTooManyRequests: //429
+	case http.StatusTooManyRequests: // 429
 		return ErrTooManyRequest
 	default:
 		return errors.New(resp.Status)

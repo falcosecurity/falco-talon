@@ -6,10 +6,11 @@ import (
 	"log"
 	"regexp"
 
-	"github.com/Issif/falco-reactionner/internal/configuration"
-	"github.com/Issif/falco-reactionner/internal/event"
-	"github.com/Issif/falco-reactionner/internal/utils"
 	yaml "gopkg.in/yaml.v3"
+
+	"github.com/Issif/falco-talon/internal/configuration"
+	"github.com/Issif/falco-talon/internal/event"
+	"github.com/Issif/falco-talon/internal/utils"
 )
 
 // TODO
@@ -17,28 +18,28 @@ import (
 // watch CRD and update rules
 
 type Rule struct {
-	Name         string `yaml:"name"`
 	Action       Action `yaml:"action"`
+	Name         string `yaml:"name"`
+	Notification string `yaml:"notification"`
 	Match        Match  `yaml:"match"`
 	Continue     bool   `yaml:"continue"`
-	Notification string `yaml:"notification"`
 	// Weight   int    `yaml:"weight"`
 }
 
 type Action struct {
-	Name    string                 `yaml:"name"`
 	Options map[string]interface{} `yaml:"options,omitempty"`
 	Labels  map[string]string      `yaml:"labels,omitempty"`
+	Name    string                 `yaml:"name"`
 }
 
 type Match struct {
-	PriorityNumber     int
-	PriorityComparator string
-	Priority           string                 `yaml:"priority"`
-	Rules              []string               `yaml:"rules"`
-	Source             string                 `yaml:"Source"`
 	OutputFields       map[string]interface{} `yaml:"output_fields"`
-	Tags               []string               `yaml:"tags"`
+	PriorityComparator string
+	Priority           string   `yaml:"priority"`
+	Source             string   `yaml:"Source"`
+	Rules              []string `yaml:"rules"`
+	Tags               []string `yaml:"tags"`
+	PriorityNumber     int
 }
 
 var rules *[]*Rule
@@ -59,9 +60,9 @@ func CreateRules() *[]*Rule {
 		log.Fatalf("%v\n", err2.Error())
 	}
 
-	priorityCheckRegex, _ = regexp.Compile("(?i)^(<|>)?(=)?(|Debug|Informational|Notice|Warning|Error|Critical|Alert|Emergency)")
-	ruleCheckRegex, _ = regexp.Compile("(?i)(terminate|label)")
-	priorityComparatorRegex, _ = regexp.Compile("^(<|>)?(=)?")
+	priorityCheckRegex = regexp.MustCompile("(?i)^(<|>)?(=)?(|Debug|Informational|Notice|Warning|Error|Critical|Alert|Emergency)")
+	ruleCheckRegex = regexp.MustCompile("(?i)(terminate|label)")
+	priorityComparatorRegex = regexp.MustCompile("^(<|>)?(=)?")
 
 	for _, i := range *rules {
 		if i.Name == "" {
@@ -148,10 +149,8 @@ func (rule *Rule) checkTags(event *event.Event) bool {
 			}
 		}
 	}
-	if count != len(rule.Match.Tags) {
-		return false
-	}
-	return true
+
+	return count == len(rule.Match.Tags)
 }
 
 func (rule *Rule) checkPriority(event *event.Event) bool {

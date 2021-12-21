@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Issif/falco-reactionner/internal/utils"
 	"github.com/spf13/viper"
 	"gopkg.in/alecthomas/kingpin.v2"
+
+	"github.com/Issif/falco-talon/internal/utils"
 )
 
 var config *Configuration
@@ -18,11 +19,11 @@ var config *Configuration
 // manage configuration with file and env vars
 
 type Configuration struct {
-	ListenAddress string
-	ListenPort    int
+	Notifiers     Notifiers
 	RulesFile     string
 	KubeConfig    string
-	Notifiers     Notifiers
+	ListenAddress string
+	ListenPort    int
 }
 
 type Notifiers struct {
@@ -46,7 +47,7 @@ func CreateConfiguration() *Configuration {
 	version := kingpin.Flag("version", "falco-talon version").Short('v').Bool()
 	kingpin.Parse()
 
-	if *version != false {
+	if *version {
 		v := GetVersionInfo()
 		fmt.Println(v.String())
 		os.Exit(0)
