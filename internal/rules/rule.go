@@ -1,4 +1,4 @@
-package rule
+package rules
 
 import (
 	"fmt"
@@ -6,9 +6,9 @@ import (
 	"log"
 	"regexp"
 
-	"github.com/Issif/falco-reactionner/internal/configuration"
-	"github.com/Issif/falco-reactionner/internal/event"
-	"github.com/Issif/falco-reactionner/internal/utils"
+	"github.com/Issif/falco-talon/configuration"
+	"github.com/Issif/falco-talon/internal/event"
+	"github.com/Issif/falco-talon/utils"
 	yaml "gopkg.in/yaml.v3"
 )
 
@@ -17,11 +17,11 @@ import (
 // watch CRD and update rules
 
 type Rule struct {
-	Name         string `yaml:"name"`
-	Action       Action `yaml:"action"`
-	Match        Match  `yaml:"match"`
-	Continue     bool   `yaml:"continue"`
-	Notification string `yaml:"notification"`
+	Name      string   `yaml:"name"`
+	Action    Action   `yaml:"action"`
+	Match     Match    `yaml:"match"`
+	Continue  bool     `yaml:"continue"`
+	Notifiers []string `yaml:"notifiers"`
 	// Weight   int    `yaml:"weight"`
 }
 
@@ -73,7 +73,7 @@ func CreateRules() *[]*Rule {
 		if !ruleCheckRegex.MatchString(i.Action.Name) {
 			utils.PrintLog("critical", fmt.Sprintf("Unknown action for rule '%v'\n", i.Name))
 		}
-		err := i.SetPriorityNumberComparator()
+		err := i.setPriorityNumberComparator()
 		if err != nil {
 			utils.PrintLog("critical", fmt.Sprintf("Incorrect Priority for Rule: %v\n", i.Name))
 		}
@@ -82,7 +82,7 @@ func CreateRules() *[]*Rule {
 	return rules
 }
 
-func (rule *Rule) SetPriorityNumberComparator() error {
+func (rule *Rule) setPriorityNumberComparator() error {
 	if rule.Match.Priority == "" {
 		return nil
 	}
@@ -93,6 +93,14 @@ func (rule *Rule) SetPriorityNumberComparator() error {
 
 func GetRules() *[]*Rule {
 	return rules
+}
+
+func (rule *Rule) GetName() string {
+	return rule.Name
+}
+
+func (rule *Rule) GetAction() string {
+	return rule.Action.Name
 }
 
 func (rule *Rule) CompareEvent(event *event.Event) bool {

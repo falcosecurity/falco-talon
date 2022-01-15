@@ -28,3 +28,17 @@ func DecodeEvent(payload io.Reader) (Event, error) {
 	}
 	return event, nil
 }
+
+func (event *Event) GetPod() string {
+	if event.OutputFields["k8s.pod.name"] != nil {
+		return event.OutputFields["k8s.pod.name"].(string)
+	}
+	return ""
+}
+
+func (event *Event) GetNamespace() string {
+	if event.OutputFields["k8s.ns.name"] != nil {
+		return event.OutputFields["k8s.ns.name"].(string)
+	}
+	return ""
+}

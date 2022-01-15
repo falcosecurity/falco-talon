@@ -33,8 +33,8 @@ type Info struct {
 	Platform     string
 }
 
-func GetVersionInfo() Info {
-	return Info{
+func GetVersionInfo() *Info {
+	return &Info{
 		GitVersion:   GitVersion,
 		GitCommit:    gitCommit,
 		GitTreeState: gitTreeState,

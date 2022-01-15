@@ -1,0 +1,24 @@
+listenAddress: "0.0.0.0"
+listenPort: "2803"
+rulesFile: "./rules.yaml"
+kubeConfig: "/home/thomas/.kube/config"
+
+defaultNotifiers:
+  - slack
+
+notifiers:
+  slack:
+    webhookurl: "https://config"
+    # icon: ""
+    # username: ""
+    footer: ""
+    # number: 100
+    # number64: 200
+    # boolean: true
+    # float64: 122.4
+  email:
+    smtpserver: ""
+    user: ""
+    password: ""
+    from: ""
+    to: ""

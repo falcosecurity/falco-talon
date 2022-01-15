@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/Issif/falco-reactionner/internal/configuration"
-	"github.com/Issif/falco-reactionner/internal/utils"
+	"github.com/Issif/falco-talon/configuration"
+	"github.com/Issif/falco-talon/utils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
