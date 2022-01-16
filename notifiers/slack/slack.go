@@ -6,6 +6,7 @@ import (
 	"github.com/Issif/falco-talon/configuration"
 	"github.com/Issif/falco-talon/internal/event"
 	"github.com/Issif/falco-talon/internal/rules"
+	"github.com/Issif/falco-talon/notifiers"
 	"github.com/Issif/falco-talon/notifiers/http"
 	"github.com/Issif/falco-talon/utils"
 )
@@ -57,6 +58,7 @@ func init() {
 	slackconfig = new(SlackConfig)
 	config := configuration.GetConfiguration()
 	slackconfig = utils.SetField(slackconfig, config.Notifiers["slack"]).(*SlackConfig)
+	notifiers.GetNotifiers().List["slack"] = func(rule *rules.Rule, event *event.Event, status string) { Notify(rule, event, status) }
 }
 
 func NewSlackPayload(rule *rules.Rule, event *event.Event, status string) SlackPayload {

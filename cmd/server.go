@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Issif/falco-talon/actionners/kubernetes"
 	"github.com/Issif/falco-talon/configuration"
 	"github.com/Issif/falco-talon/internal/handler"
-	"github.com/Issif/falco-talon/internal/kubernetes"
 	ruleengine "github.com/Issif/falco-talon/internal/rules"
 	"github.com/Issif/falco-talon/utils"
 
@@ -23,8 +23,9 @@ var serverCmd = &cobra.Command{
 		configFile, _ := cmd.Flags().GetString("config")
 		config := configuration.CreateConfiguration(configFile)
 		rules := ruleengine.CreateRules()
+
 		kubernetes.CreateClient()
-		// slack.Init()
+
 		utils.PrintLog("info", fmt.Sprintf("%v Rules have been successfully loaded", len(*rules)))
 
 		http.HandleFunc("/", handler.MainHandler)

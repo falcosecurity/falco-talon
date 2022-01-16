@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Issif/falco-talon/actionners/kubernetes"
 	evt "github.com/Issif/falco-talon/internal/event"
-	"github.com/Issif/falco-talon/internal/kubernetes"
 	ruleengine "github.com/Issif/falco-talon/internal/rules"
 	"github.com/Issif/falco-talon/notifiers"
 	"github.com/Issif/falco-talon/utils"
@@ -27,12 +27,10 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// fmt.Println(decodedEvent)
-
 	rules := ruleengine.GetRules()
 	triggeredRules := make([]*ruleengine.Rule, 0)
 	for _, i := range *rules {
-		if i.CompareEvent(&event) {
+		if i.CompareRule(&event) {
 			triggeredRules = append(triggeredRules, i)
 		}
 	}

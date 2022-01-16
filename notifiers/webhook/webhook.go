@@ -6,6 +6,7 @@ import (
 	"github.com/Issif/falco-talon/configuration"
 	"github.com/Issif/falco-talon/internal/event"
 	"github.com/Issif/falco-talon/internal/rules"
+	"github.com/Issif/falco-talon/notifiers"
 	"github.com/Issif/falco-talon/notifiers/http"
 	"github.com/Issif/falco-talon/utils"
 )
@@ -21,7 +22,8 @@ var webhookConfig *WebhookConfig
 func init() {
 	webhookConfig = new(WebhookConfig)
 	config := configuration.GetConfiguration()
-	webhookConfig = utils.SetField(webhookConfig, config.Notifiers["slack"]).(*WebhookConfig)
+	webhookConfig = utils.SetField(webhookConfig, config.Notifiers["webhook"]).(*WebhookConfig)
+	notifiers.GetNotifiers().List["webhook"] = func(rule *rules.Rule, event *event.Event, status string) { Notify(rule, event, status) }
 }
 
 func NewWebhookPayload(rule *rules.Rule, event *event.Event, status string) WebhookPayload {

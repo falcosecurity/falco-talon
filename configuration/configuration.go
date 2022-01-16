@@ -43,7 +43,6 @@ func init() {
 }
 
 func CreateConfiguration(configFile string) *Configuration {
-
 	v := viper.New()
 	v.SetDefault("ListenAddress", defaultListenAddress)
 	v.SetDefault("ListenPort", defaultListPort)

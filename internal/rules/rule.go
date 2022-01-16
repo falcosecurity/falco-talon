@@ -46,6 +46,12 @@ var priorityCheckRegex *regexp.Regexp
 var ruleCheckRegex *regexp.Regexp
 var priorityComparatorRegex *regexp.Regexp
 
+func init() {
+	priorityCheckRegex, _ = regexp.Compile("(?i)^(<|>)?(=)?(|Debug|Informational|Notice|Warning|Error|Critical|Alert|Emergency)")
+	ruleCheckRegex, _ = regexp.Compile("(?i)(terminate|label)")
+	priorityComparatorRegex, _ = regexp.Compile("^(<|>)?(=)?")
+}
+
 func CreateRules() *[]*Rule {
 	config := configuration.GetConfiguration()
 	yamlRulesFile, err := ioutil.ReadFile(config.RulesFile)
@@ -58,10 +64,6 @@ func CreateRules() *[]*Rule {
 	if err2 != nil {
 		log.Fatalf("%v\n", err2.Error())
 	}
-
-	priorityCheckRegex, _ = regexp.Compile("(?i)^(<|>)?(=)?(|Debug|Informational|Notice|Warning|Error|Critical|Alert|Emergency)")
-	ruleCheckRegex, _ = regexp.Compile("(?i)(terminate|label)")
-	priorityComparatorRegex, _ = regexp.Compile("^(<|>)?(=)?")
 
 	for _, i := range *rules {
 		if i.Name == "" {
@@ -103,8 +105,8 @@ func (rule *Rule) GetAction() string {
 	return rule.Action.Name
 }
 
-func (rule *Rule) CompareEvent(event *event.Event) bool {
-	if !rule.checkRule(event) {
+func (rule *Rule) CompareRule(event *event.Event) bool {
+	if !rule.checkRules(event) {
 		return false
 	}
 	if !rule.checkOutputFields(event) {
@@ -116,10 +118,13 @@ func (rule *Rule) CompareEvent(event *event.Event) bool {
 	if !rule.checkTags(event) {
 		return false
 	}
+	if !rule.checkSoure(event) {
+		return false
+	}
 	return true
 }
 
-func (rule *Rule) checkRule(event *event.Event) bool {
+func (rule *Rule) checkRules(event *event.Event) bool {
 	if len(rule.Match.Rules) == 0 {
 		return true
 	}
@@ -156,10 +161,14 @@ func (rule *Rule) checkTags(event *event.Event) bool {
 			}
 		}
 	}
-	if count != len(rule.Match.Tags) {
-		return false
+	return count == len(rule.Match.Tags)
+}
+
+func (rule *Rule) checkSoure(event *event.Event) bool {
+	if rule.Match.Source == "" {
+		return true
 	}
-	return true
+	return event.Source == rule.Match.Source
 }
 
 func (rule *Rule) checkPriority(event *event.Event) bool {

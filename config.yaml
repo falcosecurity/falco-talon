@@ -5,6 +5,7 @@ kubeConfig: "/home/thomas/.kube/config"
 
 defaultNotifiers:
   - slack
+  - webhook
 
 notifiers:
   slack:
@@ -22,3 +23,5 @@ notifiers:
     password: ""
     from: ""
     to: ""
+  webhook:
+    url: ""
