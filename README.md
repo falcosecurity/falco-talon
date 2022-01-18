@@ -16,7 +16,6 @@
   - [Usage](#usage)
   - [Deployment](#deployment)
     - [Helm](#helm)
-  - [Demos](#demos)
   - [License](#license)
   - [Author](#author)
 
@@ -232,11 +231,6 @@ Flags:
 ## Deployment
 
 ### Helm
-
-## Demos
-<iframe src="https://drive.google.com/file/d/1SI2ye3JfxCMbDlEMCKMeWLLRT6HUEC1G/preview" width="640" height="480" allow="autoplay"></iframe>
-<iframe src="https://drive.google.com/file/d/1PPGDIdBIIttugvz466CrngSaYwNnQU_e/preview" width="640" height="480" allow="autoplay"></iframe>
-
 
 ## License
 
