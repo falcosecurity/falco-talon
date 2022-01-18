@@ -2,16 +2,29 @@ package kubernetes
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/Issif/falco-talon/internal/events"
+	"github.com/Issif/falco-talon/internal/rules"
+	"github.com/Issif/falco-talon/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (client Client) Terminate(pod, namespace string, options map[string]interface{}) error {
-	gracePeriodSeconds := new(int64)
-	if options["gracePeriodSeconds"] != nil {
-		*gracePeriodSeconds = int64(options["gracePeriodSeconds"].(int))
+var Terminate = func(rule *rules.Rule, event *events.Event) error {
+	pod := event.GetPod()
+	namespace := event.GetNamespace()
+
+	if pod == "" || namespace == "" {
+		utils.PrintLog("info", fmt.Sprintf("MATCH: '%v' ACTION: 'none' (missing pod or namespace)", rule.GetName()))
+		return nil
 	}
-	err := client.Clientset.CoreV1().Pods(namespace).Delete(context.Background(), pod, metav1.DeleteOptions{GracePeriodSeconds: gracePeriodSeconds})
+
+	parameters := rule.GetParameters()
+	gracePeriodSeconds := new(int64)
+	if parameters["gracePeriodSeconds"] != nil {
+		*gracePeriodSeconds = int64(parameters["gracePeriodSeconds"].(int))
+	}
+	err := GetClient().Clientset.CoreV1().Pods(namespace).Delete(context.Background(), pod, metav1.DeleteOptions{GracePeriodSeconds: gracePeriodSeconds})
 	if err != nil {
 		return err
 	}

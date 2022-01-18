@@ -1,13 +1,16 @@
-# - name: Rule Test Label
-#   match:
-#     priority: "<Critical"
-#   action:
-#     name: label
-#     labels:
-#       keyA: "valueA"
-#       keyB: valueB
-#       run: ""
-#   continue: false
+- name: Rule Test Label
+  match:
+    priority: "Critical"
+  action:
+    name: kubernetes:labelize
+    arguments:
+      keyA: "valueA"
+      keyB: valueB
+      run: ""
+  continue: false
+  notifiers:
+    # - stdout
+    - slack
 # - name: Rule Test Label 2
 #   match:
 #     priority: "<Critical"
@@ -16,14 +19,14 @@
 #     labels:
 #       keyC: "valueC"
 #       run: ""
-- name: Rule Test Terminate
-  match:
-    rules:
-      - Test Terminate
-  action:
-    name: terminate
-    options:
-      gracePeriodSeconds: 0
+# - name: Rule Test Terminate
+#   match:
+#     rules:
+#       - Test Terminate
+#   action:
+#     name: terminate
+#     options:
+#       gracePeriodSeconds: 0
 # - name: Rule 1
 #   match:
 #     rules:

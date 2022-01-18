@@ -3,34 +3,31 @@ package webhook
 import (
 	"fmt"
 
-	"github.com/Issif/falco-talon/configuration"
-	"github.com/Issif/falco-talon/internal/event"
+	"github.com/Issif/falco-talon/internal/events"
 	"github.com/Issif/falco-talon/internal/rules"
-	"github.com/Issif/falco-talon/notifiers"
 	"github.com/Issif/falco-talon/notifiers/http"
 	"github.com/Issif/falco-talon/utils"
 )
 
-type WebhookConfig struct {
+type Configuration struct {
 	URL string `field:"url"`
 }
 
-type WebhookPayload string
-
-var webhookConfig *WebhookConfig
-
-func init() {
-	webhookConfig = new(WebhookConfig)
-	config := configuration.GetConfiguration()
-	webhookConfig = utils.SetField(webhookConfig, config.Notifiers["webhook"]).(*WebhookConfig)
-	notifiers.GetNotifiers().List["webhook"] = func(rule *rules.Rule, event *event.Event, status string) { Notify(rule, event, status) }
+type Payload struct {
+	Pod       string `json:"pod"`
+	Namespace string `json:"namespace"`
+	Action    string `json:"action"`
+	Status    string `json:"status"`
 }
 
-func NewWebhookPayload(rule *rules.Rule, event *event.Event, status string) WebhookPayload {
-	return "body"
+var webhookConfig *Configuration
+
+var Init = func(fields map[string]interface{}) {
+	webhookConfig = new(Configuration)
+	webhookConfig = utils.SetFields(webhookConfig, fields).(*Configuration)
 }
 
-func Notify(rule *rules.Rule, event *event.Event, status string) {
+var Notify = func(rule *rules.Rule, event *events.Event, status string) {
 	if webhookConfig.URL == "" {
 		return
 	}
@@ -42,5 +39,18 @@ func Notify(rule *rules.Rule, event *event.Event, status string) {
 	err = client.Post(NewWebhookPayload(rule, event, status))
 	if err != nil {
 		utils.PrintLog("error", fmt.Sprintf("Error with Slack notification: %v", err.Error()))
+	}
+}
+
+func NewWebhookPayload(rule *rules.Rule, event *events.Event, status string) Payload {
+	pod := event.GetPod()
+	namespace := event.GetNamespace()
+	action := rule.GetAction()
+
+	return Payload{
+		Pod:       pod,
+		Namespace: namespace,
+		Action:    action,
+		Status:    status,
 	}
 }

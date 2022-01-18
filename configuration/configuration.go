@@ -17,11 +17,11 @@ const (
 )
 
 // type Actionner interface {
-// 	Run(event *event.Event, rule *rules.Rule)
+// 	Run(event *events.Event, rule *rules.Rule)
 // }
 
 // type Notifier interface {
-// 	Notifiy(event *event.Event, rule *rules.Rule)
+// 	Notifiy(event *events.Event, rule *rules.Rule)
 // }
 
 // TODO

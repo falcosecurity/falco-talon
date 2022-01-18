@@ -2,11 +2,10 @@ package slack
 
 import (
 	"fmt"
+	"strings"
 
-	"github.com/Issif/falco-talon/configuration"
-	"github.com/Issif/falco-talon/internal/event"
+	"github.com/Issif/falco-talon/internal/events"
 	"github.com/Issif/falco-talon/internal/rules"
-	"github.com/Issif/falco-talon/notifiers"
 	"github.com/Issif/falco-talon/notifiers/http"
 	"github.com/Issif/falco-talon/utils"
 )
@@ -17,12 +16,12 @@ const (
 	Blue  string = "#206cff"
 )
 
-type SlackConfig struct {
+type Configuration struct {
 	WebhookURL string `field:"webhookurl"`
-	Footer     string `field:"footer" default:"http://github.com/Issif/falco-talon"`
-	Icon       string `field:"icon" default:"https://default"`
+	Icon       string `field:"icon" default:"https://upload.wikimedia.org/wikipedia/commons/2/26/Circaetus_gallicus_claw.jpg"`
 	Username   string `field:"username" default:"Falco Talon"`
-	Format     string `field:"format" default:"all"`
+	Footer     string `field:"footer" default:"http://github.com/Issif/falco-talon"`
+	Format     string `field:"format" default:"long"`
 	// Number     int     `field:"number" default:"10"`
 	// Number64   int64   `field:"number64" default:"20"`
 	// Boolean    bool    `field:"boolean" default:"false"`
@@ -45,63 +44,78 @@ type Attachment struct {
 }
 
 // Payload
-type SlackPayload struct {
+type Payload struct {
 	Text        string       `json:"text,omitempty"`
 	Username    string       `json:"username,omitempty"`
 	IconURL     string       `json:"icon_url,omitempty"`
 	Attachments []Attachment `json:"attachments,omitempty"`
 }
 
-var slackconfig *SlackConfig
+var slackconfig *Configuration
 
-func init() {
-	slackconfig = new(SlackConfig)
-	config := configuration.GetConfiguration()
-	slackconfig = utils.SetField(slackconfig, config.Notifiers["slack"]).(*SlackConfig)
-	notifiers.GetNotifiers().List["slack"] = func(rule *rules.Rule, event *event.Event, status string) { Notify(rule, event, status) }
+var Init = func(fields map[string]interface{}) {
+	slackconfig = new(Configuration)
+	slackconfig = utils.SetFields(slackconfig, fields).(*Configuration)
 }
 
-func NewSlackPayload(rule *rules.Rule, event *event.Event, status string) SlackPayload {
+var Notify = func(rule *rules.Rule, event *events.Event, status string) {
+	if slackconfig.WebhookURL == "" {
+		return
+	}
+
+	client, err := http.NewHTTPClient(slackconfig.WebhookURL)
+	if err != nil {
+		utils.PrintLog("error", fmt.Sprintf("Error with Slack notification: %v", err.Error()))
+	}
+	err = client.Post(NewPayload(rule, event, status))
+	if err != nil {
+		utils.PrintLog("error", fmt.Sprintf("Error with Slack notification: %v", err.Error()))
+	}
+}
+
+func NewPayload(rule *rules.Rule, event *events.Event, status string) Payload {
+	ruleName := rule.GetName()
 	pod := event.GetPod()
 	namespace := event.GetNamespace()
 	action := rule.GetAction()
 
-	// var fields []Field
-	// var field Field
-
-	// field.Title = "Rule"
-	// field.Value = "`" + rule + "`"
-	// field.Short = false
-	// fields = append(fields, field)
-	// field.Title = "Pod"
-	// field.Value = "`" + pod + "`"
-	// field.Short = true
-	// fields = append(fields, field)
-	// field.Title = "Namespace"
-	// field.Value = "`" + namespace + "`"
-	// field.Short = true
-	// fields = append(fields, field)
-	// field.Title = "Action"
-	// field.Value = strings.ToUpper("`" + action + "`")
-	// field.Short = true
-	// fields = append(fields, field)
-	// field.Title = "Status"
-	// field.Value = "`" + status + "`"
-	// field.Short = true
-	// fields = append(fields, field)
-
 	var attachments []Attachment
 	var attachment Attachment
 
-	attachment.Text = fmt.Sprintf("Action `%v` of rule `%v ` has been successfully triggered\n for pod `%v` in namespace `%v`", action, rule, pod, namespace)
+	attachment.Text = fmt.Sprintf("Action `%v` from rule `%v` has been successfully triggered for pod `%v` in namespace `%v`", action, ruleName, pod, namespace)
 
-	// attachment.Footer = DefaultFooter
-	// if config.Notifiers.Slack.Footer != "" {
-	// 	attachment.Footer = config.Notifiers.Slack.Footer
-	// }
+	if slackconfig.Format != "short" {
+		var fields []Field
+		var field Field
 
-	attachment.Fallback = ""
-	// attachment.Fields = fields
+		field.Title = "Rule"
+		field.Value = "`" + ruleName + "`"
+		field.Short = false
+		fields = append(fields, field)
+		field.Title = "Pod"
+		field.Value = "`" + pod + "`"
+		field.Short = true
+		fields = append(fields, field)
+		field.Title = "Namespace"
+		field.Value = "`" + namespace + "`"
+		field.Short = true
+		fields = append(fields, field)
+		field.Title = "Action"
+		field.Value = strings.ToUpper("`" + action + "`")
+		field.Short = true
+		fields = append(fields, field)
+		field.Title = "Status"
+		field.Value = "`" + status + "`"
+		field.Short = true
+		fields = append(fields, field)
+
+		if slackconfig.Footer != "" {
+			attachment.Footer = slackconfig.Footer
+		}
+
+		attachment.Fallback = ""
+		attachment.Fields = fields
+	}
 
 	var color string
 	switch status {
@@ -116,28 +130,13 @@ func NewSlackPayload(rule *rules.Rule, event *event.Event, status string) SlackP
 
 	attachments = append(attachments, attachment)
 
-	s := SlackPayload{
+	s := Payload{
 		Username:    slackconfig.Username,
 		IconURL:     slackconfig.Icon,
 		Attachments: attachments,
 	}
 
-	fmt.Printf("%#v\n", s)
+	// fmt.Printf("%#v\n", s)
 
 	return s
-}
-
-func Notify(rule *rules.Rule, event *event.Event, status string) {
-	if slackconfig.WebhookURL == "" {
-		return
-	}
-
-	client, err := http.NewHTTPClient(slackconfig.WebhookURL)
-	if err != nil {
-		utils.PrintLog("error", fmt.Sprintf("Error with Slack notification: %v", err.Error()))
-	}
-	err = client.Post(NewSlackPayload(rule, event, status))
-	if err != nil {
-		utils.PrintLog("error", fmt.Sprintf("Error with Slack notification: %v", err.Error()))
-	}
 }

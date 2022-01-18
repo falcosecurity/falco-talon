@@ -6,10 +6,11 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Issif/falco-talon/actionners/kubernetes"
+	"github.com/Issif/falco-talon/actionners"
 	"github.com/Issif/falco-talon/configuration"
 	"github.com/Issif/falco-talon/internal/handler"
 	ruleengine "github.com/Issif/falco-talon/internal/rules"
+	"github.com/Issif/falco-talon/notifiers"
 	"github.com/Issif/falco-talon/utils"
 
 	"github.com/spf13/cobra"
@@ -23,9 +24,8 @@ var serverCmd = &cobra.Command{
 		configFile, _ := cmd.Flags().GetString("config")
 		config := configuration.CreateConfiguration(configFile)
 		rules := ruleengine.CreateRules()
-
-		kubernetes.CreateClient()
-
+		actionners.Init()
+		notifiers.Init()
 		utils.PrintLog("info", fmt.Sprintf("%v Rules have been successfully loaded", len(*rules)))
 
 		http.HandleFunc("/", handler.MainHandler)

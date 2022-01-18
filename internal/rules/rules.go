@@ -5,9 +5,10 @@ import (
 	"io/ioutil"
 	"log"
 	"regexp"
+	"strings"
 
 	"github.com/Issif/falco-talon/configuration"
-	"github.com/Issif/falco-talon/internal/event"
+	"github.com/Issif/falco-talon/internal/events"
 	"github.com/Issif/falco-talon/utils"
 	yaml "gopkg.in/yaml.v3"
 )
@@ -26,9 +27,9 @@ type Rule struct {
 }
 
 type Action struct {
-	Name    string                 `yaml:"name"`
-	Options map[string]interface{} `yaml:"options,omitempty"`
-	Labels  map[string]string      `yaml:"labels,omitempty"`
+	Name       string                 `yaml:"name"`
+	Arguments  map[string]interface{} `yaml:"arguments,omitempty"`
+	Parameters map[string]interface{} `yaml:"parameters,omitempty"`
 }
 
 type Match struct {
@@ -43,12 +44,12 @@ type Match struct {
 
 var rules *[]*Rule
 var priorityCheckRegex *regexp.Regexp
-var ruleCheckRegex *regexp.Regexp
+var actionCheckRegex *regexp.Regexp
 var priorityComparatorRegex *regexp.Regexp
 
 func init() {
 	priorityCheckRegex, _ = regexp.Compile("(?i)^(<|>)?(=)?(|Debug|Informational|Notice|Warning|Error|Critical|Alert|Emergency)")
-	ruleCheckRegex, _ = regexp.Compile("(?i)(terminate|label)")
+	actionCheckRegex, _ = regexp.Compile("[a-z]+:[a-z]+")
 	priorityComparatorRegex, _ = regexp.Compile("^(<|>)?(=)?")
 }
 
@@ -72,7 +73,7 @@ func CreateRules() *[]*Rule {
 		if !priorityCheckRegex.MatchString(i.Match.Priority) {
 			utils.PrintLog("critical", fmt.Sprintf("Incorrect priority for rule '%v'\n", i.Name))
 		}
-		if !ruleCheckRegex.MatchString(i.Action.Name) {
+		if !actionCheckRegex.MatchString(i.Action.Name) {
 			utils.PrintLog("critical", fmt.Sprintf("Unknown action for rule '%v'\n", i.Name))
 		}
 		err := i.setPriorityNumberComparator()
@@ -105,7 +106,27 @@ func (rule *Rule) GetAction() string {
 	return rule.Action.Name
 }
 
-func (rule *Rule) CompareRule(event *event.Event) bool {
+func (rule *Rule) GetActionName() string {
+	return strings.Split(rule.Action.Name, ":")[1]
+}
+
+func (rule *Rule) GetActionCategory() string {
+	return strings.Split(rule.Action.Name, ":")[0]
+}
+
+func (rule *Rule) GetParameters() map[string]interface{} {
+	return rule.Action.Parameters
+}
+
+func (rule *Rule) GetArguments() map[string]interface{} {
+	return rule.Action.Arguments
+}
+
+func (rule *Rule) MustContinue() bool {
+	return rule.Continue
+}
+
+func (rule *Rule) CompareRule(event *events.Event) bool {
 	if !rule.checkRules(event) {
 		return false
 	}
@@ -124,7 +145,7 @@ func (rule *Rule) CompareRule(event *event.Event) bool {
 	return true
 }
 
-func (rule *Rule) checkRules(event *event.Event) bool {
+func (rule *Rule) checkRules(event *events.Event) bool {
 	if len(rule.Match.Rules) == 0 {
 		return true
 	}
@@ -136,7 +157,7 @@ func (rule *Rule) checkRules(event *event.Event) bool {
 	return false
 }
 
-func (rule *Rule) checkOutputFields(event *event.Event) bool {
+func (rule *Rule) checkOutputFields(event *events.Event) bool {
 	if len(rule.Match.OutputFields) == 0 {
 		return true
 	}
@@ -149,7 +170,7 @@ func (rule *Rule) checkOutputFields(event *event.Event) bool {
 	return true
 }
 
-func (rule *Rule) checkTags(event *event.Event) bool {
+func (rule *Rule) checkTags(event *events.Event) bool {
 	if len(rule.Match.Tags) == 0 {
 		return true
 	}
@@ -164,14 +185,14 @@ func (rule *Rule) checkTags(event *event.Event) bool {
 	return count == len(rule.Match.Tags)
 }
 
-func (rule *Rule) checkSoure(event *event.Event) bool {
+func (rule *Rule) checkSoure(event *events.Event) bool {
 	if rule.Match.Source == "" {
 		return true
 	}
 	return event.Source == rule.Match.Source
 }
 
-func (rule *Rule) checkPriority(event *event.Event) bool {
+func (rule *Rule) checkPriority(event *events.Event) bool {
 	if rule.Match.PriorityNumber == 0 {
 		return true
 	}

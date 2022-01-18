@@ -3,7 +3,10 @@ package kubernetes
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
+	"github.com/Issif/falco-talon/internal/events"
+	"github.com/Issif/falco-talon/internal/rules"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -14,16 +17,19 @@ type patch struct {
 	Value string `json:"value,omitempty"`
 }
 
-func (client Client) Label(pod, namespace string, labels map[string]string) error {
+var Labelize = func(rule *rules.Rule, event *events.Event) error {
+	pod := event.GetPod()
+	namespace := event.GetNamespace()
+
 	payload := make([]patch, 0)
-	for i, j := range labels {
+	for i, j := range rule.GetArguments() {
 		if j == "" {
 			continue
 		}
 		payload = append(payload, patch{
 			Op:    "replace",
 			Path:  "/metadata/labels/" + i,
-			Value: j,
+			Value: fmt.Sprintf("%v", j),
 		})
 	}
 	payloadBytes, _ := json.Marshal(payload)
@@ -32,7 +38,7 @@ func (client Client) Label(pod, namespace string, labels map[string]string) erro
 		return err
 	}
 	payload = make([]patch, 0)
-	for i, j := range labels {
+	for i, j := range rule.GetArguments() {
 		if j != "" {
 			continue
 		}

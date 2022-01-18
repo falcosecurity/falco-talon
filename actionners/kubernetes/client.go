@@ -2,8 +2,12 @@ package kubernetes
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/Issif/falco-talon/configuration"
+	"github.com/Issif/falco-talon/internal/events"
+	"github.com/Issif/falco-talon/internal/rules"
 	"github.com/Issif/falco-talon/utils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,11 +22,8 @@ type Client struct {
 
 var client *Client
 
-func init() {
+var Init = func() {
 	client = new(Client)
-}
-
-func CreateClient() *Client {
 	config := configuration.GetConfiguration()
 	var k8sconfig *rest.Config
 	var err error
@@ -40,17 +41,28 @@ func CreateClient() *Client {
 	if err != nil {
 		utils.PrintLog("critical", err.Error())
 	}
-	return client
 }
 
 func GetClient() *Client {
 	return client
 }
 
-func (client Client) GetPod(pod, namespace string) (*corev1.Pod, error) {
+var Check = func(rule *rules.Rule, event *events.Event) error {
+	pod := event.GetPod()
+	namespace := event.GetNamespace()
+	if pod == "" || namespace == "" {
+		return errors.New("missing pod or namespace")
+	}
+	if p := client.GetPod(pod, namespace); p == nil {
+		return fmt.Errorf("pod %v in namespace %v doesn't exist (it may have been already terminated)", pod, namespace)
+	}
+	return nil
+}
+
+func (client Client) GetPod(pod, namespace string) *corev1.Pod {
 	p, err := client.Clientset.CoreV1().Pods(namespace).Get(context.Background(), pod, metav1.GetOptions{})
 	if err != nil {
-		return nil, err
+		return nil
 	}
-	return p, nil
+	return p
 }

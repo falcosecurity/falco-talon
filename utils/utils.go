@@ -21,8 +21,8 @@ func PrintLog(level, message string) {
 	}
 }
 
-func SetField(data interface{}, m map[string]interface{}) interface{} {
-	valueOf := reflect.ValueOf(data)
+func SetFields(structure interface{}, fields map[string]interface{}) interface{} {
+	valueOf := reflect.ValueOf(structure)
 	if valueOf.Kind() == reflect.Ptr {
 		valueOf = valueOf.Elem()
 	}
@@ -31,17 +31,17 @@ func SetField(data interface{}, m map[string]interface{}) interface{} {
 		fieldType := valueOf.Type().Field(i)
 		field := fieldType.Tag.Get("field")
 		deflt := fieldType.Tag.Get("default")
-		if m[field] != nil {
+		if fields[field] != nil {
 			switch valueOf.Type().Field(i).Type.String() {
 			case "string":
-				valueOf.Field(i).SetString(m[field].(string))
+				valueOf.Field(i).SetString(fields[field].(string))
 			case "int", "int64":
-				d := int64(m[field].(int))
+				d := int64(fields[field].(int))
 				valueOf.Field(i).SetInt(d)
 			case "float", "float64":
-				valueOf.Field(i).SetFloat(m[field].(float64))
+				valueOf.Field(i).SetFloat(fields[field].(float64))
 			case "bool":
-				valueOf.Field(i).SetBool(m[field].(bool))
+				valueOf.Field(i).SetBool(fields[field].(bool))
 			}
 		} else if deflt != "" {
 			switch valueOf.Type().Field(i).Type.String() {
@@ -59,5 +59,5 @@ func SetField(data interface{}, m map[string]interface{}) interface{} {
 			}
 		}
 	}
-	return data
+	return structure
 }

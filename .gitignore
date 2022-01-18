@@ -1,1 +1,3 @@
-**/falco-talon.yaml
+config.yaml
+**/config.yaml
+falco-talon
