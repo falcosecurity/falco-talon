@@ -1,23 +1,17 @@
-listenAddress: "0.0.0.0"
-listenPort: "2803"
-rulesFile: "./rules.yaml"
-kubeConfig: "~/.kube/config"
+listenAddress: "0.0.0.0" # default: "0.0.0.0"
+listenPort: "2803" # default: "2803"
+rulesFile: "./rules.yaml" # default: "./rules.yaml"
+# kubeConfig: "~/.kube/config" # ony if Falco Talon is running outside Kubernetes
 
-defaultNotifiers:
+defaultNotifiers: # this notifiers will be enabled for all rules
   - slack
 
 notifiers:
   slack:
     webhookurl: "https://hooks.slack.com/services/XXXX"
-    # icon: ""
-    # username: ""
-    footer: ""
-    format: short
-  email:
-    smtpserver: ""
-    user: ""
-    password: ""
-    from: ""
-    to: ""
-  webhook:
-    url: ""
+    # icon: "" # default: "https://upload.wikimedia.org/wikipedia/commons/2/26/Circaetus_gallicus_claw.jpg"
+    # username: "" # default: "Falco Talon"
+    footer: "" # default: "https://github.com/Issif/falco-talon"
+    format: long # default: long
+  # webhook:
+  #   url: ""

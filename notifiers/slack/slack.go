@@ -22,10 +22,6 @@ type Configuration struct {
 	Username   string `field:"username" default:"Falco Talon"`
 	Footer     string `field:"footer" default:"http://github.com/Issif/falco-talon"`
 	Format     string `field:"format" default:"long"`
-	// Number     int     `field:"number" default:"10"`
-	// Number64   int64   `field:"number64" default:"20"`
-	// Boolean    bool    `field:"boolean" default:"false"`
-	// Float      float64 `field:"float64" default:"2.5"`
 }
 
 type Field struct {

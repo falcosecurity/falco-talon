@@ -43,6 +43,7 @@ func (c *HTTPClient) Post(payload interface{}) error {
 	// defer + recover to catch panic if output doesn't respond
 	defer func() {
 		if err := recover(); err != nil {
+			errors.New("Unknown error")
 		}
 	}()
 

@@ -82,12 +82,12 @@ func Trigger(rule *rules.Rule, event *events.Event) {
 	actionName := rule.GetActionName()
 	category := rule.GetActionCategory()
 	ruleName := rule.GetName()
-	utils.PrintLog("info", fmt.Sprintf("Rule: '%v' Action: '%v' Pod: '%v' Namespace: '%v'", ruleName, action, pod, namespace))
+	utils.PrintLog("info", fmt.Sprintf("Match - Rule: '%v' Action: '%v' Pod: '%v' Namespace: '%v'", ruleName, action, pod, namespace))
 	for _, i := range *actionners {
 		if i.Category == category && i.Name == actionName {
 			if i.Check != nil {
 				if err := i.Check(rule, event); err != nil {
-					utils.PrintLog("error", fmt.Sprintf("Rule: '%v' Action: '%v' Pod: '%v' Namespace: '%v' Error: '%v'", ruleName, action, pod, namespace, err.Error()))
+					utils.PrintLog("error", fmt.Sprintf("Action - Rule: '%v' Action: '%v' Pod: '%v' Namespace: '%v' Error: '%v'", ruleName, action, pod, namespace, err.Error()))
 					return
 				}
 			}
