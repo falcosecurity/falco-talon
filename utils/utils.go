@@ -7,12 +7,25 @@ import (
 	"strconv"
 )
 
+const (
+	boolStr    = "bool"
+	floatStr   = "float"
+	float64Str = "float64"
+	stringStr  = "string"
+	intStr     = "int"
+	int64Str   = "int64"
+
+	errorStr    = "error"
+	criticalStr = "critical"
+	infoStr     = "info"
+)
+
 func PrintLog(level, message string) {
 	var prefix string
 	switch level {
-	case "error", "critical":
+	case errorStr, criticalStr:
 		prefix = "[ERROR]"
-	case "info":
+	case infoStr:
 		prefix = "[INFO] "
 	}
 	log.Printf("%v %v\n", prefix, message)
@@ -33,31 +46,32 @@ func SetFields(structure interface{}, fields map[string]interface{}) interface{}
 		deflt := fieldType.Tag.Get("default")
 		if fields[field] != nil {
 			switch valueOf.Type().Field(i).Type.String() {
-			case "string":
+			case stringStr:
 				valueOf.Field(i).SetString(fields[field].(string))
-			case "int", "int64":
+			case intStr, int64Str:
 				d := int64(fields[field].(int))
 				valueOf.Field(i).SetInt(d)
-			case "float", "float64":
+			case floatStr, float64Str:
 				valueOf.Field(i).SetFloat(fields[field].(float64))
-			case "bool":
+			case boolStr:
 				valueOf.Field(i).SetBool(fields[field].(bool))
 			}
 		} else if deflt != "" {
 			switch valueOf.Type().Field(i).Type.String() {
-			case "string":
+			case stringStr:
 				valueOf.Field(i).SetString(deflt)
-			case "int", "int64":
+			case intStr, int64Str:
 				d, _ := strconv.Atoi(deflt)
 				valueOf.Field(i).SetInt(int64(d))
-			case "float", "float64":
+			case floatStr, float64Str:
 				d, _ := strconv.ParseFloat(deflt, 64)
 				valueOf.Field(i).SetFloat(d)
-			case "bool":
+			case boolStr:
 				d, _ := strconv.ParseBool(deflt)
 				valueOf.Field(i).SetBool(d)
 			}
 		}
 	}
+
 	return structure
 }

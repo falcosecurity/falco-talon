@@ -28,12 +28,12 @@ const (
 // manage configuration with file and env vars
 
 type Configuration struct {
+	Notifiers        map[string]map[string]interface{}
 	ListenAddress    string
-	ListenPort       int
 	RulesFile        string
 	KubeConfig       string
 	DefaultNotifiers []string
-	Notifiers        map[string]map[string]interface{}
+	ListenPort       int
 }
 
 var config *Configuration
