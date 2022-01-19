@@ -3,6 +3,7 @@ module github.com/Issif/falco-talon
 go 1.17
 
 require (
+	github.com/magefile/mage v1.12.1
 	github.com/spf13/cobra v1.3.0
 	github.com/spf13/viper v1.10.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b

@@ -21,7 +21,7 @@
 
 ## Architecture
 
-`Falco Talon` can receive the `events` from [`Falco`](https://falco.org) or [`Falcosidekick`](https://github.com/falcosecurity/falcosidekick): 
+`Falco Talon` can receive the `events` from [`Falco`](https://falco.org) or [`Falcosidekick`](https://github.com/falcosecurity/falcosidekick):
 
 ```
 ┌──────────┐      ┌───────────────┐      ┌─────────────┐
@@ -134,19 +134,19 @@ Actions to trigger for events are set with rules with this syntax:
 ```yaml
 - name: <string>
   match:
-    rules: 
+    rules:
       - <string>
       - <string>
     priority: <string>
-    tags: 
+    tags:
       <string>: <string>
       <string>: <string>
   action:
     name: <string>
-    arguments: 
+    arguments:
       <string>: <value>
       <string>: <value>
-    parameters: 
+    parameters:
       <string>: <value>
       <string>: <value>
   continue: <bool>
@@ -196,8 +196,8 @@ Examples:
 ```shell
 $ falco-talon --help
 
-Falco Talon is a Response Engine for managing threats in Kubernetes. 
-It enhances the solutions proposed by Falco community with a dedicated, 
+Falco Talon is a Response Engine for managing threats in Kubernetes.
+It enhances the solutions proposed by Falco community with a dedicated,
 no-code solution. With easy rules, you can perform actions over compromised pods.
 
 Usage:
@@ -227,6 +227,12 @@ Flags:
   -c, --config string   Talon Config File (default "./config.yaml")
   -h, --help            help for server
 ```
+
+## Images
+
+The images for `falco-talon` is built using [ko](https://github.com/google/ko)
+
+To generate the images to test locally you can run `mage buildImagesLocal`
 
 ## Deployment
 
