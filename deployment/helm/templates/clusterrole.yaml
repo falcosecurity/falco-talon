@@ -1,0 +1,21 @@
+{{- if .Values.podSecurityPolicy.create }}
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ template "falco-talon.fullname" .}}
+  labels:
+    app: {{ template "falco-talon.fullname" . }}
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+rules:
+  - apiGroups:
+      - policy
+    resources:
+      - podsecuritypolicies
+    resourceNames:
+      - {{ template "falco-talon.fullname" . }}
+    verbs:
+      - use
+{{- end }}

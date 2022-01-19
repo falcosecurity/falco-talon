@@ -1,0 +1,15 @@
+apiVersion: v1
+appVersion: 0.0.1
+description: React to events from Falco
+name: falco-talon
+version: 0.0.1
+keywords:
+  - monitoring
+  - security
+  - response-engine
+home: https://github.com/Issif/falco-talon
+sources:
+  - https://github.com/Issif/falco-talon
+maintainers:
+  - name: Issif
+    email: issif+github@gadz.org
