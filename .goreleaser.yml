@@ -1,0 +1,53 @@
+project_name: falco-talon
+
+env:
+  - GO111MODULE=on
+  - CGO_ENABLED=1
+  - DOCKER_CLI_EXPERIMENTAL=enabled
+  - COSIGN_EXPERIMENTAL=true
+
+# Prevents parallel builds from stepping on each others toes downloading modules
+before:
+  hooks:
+  - go mod tidy
+
+gomod:
+  proxy: true
+
+builds:
+- id: falco-talon
+  main: .
+  flags:
+    - -trimpath
+  mod_timestamp: '{{ .CommitTimestamp }}'
+  goos:
+    - linux
+  goarch:
+    - amd64
+    - arm64
+    - arm
+    - s390x
+    - ppc64le
+  goarm:
+    - '7'
+  env:
+    - CGO_ENABLED=0
+  ldflags:
+    - "{{ .Env.LDFLAGS }}"
+
+archives:
+- format: binary
+  name_template: "{{ .Binary }}"
+  allow_different_binary_count: true
+
+checksum:
+  name_template: "{{ .ProjectName }}_checksums.txt"
+
+snapshot:
+  name_template: latest
+
+release:
+  prerelease: allow # remove this when we start publishing non-prerelease or set to auto
+  draft: true # allow for manual edits
+  footer: |
+    ### Thanks for all contributors!

@@ -34,9 +34,9 @@ type Attachment struct {
 	Fallback   string  `json:"fallback"`
 	Color      string  `json:"color"`
 	Text       string  `json:"text,omitempty"`
-	Fields     []Field `json:"fields"`
 	Footer     string  `json:"footer,omitempty"`
 	FooterIcon string  `json:"footer_icon,omitempty"`
+	Fields     []Field `json:"fields"`
 }
 
 // Payload
@@ -59,7 +59,7 @@ var Notify = func(rule *rules.Rule, event *events.Event, status string) {
 		return
 	}
 
-	client, err := http.NewHTTPClient(slackconfig.WebhookURL)
+	client, err := http.NewClient(slackconfig.WebhookURL)
 	if err != nil {
 		utils.PrintLog("error", fmt.Sprintf("Error with Slack notification: %v", err.Error()))
 	}

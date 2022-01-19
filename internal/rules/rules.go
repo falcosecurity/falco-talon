@@ -7,10 +7,11 @@ import (
 	"regexp"
 	"strings"
 
+	yaml "gopkg.in/yaml.v3"
+
 	"github.com/Issif/falco-talon/configuration"
 	"github.com/Issif/falco-talon/internal/events"
 	"github.com/Issif/falco-talon/utils"
-	yaml "gopkg.in/yaml.v3"
 )
 
 // TODO
@@ -18,28 +19,28 @@ import (
 // watch CRD and update rules
 
 type Rule struct {
-	Name      string   `yaml:"name"`
+	Notifiers []string `yaml:"notifiers"`
 	Action    Action   `yaml:"action"`
+	Name      string   `yaml:"name"`
 	Match     Match    `yaml:"match"`
 	Continue  bool     `yaml:"continue"`
-	Notifiers []string `yaml:"notifiers"`
 	// Weight   int    `yaml:"weight"`
 }
 
 type Action struct {
-	Name       string                 `yaml:"name"`
 	Arguments  map[string]interface{} `yaml:"arguments,omitempty"`
 	Parameters map[string]interface{} `yaml:"parameters,omitempty"`
+	Name       string                 `yaml:"name"`
 }
 
 type Match struct {
-	PriorityNumber     int
-	PriorityComparator string
-	Priority           string                 `yaml:"priority"`
-	Rules              []string               `yaml:"rules"`
-	Source             string                 `yaml:"Source"`
 	OutputFields       map[string]interface{} `yaml:"output_fields"`
-	Tags               []string               `yaml:"tags"`
+	PriorityComparator string
+	Priority           string   `yaml:"priority"`
+	Source             string   `yaml:"Source"`
+	Rules              []string `yaml:"rules"`
+	Tags               []string `yaml:"tags"`
+	PriorityNumber     int
 }
 
 var rules *[]*Rule
@@ -48,9 +49,9 @@ var actionCheckRegex *regexp.Regexp
 var priorityComparatorRegex *regexp.Regexp
 
 func init() {
-	priorityCheckRegex, _ = regexp.Compile("(?i)^(<|>)?(=)?(|Debug|Informational|Notice|Warning|Error|Critical|Alert|Emergency)")
-	actionCheckRegex, _ = regexp.Compile("[a-z]+:[a-z]+")
-	priorityComparatorRegex, _ = regexp.Compile("^(<|>)?(=)?")
+	priorityCheckRegex = regexp.MustCompile("(?i)^(<|>)?(=)?(|Debug|Informational|Notice|Warning|Error|Critical|Alert|Emergency)")
+	actionCheckRegex = regexp.MustCompile("[a-z]+:[a-z]+")
+	priorityComparatorRegex = regexp.MustCompile("^(<|>)?(=)?")
 }
 
 func CreateRules() *[]*Rule {

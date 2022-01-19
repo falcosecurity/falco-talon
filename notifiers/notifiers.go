@@ -13,9 +13,9 @@ import (
 )
 
 type Notifier struct {
-	Name         string
 	Init         func(fields map[string]interface{})
 	Notification func(rule *rules.Rule, event *events.Event, status string)
+	Name         string
 }
 
 type Notifiers []*Notifier

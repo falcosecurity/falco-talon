@@ -32,7 +32,7 @@ var Notify = func(rule *rules.Rule, event *events.Event, status string) {
 		return
 	}
 
-	client, err := http.NewHTTPClient(webhookConfig.URL)
+	client, err := http.NewClient(webhookConfig.URL)
 	if err != nil {
 		utils.PrintLog("error", fmt.Sprintf("Error with Webhook notification: %v", err.Error()))
 	}
