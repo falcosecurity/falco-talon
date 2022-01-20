@@ -7,8 +7,11 @@ replicaCount: 2
 image:
   registry: docker.io
   repository: issif/falco-talon
-  tag: 0.0.1
-  pullPolicy: IfNotPresent
+  tag: latest
+  pullPolicy: Always
+
+podSecurityPolicy:
+  create: false
 
 podSecurityContext:
   runAsUser: 1234
@@ -19,18 +22,12 @@ imagePullSecrets: []
 # - registrySecretName
 
 nameOverride: ""
-fullnameOverride: ""
 
-podSecurityPolicy:
-  create: false
+extraEnv: {}
 
 priorityClassName: ""
 
 podAnnotations: {}
-
-config:
-  existingSecret: ""
-  extraEnv: []
 
 service:
   type: ClusterIP
@@ -73,17 +70,15 @@ tolerations: []
 
 affinity: {}
 
-# Add extra volumes to Falco UI deployment
-extraVolumes: []
-# - name: optional-mtls-volume
-#   configMap:
-#     name: falco-certs-optional
-#     optional: true
-#     items:
-#       - key: mtlscert.optional.tls
-#         path: mtlscert.optional.tls
+defaultNotifiers:
+  - slack
 
-# Add extra volumeMounts to Falco container in Falco UI deployment
-extraVolumeMounts: []
-# - mountPath: /etc/certs/mtlscert.optional.tls
-#   name: optional-mtls-volume
+notifiers:
+  slack:
+    # webhookurl: "https://hooks.slack.com/services/XXXX"
+    # icon: "" # default: "https://upload.wikimedia.org/wikipedia/commons/2/26/Circaetus_gallicus_claw.jpg"
+    # username: "" # default: "Falco Talon"
+    footer: "" # default: "https://github.com/Issif/falco-talon"
+    format: long # default: long
+  webhook:
+    url: ""

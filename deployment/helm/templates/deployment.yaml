@@ -2,7 +2,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "falco-talon.fullname" . }}
+  name: {{ include "falco-talon.name" . }}
   namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ include "falco-talon.name" . }}
@@ -20,29 +20,23 @@ spec:
       labels:
         app.kubernetes.io/name: {{ include "falco-talon.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
-      annotations:
-        checksum/config: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha256sum }}
       {{- if .Values.podAnnotations }}
 {{ toYaml .Values.podAnnotations | indent 8 }}
       {{- end }}
     spec:
-      {{- if .Values.imagePullSecrets }}
-      imagePullSecrets:
-      {{- range .Values.imagePullSecrets }}
-        - name: {{ . }}
-      {{- end }}
-      {{- end }}
-      serviceAccountName: {{ include "falco-talon.fullname" . }}
+      serviceAccountName: {{ include "falco-talon.name" . }}
       {{- if .Values.priorityClassName }}
       priorityClassName: "{{ .Values.priorityClassName }}"
       {{- end }}
       securityContext:
         runAsUser: {{ .Values.podSecurityContext.runAsUser }}
         fsGroup: {{ .Values.podSecurityContext.fsGroup }}
+      restartPolicy: Always
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["server", "-c", "/etc/config/config.yaml"]
           ports:
             - name: http
               containerPort: 2803
@@ -59,29 +53,18 @@ spec:
               port: http
             initialDelaySeconds: 10
             periodSeconds: 5
-          envFrom:
-            - secretRef:
-                {{- if .Values.config.existingSecret }}
-                name: {{ .Values.config.existingSecret }}
-                {{- else }}
-                name: {{ include "falco-talon.fullname" . }}
-                {{- end }}
+          {{- if .Values.extraEnv }}
           env:
-            - name: DEBUG
-              value: {{ .Values.config.debug | quote }}
-            - name: CUSTOMFIELDS
-              value: {{ .Values.config.customfields | quote }}
-            - name: MUTUALTLSFILESPATH
-              value: {{ .Values.config.mutualtlsfilespath | quote }}
-            {{- if .Values.config.extraEnv }}
-            {{ toYaml .Values.config.extraEnv | nindent 12 }}
-            {{- end }}
+            {{ toYaml .Values.extraEnv | nindent 12 }}
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          {{- if .Values.extraVolumeMounts }}
           volumeMounts:
-{{ toYaml .Values.extraVolumeMounts | indent 12 }}
-          {{- end }}
+            - name: "rules"
+              mountPath: "/etc/rules/"
+            - name: "config"
+              mountPath: "/etc/config/"
+              readOnly: true
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -94,7 +77,10 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
     {{- end }}
-    {{- if .Values.extraVolumes }}
       volumes:
-{{ toYaml .Values.extraVolumes | indent 8 }}
-    {{- end }}
+        - name: "rules"
+          configMap:
+            name: "{{ include "falco-talon.name" . }}-rules"
+        - name: "config"
+          secret:
+            secretName: "{{ include "falco-talon.name" . }}-config"

@@ -41,7 +41,7 @@ func BuildImagesLocal() error {
 	os.Setenv("LDFLAGS", generateLDFlags())
 
 	return sh.RunV("ko", "publish", "--base-import-paths", "--bare", "--local",
-		"--platform=all", "--tags", gitVersion, "--tags", gitCommit,
+		"--platform=linux/amd64", "--tags", gitVersion, "--tags", gitCommit, "--tags", "latest",
 		"github.com/Issif/falco-talon")
 }
 
@@ -56,7 +56,7 @@ func BuildImages() error {
 	}
 
 	return sh.RunV("ko", "publish", "--base-import-paths", "--bare",
-		"--platform=all", "--tags", gitVersion, "--tags", gitCommit,
+		"--platform=linux/amd64", "--tags", gitVersion, "--tags", gitCommit, "--tags", "latest",
 		"github.com/Issif/falco-talon")
 }
 

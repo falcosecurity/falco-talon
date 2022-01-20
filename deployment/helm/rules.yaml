@@ -1,0 +1,20 @@
+- name: Rule Test Label
+  match:
+    priority: "<Critical"
+  action:
+    name: kubernetes:labelize
+    arguments:
+      keyA: "valueA"
+      keyB: valueB
+      run: ""
+  continue: false
+  notifiers:
+    - slack
+- name: Rule Test Terminate
+  match:
+    rules:
+      - Test Terminate
+  action:
+    name: kubernetes:terminate
+    options:
+      gracePeriodSeconds: 0

@@ -2,9 +2,9 @@
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
-  name: {{ template "falco-talon.fullname" . }}
+  name: {{ template "falco-talon.name" . }}
   labels:
-    app: {{ template "falco-talon.fullname" . }}
+    app: {{ template "falco-talon.name" . }}
     chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     release: "{{ .Release.Name }}"
     heritage: "{{ .Release.Service }}"

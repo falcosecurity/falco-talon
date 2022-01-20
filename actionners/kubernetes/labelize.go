@@ -53,6 +53,8 @@ var Labelize = func(rule *rules.Rule, event *events.Event) error {
 
 	payloadBytes, _ = json.Marshal(payload)
 	_, err = client.Clientset.CoreV1().Pods(namespace).Patch(context.Background(), pod, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
-
-	return err
+	if err.Error() != "the server rejected our request due to an error in our request" {
+		return err
+	}
+	return nil
 }

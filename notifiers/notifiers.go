@@ -14,7 +14,7 @@ import (
 
 type Notifier struct {
 	Init         func(fields map[string]interface{})
-	Notification func(rule *rules.Rule, event *events.Event, status string)
+	Notification func(rule *rules.Rule, event *events.Event, status string) error
 	Name         string
 }
 
@@ -72,13 +72,12 @@ func Notifiy(rule *rules.Rule, event *events.Event, status string) {
 
 	for i := range enabledNotifiers {
 		if n := GetNotifiers().GetNotifier(i); n != nil {
-			go n.Notification(rule, event, status)
+			if err := n.Notification(rule, event, status); err != nil {
+				utils.PrintLog("error", fmt.Sprintf("Notification - Notifier: '%v' Status: 'KO' Error: %v", i, err.Error()))
+			}
+			utils.PrintLog("info", fmt.Sprintf("Notification - Notifier: '%v' Status: 'OK'", i))
 		}
 	}
-}
-
-func (notifier *Notifier) Trigger(rule *rules.Rule, event *events.Event, status string) {
-	notifier.Notification(rule, event, status)
 }
 
 func (notifiers *Notifiers) GetNotifier(name string) *Notifier {

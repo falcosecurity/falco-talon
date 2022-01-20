@@ -1,5 +1,5 @@
 ARG BUILDER_IMAGE=golang:1.17-buster
-ARG BASE_IMAGE=alpine:3.12
+ARG BASE_IMAGE=alpine:3.15
 
 FROM ${BUILDER_IMAGE} AS build-stage
 
@@ -9,7 +9,7 @@ WORKDIR /src
 COPY . .
 
 RUN go mod download
-RUN make falco-talon
+RUN go build
 
 # Final Docker image
 FROM ${BASE_IMAGE} AS final-stage

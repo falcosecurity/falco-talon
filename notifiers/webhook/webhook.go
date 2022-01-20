@@ -1,7 +1,7 @@
 package webhook
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/Issif/falco-talon/internal/events"
 	"github.com/Issif/falco-talon/internal/rules"
@@ -27,19 +27,20 @@ var Init = func(fields map[string]interface{}) {
 	webhookConfig = utils.SetFields(webhookConfig, fields).(*Configuration)
 }
 
-var Notify = func(rule *rules.Rule, event *events.Event, status string) {
+var Notify = func(rule *rules.Rule, event *events.Event, status string) error {
 	if webhookConfig.URL == "" {
-		return
+		return errors.New("bad config")
 	}
 
 	client, err := http.NewClient(webhookConfig.URL)
 	if err != nil {
-		utils.PrintLog("error", fmt.Sprintf("Error with Webhook notification: %v", err.Error()))
+		return err
 	}
 	err = client.Post(NewWebhookPayload(rule, event, status))
 	if err != nil {
-		utils.PrintLog("error", fmt.Sprintf("Error with Slack notification: %v", err.Error()))
+		return err
 	}
+	return nil
 }
 
 func NewWebhookPayload(rule *rules.Rule, event *events.Event, status string) Payload {
