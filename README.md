@@ -14,6 +14,7 @@
   - [Configuration](#configuration)
   - [Rules](#rules)
   - [Usage](#usage)
+  - [Images](#images)
   - [Deployment](#deployment)
     - [Helm](#helm)
   - [License](#license)
@@ -237,6 +238,14 @@ To generate the images to test locally you can run `mage buildImagesLocal`
 ## Deployment
 
 ### Helm
+
+`values.yaml` allows you to configure `Falcon Talon Notifiers` and the deployment.
+`rules.yaml` is the list of rules.
+
+```shell
+cd deployment/helm/
+helm upgrade falco-talon .
+```
 
 ## License
 

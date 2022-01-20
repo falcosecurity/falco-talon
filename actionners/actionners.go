@@ -91,9 +91,11 @@ func Trigger(rule *rules.Rule, event *events.Event) {
 					return
 				}
 			}
-			if i.Action(rule, event) != nil {
+			if err := i.Action(rule, event); err != nil {
+				utils.PrintLog("error", fmt.Sprintf("Action - Rule: '%v' Action: '%v' Pod: '%v' Namespace: '%v' Error: '%v'", ruleName, action, pod, namespace, err.Error()))
 				notifiers.Notifiy(rule, event, "failure")
 			} else {
+				utils.PrintLog("info", fmt.Sprintf("Action - Rule: '%v' Action: '%v' Pod: '%v' Namespace: '%v' Status: 'OK'", ruleName, action, pod, namespace))
 				notifiers.Notifiy(rule, event, "success")
 			}
 		}

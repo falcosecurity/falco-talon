@@ -2,12 +2,8 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ include "falco-talon.fullname" . }}
+  name: {{ include "falco-talon.name" . }}
   namespace: {{ .Release.Namespace }}
-  {{- if .Values.config.aws.rolearn }}
-  annotations:
-    eks.amazonaws.com/role-arn: {{ .Values.config.aws.rolearn }}
-  {{- end }}
   labels:
     app.kubernetes.io/name: {{ include "falco-talon.name" . }}
     helm.sh/chart: {{ include "falco-talon.chart" . }}
@@ -15,9 +11,9 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
-  name: {{ include "falco-talon.fullname" . }}
+  name: {{ include "falco-talon.name" . }}
   namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ include "falco-talon.name" . }}
@@ -29,33 +25,27 @@ rules:
     - ""
   resources:
     - pods
-  resourceNames:
-    - {{ include "falco-talon.fullname" . }}
-  verbs:
-    - get, terminate
-- apiGroups:
-    - ""
-  resources:
-    - pods
-  resourceNames:
-    - {{ include "falco-talon.fullname" . }}
   verbs:
     - get
+    - list
+    - update
+    - patch
+    - delete
 {{- if .Values.podSecurityPolicy.create }}
 - apiGroups:
     - policy
   resources:
     - podsecuritypolicies
   resourceNames:
-    - {{ template "falco-talon.fullname" . }}
+    - {{ template "falco-talon.name" . }}
   verbs:
     - use
 {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
-  name: {{ include "falco-talon.fullname" . }}
+  name: {{ include "falco-talon.name" . }}
   namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ include "falco-talon.name" . }}
@@ -64,8 +54,9 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: {{ include "falco-talon.fullname" . }}
+  kind: ClusterRole
+  name: {{ include "falco-talon.name" . }}
 subjects:
 - kind: ServiceAccount
-  name: {{ include "falco-talon.fullname" . }}
+  name: {{ include "falco-talon.name" . }}
+  namespace: {{ .Release.Namespace }}

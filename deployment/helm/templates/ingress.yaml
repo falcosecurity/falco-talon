@@ -1,12 +1,12 @@
 {{- if .Values.ingress.enabled -}}
-{{- $fullName := include "falco-talon.fullname" . -}}
+{{- $name := include "falco-talon.name" . -}}
 {{- $ingressApiIsStable := eq (include "falco-talon.ingress.isStable" .) "true" -}}
 {{- $ingressSupportsPathType := eq (include "falco-talon.ingress.supportsPathType" .) "true" -}}
 ---
 apiVersion: {{ include "falco-talon.ingress.apiVersion" . }}
 kind: Ingress
 metadata:
-  name: {{ $fullName }}
+  name: {{ $name }}
   namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ include "falco-talon.name" . }}
@@ -41,11 +41,11 @@ spec:
           backend:
             {{- if $ingressApiIsStable }}
             service:
-              name: {{ $fullName }}
+              name: {{ $name }}
               port:
                 name: http
             {{- else }}
-            serviceName: {{ $fullName }}
+            serviceName: {{ $name }}
             servicePort: http
             {{- end }}
         {{- end }}

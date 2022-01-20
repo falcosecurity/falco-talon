@@ -1,6 +1,7 @@
 package slack
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -54,19 +55,20 @@ var Init = func(fields map[string]interface{}) {
 	slackconfig = utils.SetFields(slackconfig, fields).(*Configuration)
 }
 
-var Notify = func(rule *rules.Rule, event *events.Event, status string) {
+var Notify = func(rule *rules.Rule, event *events.Event, status string) error {
 	if slackconfig.WebhookURL == "" {
-		return
+		return errors.New("bad config")
 	}
 
 	client, err := http.NewClient(slackconfig.WebhookURL)
 	if err != nil {
-		utils.PrintLog("error", fmt.Sprintf("Error with Slack notification: %v", err.Error()))
+		return err
 	}
 	err = client.Post(NewPayload(rule, event, status))
 	if err != nil {
-		utils.PrintLog("error", fmt.Sprintf("Error with Slack notification: %v", err.Error()))
+		return err
 	}
+	return nil
 }
 
 func NewPayload(rule *rules.Rule, event *events.Event, status string) Payload {
@@ -78,7 +80,17 @@ func NewPayload(rule *rules.Rule, event *events.Event, status string) Payload {
 	var attachments []Attachment
 	var attachment Attachment
 
-	attachment.Text = fmt.Sprintf("Action `%v` from rule `%v` has been successfully triggered for pod `%v` in namespace `%v`", action, ruleName, pod, namespace)
+	var color, statusPrefix string
+	switch status {
+	case "failure":
+		color = Red
+		statusPrefix = "un"
+	case "success":
+		color = Green
+	}
+	attachment.Color = color
+
+	attachment.Text = fmt.Sprintf("Action `%v` from rule `%v` has been %vsuccessfully triggered for pod `%v` in namespace `%v`", action, ruleName, statusPrefix, pod, namespace)
 
 	if slackconfig.Format != "short" {
 		var fields []Field
@@ -113,17 +125,6 @@ func NewPayload(rule *rules.Rule, event *events.Event, status string) Payload {
 		attachment.Fields = fields
 	}
 
-	var color string
-	switch status {
-	case "failure":
-		color = Red
-	case "success":
-		color = Green
-	case "match":
-		color = Blue
-	}
-	attachment.Color = color
-
 	attachments = append(attachments, attachment)
 
 	s := Payload{
@@ -131,8 +132,6 @@ func NewPayload(rule *rules.Rule, event *events.Event, status string) Payload {
 		IconURL:     slackconfig.Icon,
 		Attachments: attachments,
 	}
-
-	// fmt.Printf("%#v\n", s)
 
 	return s
 }

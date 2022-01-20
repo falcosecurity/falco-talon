@@ -16,10 +16,11 @@ type Payload struct {
 	Status    string `json:"status"`
 }
 
-var Notify = func(rule *rules.Rule, event *events.Event, status string) {
+var Notify = func(rule *rules.Rule, event *events.Event, status string) error {
 	payload := NewPayload(rule, event, status)
 	jsonPayload, _ := json.Marshal(payload)
 	utils.PrintLog("info", string(jsonPayload))
+	return nil
 }
 
 func NewPayload(rule *rules.Rule, event *events.Event, status string) Payload {
