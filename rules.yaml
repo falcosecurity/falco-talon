@@ -17,7 +17,7 @@
       - Test Terminate
   action:
     name: kubernetes:terminate
-    options:
+    parameters:
       gracePeriodSeconds: 0
 
 
