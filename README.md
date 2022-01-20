@@ -180,14 +180,14 @@ Examples:
       - Contact K8S API Server From Container
   action:
     name: kubernetes:terminate
-    options:
+    parameters:
       gracePeriodSeconds: 3
 - name: Rule 1
   match:
     priority: "<Critical"
   action:
     name: kubernetes:labelize
-    labels:
+    arguments:
       suspicious: "true"
   continue: false
 ```
