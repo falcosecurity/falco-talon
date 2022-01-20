@@ -244,7 +244,7 @@ To generate the images to test locally you can run `mage buildImagesLocal`
 
 ```shell
 cd deployment/helm/
-helm upgrade falco-talon .
+helm install falco-talon .
 ```
 
 ## License
