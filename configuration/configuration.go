@@ -6,8 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/Issif/falco-talon/utils"
 	"github.com/spf13/viper"
+
+	"github.com/Issif/falco-talon/utils"
 )
 
 const (

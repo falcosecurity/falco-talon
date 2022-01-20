@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/Issif/falco-talon/internal/events"
 	"github.com/Issif/falco-talon/internal/rules"
 	"github.com/Issif/falco-talon/utils"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var Terminate = func(rule *rules.Rule, event *events.Event) error {
