@@ -74,8 +74,9 @@ func Notifiy(rule *rules.Rule, event *events.Event, status string) {
 		if n := GetNotifiers().GetNotifier(i); n != nil {
 			if err := n.Notification(rule, event, status); err != nil {
 				utils.PrintLog("error", fmt.Sprintf("Notification - Notifier: '%v' Status: 'KO' Error: %v", i, err.Error()))
+			} else {
+				utils.PrintLog("info", fmt.Sprintf("Notification - Notifier: '%v' Status: 'OK'", i))
 			}
-			utils.PrintLog("info", fmt.Sprintf("Notification - Notifier: '%v' Status: 'OK'", i))
 		}
 	}
 }

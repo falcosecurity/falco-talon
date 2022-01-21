@@ -13,7 +13,7 @@
 - name: Rule Test Terminate
   match:
     rules:
-      - Test Terminate
+      - Terminal shell in container
   action:
     name: kubernetes:terminate
     parameters:
