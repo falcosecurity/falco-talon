@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/Issif/falco-talon/actionners"
 	"github.com/Issif/falco-talon/internal/events"
 	"github.com/Issif/falco-talon/internal/rules"
+	"github.com/Issif/falco-talon/utils"
 )
 
 func MainHandler(w http.ResponseWriter, r *http.Request) {
@@ -23,6 +25,8 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
+
+	utils.PrintLog("info", fmt.Sprintf("Event - Rule: '%v' Priority: '%v' Output: '%v' Source: '%v'", event.Rule, event.Priority, event.Output, event.Source))
 
 	enabledRules := rules.GetRules()
 	triggeredRules := make([]*rules.Rule, 0)
