@@ -9,8 +9,8 @@ Namespace: {{ .Namespace }}`
 var htmlTmpl = `
 {{ $color := "#858585" }}
 {{ $prio := printf "%v" .Status }}
-{{ if eq $prio "success" }}{{ $color = "#26CD29" }}{{ end }}
-{{ if eq $prio "failure" }}{{ $color = "#EB2C1B" }}{{ end }}
+{{ if eq $prio "success" }}{{ $color = "#23ba47" }}{{ end }}
+{{ if eq $prio "failure" }}{{ $color = "#e20b0b" }}{{ end }}
 
 <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
 <style type="text/css">
