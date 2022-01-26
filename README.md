@@ -10,6 +10,7 @@
     - [`kubernetes:labelize`](#kuberneteslabelize)
   - [Notifiers](#notifiers)
     - [Slack](#slack)
+    - [SMTP](#smtp)
     - [Webhook](#webhook)
   - [Configuration](#configuration)
   - [Rules](#rules)
@@ -85,6 +86,21 @@ Several rules can match same event, so several action can be triggered, except f
 Results:
 ![./imgs/slack_short.png](./imgs/slack_short.png)
 ![./imgs/slack_long.png](./imgs/slack_long.png)
+
+### SMTP
+
+| Setting    | Default | Description                           |
+| ---------- | ------- | ------------------------------------- |
+| `hostport` | n/a     | Host:Port of SMTP server              |
+| `user`     | n/a     | User for SMTP                         |
+| `password` | n/a     | Password for SMTP                     |
+| `from`     | n/a     | From                                  |
+| `to`       | n/a     | To (comma separated list of adresses) |
+| `format`   | `html`  | Format of the email (`text | html`)   |
+
+Results:
+![./imgs/smtp_html.png](./imgs/smtp_html.png)
+![./imgs/smtp_text.png](./imgs/smtp_text.png)
 
 ### Webhook
 
