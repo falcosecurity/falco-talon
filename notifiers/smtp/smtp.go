@@ -9,11 +9,12 @@ import (
 	htmlTemplate "html/template"
 	textTemplate "text/template"
 
+	sasl "github.com/emersion/go-sasl"
+	smtp "github.com/emersion/go-smtp"
+
 	"github.com/Issif/falco-talon/internal/events"
 	"github.com/Issif/falco-talon/internal/rules"
 	"github.com/Issif/falco-talon/utils"
-	sasl "github.com/emersion/go-sasl"
-	smtp "github.com/emersion/go-smtp"
 )
 
 const (
@@ -137,7 +138,7 @@ func NewPayload(rule *rules.Rule, event *events.Event, status string) Payload {
 }
 
 func Send(payload Payload) error {
-	to := strings.Split(strings.Replace(smtpconfig.To, " ", "", -1), ",")
+	to := strings.Split(strings.ReplaceAll(smtpconfig.To, " ", ""), ",")
 	auth := sasl.NewPlainClient("", smtpconfig.User, smtpconfig.Password)
 	body := payload.To + "\n" + payload.Subject + "\n" + payload.Body
 
