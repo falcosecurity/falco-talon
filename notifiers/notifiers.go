@@ -7,6 +7,7 @@ import (
 	"github.com/Issif/falco-talon/internal/events"
 	"github.com/Issif/falco-talon/internal/rules"
 	"github.com/Issif/falco-talon/notifiers/slack"
+	"github.com/Issif/falco-talon/notifiers/smtp"
 	"github.com/Issif/falco-talon/notifiers/stdout"
 	"github.com/Issif/falco-talon/notifiers/webhook"
 	"github.com/Issif/falco-talon/utils"
@@ -39,6 +40,11 @@ func Init() {
 			Name:         "webhook",
 			Init:         webhook.Init,
 			Notification: webhook.Notify,
+		},
+		&Notifier{
+			Name:         "smtp",
+			Init:         smtp.Init,
+			Notification: smtp.Notify,
 		},
 	)
 	config := configuration.GetConfiguration()
