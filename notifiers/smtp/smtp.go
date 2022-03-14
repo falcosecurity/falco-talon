@@ -47,12 +47,16 @@ var Init = func(fields map[string]interface{}) {
 	smtpconfig = utils.SetFields(smtpconfig, fields).(*Configuration)
 }
 
-var Notify = func(rule *rules.Rule, event *events.Event, status string) error {
+var Notify = func(rule *rules.Rule, event *events.Event, message, status string) error {
 	if smtpconfig.HostPort == "" {
-		return errors.New("bad config")
+		return errors.New("wrong config")
 	}
 
-	err := Send(NewPayload(rule, event, status))
+	payload, err := NewPayload(rule, event, message, status)
+	if err != nil {
+		return err
+	}
+	err = Send(payload)
 	if err != nil {
 		return err
 	}
@@ -60,17 +64,15 @@ var Notify = func(rule *rules.Rule, event *events.Event, status string) error {
 }
 
 type templateData struct {
-	Action    string
-	Pod       string
-	Namespace string
-	Rule      string
-	Status    string
+	Rule    string
+	Action  string
+	Event   string
+	Message string
+	Status  string
 }
 
-func NewPayload(rule *rules.Rule, event *events.Event, status string) Payload {
+func NewPayload(rule *rules.Rule, event *events.Event, message, status string) (Payload, error) {
 	ruleName := rule.GetName()
-	pod := event.GetPod()
-	namespace := event.GetNamespace()
 	action := rule.GetAction()
 
 	var statusPrefix string
@@ -80,7 +82,7 @@ func NewPayload(rule *rules.Rule, event *events.Event, status string) Payload {
 
 	payload := Payload{
 		To:      fmt.Sprintf("To: %v", smtpconfig.To),
-		Subject: fmt.Sprintf("Subject: [falco] Action `%v` from rule `%v` has been %vsuccessfully triggered for pod `%v` in namespace `%v`", action, ruleName, statusPrefix, pod, namespace),
+		Subject: fmt.Sprintf("Subject: [falco] Action `%v` from rule `%v` has been %vsuccessfully triggered", action, ruleName, statusPrefix),
 		Body:    "MIME-version: 1.0;\n",
 	}
 
@@ -91,11 +93,11 @@ func NewPayload(rule *rules.Rule, event *events.Event, status string) Payload {
 	payload.Body += "Content-Type: text/plain; charset=\"UTF-8\";\n\n"
 
 	data := templateData{
-		Action:    rule.GetAction(),
-		Pod:       event.GetPod(),
-		Namespace: event.GetNamespace(),
-		Rule:      rule.GetName(),
-		Status:    status,
+		Action:  rule.GetAction(),
+		Event:   event.Output,
+		Message: message,
+		Rule:    rule.GetName(),
+		Status:  status,
 	}
 
 	var err error
@@ -103,19 +105,17 @@ func NewPayload(rule *rules.Rule, event *events.Event, status string) Payload {
 	ttmpl := textTemplate.New(Text)
 	ttmpl, err = ttmpl.Parse(plaintextTmpl)
 	if err != nil {
-		utils.PrintLog("error", fmt.Sprintf("Notification - Notifier: 'smtp' Error: %v", err.Error()))
-		return Payload{}
+		return Payload{}, err
 	}
 	var outtext bytes.Buffer
 	err = ttmpl.Execute(&outtext, data)
 	if err != nil {
-		utils.PrintLog("error", fmt.Sprintf("Notification - Notifier: 'smtp' Error: %v", err.Error()))
-		return Payload{}
+		return Payload{}, err
 	}
 	payload.Body += outtext.String()
 
 	if smtpconfig.Format == Text {
-		return payload
+		return payload, nil
 	}
 
 	payload.Body += "--4t74weu9byeSdJTM\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
@@ -123,18 +123,16 @@ func NewPayload(rule *rules.Rule, event *events.Event, status string) Payload {
 	htmpl := htmlTemplate.New("html")
 	htmpl, err = htmpl.Parse(htmlTmpl)
 	if err != nil {
-		utils.PrintLog("error", fmt.Sprintf("Notification - Notifier: 'smtp' Error: %v", err.Error()))
-		return Payload{}
+		return Payload{}, err
 	}
 	var outhtml bytes.Buffer
 	err = htmpl.Execute(&outhtml, data)
 	if err != nil {
-		utils.PrintLog("error", fmt.Sprintf("Notification - Notifier: 'smtp' Error: %v", err.Error()))
-		return payload
+		return Payload{}, err
 	}
 	payload.Body += outhtml.String()
 
-	return payload
+	return payload, nil
 }
 
 func Send(payload Payload) error {

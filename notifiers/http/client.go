@@ -16,7 +16,7 @@ var ErrHeaderMissing = errors.New("header missing")                   // ErrHead
 var ErrClientAuthenticationError = errors.New("authentication error") // ErrClientAuthenticationError = 401
 var ErrForbidden = errors.New("access denied")                        // ErrForbidden = 403
 var ErrNotFound = errors.New("resource not found")                    // ErrNotFound = 404
-var ErrUnprocessableEntityError = errors.New("bad request")           // ErrUnprocessableEntityError = 422
+var ErrUnprocessableEntityError = errors.New("wrong request")         // ErrUnprocessableEntityError = 422
 var ErrTooManyRequest = errors.New("exceeding post rate limit")       // ErrTooManyRequest = 429
 
 const DefaultContentType = "application/json; charset=utf-8"

@@ -48,7 +48,7 @@ func GetClient() *Client {
 	return client
 }
 
-var Check = func(rule *rules.Rule, event *events.Event) error {
+var CheckPodNamespace = func(rule *rules.Rule, event *events.Event) error {
 	pod := event.GetPod()
 	namespace := event.GetNamespace()
 	if pod == "" || namespace == "" {

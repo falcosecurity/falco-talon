@@ -13,7 +13,7 @@ import (
 type Actionner struct {
 	Init     func()
 	Check    func(rule *rules.Rule, event *events.Event) error
-	Action   func(rule *rules.Rule, event *events.Event) error
+	Action   func(rule *rules.Rule, event *events.Event) (string, error)
 	Name     string
 	Category string
 	Continue bool
@@ -31,7 +31,7 @@ func Init() {
 			Category: "kubernetes",
 			Continue: false,
 			Init:     kubernetes.Init,
-			Check:    kubernetes.Check,
+			Check:    kubernetes.CheckPodNamespace,
 			Action:   kubernetes.Terminate,
 		},
 		&Actionner{
@@ -39,7 +39,7 @@ func Init() {
 			Category: "kubernetes",
 			Continue: true,
 			Init:     kubernetes.Init,
-			Check:    kubernetes.Check,
+			Check:    kubernetes.CheckPodNamespace,
 			Action:   kubernetes.Labelize,
 		})
 	categories := map[string]bool{}
@@ -75,28 +75,26 @@ func (actionners *Actionners) Add(actionner ...*Actionner) {
 }
 
 func Trigger(rule *rules.Rule, event *events.Event) {
-	pod := event.GetPod()
-	namespace := event.GetNamespace()
 	actionners := GetActionners()
 	action := rule.GetAction()
 	actionName := rule.GetActionName()
 	category := rule.GetActionCategory()
 	ruleName := rule.GetName()
-	utils.PrintLog("info", fmt.Sprintf("Match - Rule: '%v' Action: '%v' Pod: '%v' Namespace: '%v'", ruleName, action, pod, namespace))
+	utils.PrintLog("info", fmt.Sprintf("Match - Rule: '%v' Action: '%v'", ruleName, action))
 	for _, i := range *actionners {
 		if i.Category == category && i.Name == actionName {
 			if i.Check != nil {
 				if err := i.Check(rule, event); err != nil {
-					utils.PrintLog("error", fmt.Sprintf("Action - Rule: '%v' Action: '%v' Pod: '%v' Namespace: '%v' Error: '%v'", ruleName, action, pod, namespace, err.Error()))
+					utils.PrintLog("error", fmt.Sprintf("Action - Rule: '%v' Action: '%v' Error: '%v'", ruleName, action, err.Error()))
 					return
 				}
 			}
-			if err := i.Action(rule, event); err != nil {
-				utils.PrintLog("error", fmt.Sprintf("Action - Rule: '%v' Action: '%v' Pod: '%v' Namespace: '%v' Error: '%v'", ruleName, action, pod, namespace, err.Error()))
-				notifiers.Notifiy(rule, event, "failure")
+			if result, err := i.Action(rule, event); err != nil {
+				utils.PrintLog("error", fmt.Sprintf("Action - Rule: '%v' Action: '%v' Status: 'KO' Error: '%v'", ruleName, action, err.Error()))
+				notifiers.NotifiyFailure(rule, event, err.Error())
 			} else {
-				utils.PrintLog("info", fmt.Sprintf("Action - Rule: '%v' Action: '%v' Pod: '%v' Namespace: '%v' Status: 'OK'", ruleName, action, pod, namespace))
-				notifiers.Notifiy(rule, event, "success")
+				utils.PrintLog("info", fmt.Sprintf("Action - Rule: '%v' Action: '%v' Status: 'OK' Result: '%v'", ruleName, action, result))
+				notifiers.NotifiySuccess(rule, event, result)
 			}
 		}
 	}
