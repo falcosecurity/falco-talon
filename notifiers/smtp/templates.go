@@ -3,8 +3,8 @@ package smtp
 var plaintextTmpl = `Status: {{ .Status }}
 Action: {{ .Action }}
 Rule: {{ .Rule }}
-Pod: {{ .Pod }}
-Namespace: {{ .Namespace }}`
+Event: {{ .Event }}
+Message: {{ .Message }}`
 
 var htmlTmpl = `
 {{ $color := "#858585" }}
@@ -44,12 +44,12 @@ var htmlTmpl = `
             <td style="background-color:#d1d6da">{{ .Rule }}</td>
         </tr>
         <tr>
-            <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Pod</strong></span></td>
-            <td style="background-color:#d1d6da">{{ .Pod }}</td>
+            <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Event</strong></span></td>
+            <td style="background-color:#d1d6da">{{ .Event }}</td>
         </tr>
         <tr>
-            <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Namespace</strong></span></td>
-            <td style="background-color:#d1d6da">{{ .Namespace }}</td>
+            <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Message</strong></span></td>
+            <td style="background-color:#d1d6da">{{ .Message }}</td>
         </tr>
     </tbody>
 </table>

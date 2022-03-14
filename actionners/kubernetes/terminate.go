@@ -8,17 +8,11 @@ import (
 
 	"github.com/Issif/falco-talon/internal/events"
 	"github.com/Issif/falco-talon/internal/rules"
-	"github.com/Issif/falco-talon/utils"
 )
 
-var Terminate = func(rule *rules.Rule, event *events.Event) error {
+var Terminate = func(rule *rules.Rule, event *events.Event) (string, error) {
 	pod := event.GetPod()
 	namespace := event.GetNamespace()
-
-	if pod == "" || namespace == "" {
-		utils.PrintLog("info", fmt.Sprintf("MATCH: '%v' ACTION: 'none' (missing pod or namespace)", rule.GetName()))
-		return nil
-	}
 
 	parameters := rule.GetParameters()
 	gracePeriodSeconds := new(int64)
@@ -27,7 +21,7 @@ var Terminate = func(rule *rules.Rule, event *events.Event) error {
 	}
 	err := GetClient().Clientset.CoreV1().Pods(namespace).Delete(context.Background(), pod, metav1.DeleteOptions{GracePeriodSeconds: gracePeriodSeconds})
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return fmt.Sprintf("Action - Pod: '%v' Namespace: '%v' Status: 'terminated'", pod, namespace), err
 }

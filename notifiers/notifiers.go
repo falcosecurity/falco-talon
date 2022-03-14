@@ -15,7 +15,7 @@ import (
 
 type Notifier struct {
 	Init         func(fields map[string]interface{})
-	Notification func(rule *rules.Rule, event *events.Event, status string) error
+	Notification func(rule *rules.Rule, event *events.Event, message, status string) error
 	Name         string
 }
 
@@ -60,7 +60,14 @@ func GetNotifiers() *Notifiers {
 	return notifiers
 }
 
-func Notifiy(rule *rules.Rule, event *events.Event, status string) {
+func NotifiySuccess(rule *rules.Rule, event *events.Event, message string) {
+	notify(rule, event, message, "success")
+}
+func NotifiyFailure(rule *rules.Rule, event *events.Event, message string) {
+	notify(rule, event, message, "failure")
+}
+
+func notify(rule *rules.Rule, event *events.Event, message, status string) {
 	config := configuration.GetConfiguration()
 
 	if len(rule.Notifiers) == 0 && len(config.DefaultNotifiers) == 0 {
@@ -78,7 +85,14 @@ func Notifiy(rule *rules.Rule, event *events.Event, status string) {
 
 	for i := range enabledNotifiers {
 		if n := GetNotifiers().GetNotifier(i); n != nil {
-			if err := n.Notification(rule, event, status); err != nil {
+			var err error
+			switch status {
+			case "success":
+				err = n.Notification(rule, event, message, "success")
+			case "failure":
+				err = n.Notification(rule, event, message, "failure")
+			}
+			if err != nil {
 				utils.PrintLog("error", fmt.Sprintf("Notification - Notifier: '%v' Status: 'KO' Error: %v", i, err.Error()))
 			} else {
 				utils.PrintLog("info", fmt.Sprintf("Notification - Notifier: '%v' Status: 'OK'", i))

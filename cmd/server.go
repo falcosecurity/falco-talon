@@ -29,7 +29,6 @@ var serverCmd = &cobra.Command{
 		utils.PrintLog("info", fmt.Sprintf("%v Rules have been successfully loaded", len(*rules)))
 
 		http.HandleFunc("/", handler.MainHandler)
-		http.HandleFunc("/ping", handler.PingHandler)
 		http.HandleFunc("/healthz", handler.HealthHandler)
 
 		utils.PrintLog("info", fmt.Sprintf("Falco Talon is up and listening on '%s:%d'", config.ListenAddress, config.ListenPort))

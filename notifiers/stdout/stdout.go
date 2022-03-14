@@ -10,28 +10,26 @@ import (
 
 // Payload
 type Payload struct {
-	Pod       string `json:"pod"`
-	Namespace string `json:"namespace"`
-	Action    string `json:"action"`
-	Status    string `json:"status"`
+	Rule    string `json:"rule"`
+	Action  string `json:"action"`
+	Event   string `json:"event"`
+	Message string `json:"message"`
+	Status  string `json:"status"`
 }
 
-var Notify = func(rule *rules.Rule, event *events.Event, status string) error {
-	payload := NewPayload(rule, event, status)
+var Notify = func(rule *rules.Rule, event *events.Event, message, status string) error {
+	payload := NewPayload(rule, event, message, status)
 	jsonPayload, _ := json.Marshal(payload)
 	utils.PrintLog("info", string(jsonPayload))
 	return nil
 }
 
-func NewPayload(rule *rules.Rule, event *events.Event, status string) Payload {
-	pod := event.GetPod()
-	namespace := event.GetNamespace()
-	action := rule.GetAction()
-
+func NewPayload(rule *rules.Rule, event *events.Event, message, status string) Payload {
 	return Payload{
-		Pod:       pod,
-		Namespace: namespace,
-		Action:    action,
-		Status:    status,
+		Rule:    rule.GetName(),
+		Action:  rule.GetAction(),
+		Event:   event.Output,
+		Message: message,
+		Status:  status,
 	}
 }

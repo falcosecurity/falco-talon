@@ -36,22 +36,19 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// we trigger first rules with must not continue
 	for _, i := range triggeredRules {
 		if !i.MustContinue() {
 			actionners.Trigger(i, &event)
 			return
 		}
 	}
+	// we trigger after rules with continue
 	for _, i := range triggeredRules {
 		if i.MustContinue() {
 			actionners.Trigger(i, &event)
 		}
 	}
-}
-
-// PingHandler is a simple handler to test if daemon is UP.
-func PingHandler(w http.ResponseWriter, r *http.Request) {
-	_, _ = w.Write([]byte("pong\n"))
 }
 
 // HealthHandler is a simple handler to test if daemon is UP.

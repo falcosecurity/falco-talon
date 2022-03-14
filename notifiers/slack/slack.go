@@ -55,27 +55,25 @@ var Init = func(fields map[string]interface{}) {
 	slackconfig = utils.SetFields(slackconfig, fields).(*Configuration)
 }
 
-var Notify = func(rule *rules.Rule, event *events.Event, status string) error {
+var Notify = func(rule *rules.Rule, event *events.Event, message, status string) error {
 	if slackconfig.WebhookURL == "" {
-		return errors.New("bad config")
+		return errors.New("wrong config")
 	}
 
 	client, err := http.NewClient(slackconfig.WebhookURL)
 	if err != nil {
 		return err
 	}
-	err = client.Post(NewPayload(rule, event, status))
+	err = client.Post(NewPayload(rule, event, message, status))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func NewPayload(rule *rules.Rule, event *events.Event, status string) Payload {
-	ruleName := rule.GetName()
-	pod := event.GetPod()
-	namespace := event.GetNamespace()
+func NewPayload(rule *rules.Rule, event *events.Event, message, status string) Payload {
 	action := rule.GetAction()
+	ruleName := rule.GetName()
 
 	var attachments []Attachment
 	var attachment Attachment
@@ -90,7 +88,7 @@ func NewPayload(rule *rules.Rule, event *events.Event, status string) Payload {
 	}
 	attachment.Color = color
 
-	attachment.Text = fmt.Sprintf("Action `%v` from rule `%v` has been %vsuccessfully triggered for pod `%v` in namespace `%v`", action, ruleName, statusPrefix, pod, namespace)
+	attachment.Text = fmt.Sprintf("Action `%v` from rule `%v` has been %vsuccessfully triggered", action, ruleName, statusPrefix)
 
 	if slackconfig.Format != "short" {
 		var fields []Field
@@ -100,13 +98,6 @@ func NewPayload(rule *rules.Rule, event *events.Event, status string) Payload {
 		field.Value = "`" + ruleName + "`"
 		field.Short = false
 		fields = append(fields, field)
-		field.Title = "Pod"
-		field.Value = "`" + pod + "`"
-		field.Short = true
-		fields = append(fields, field)
-		field.Title = "Namespace"
-		field.Value = "`" + namespace + "`"
-		field.Short = true
 		fields = append(fields, field)
 		field.Title = "Action"
 		field.Value = strings.ToUpper("`" + action + "`")
@@ -115,6 +106,14 @@ func NewPayload(rule *rules.Rule, event *events.Event, status string) Payload {
 		field.Title = "Status"
 		field.Value = "`" + status + "`"
 		field.Short = true
+		fields = append(fields, field)
+		field.Title = "Event"
+		field.Value = event.Output
+		field.Short = false
+		fields = append(fields, field)
+		field.Title = "Message"
+		field.Value = message
+		field.Short = false
 		fields = append(fields, field)
 
 		if slackconfig.Footer != "" {

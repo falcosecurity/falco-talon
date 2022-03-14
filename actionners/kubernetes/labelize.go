@@ -18,7 +18,7 @@ type patch struct {
 	Value string `json:"value,omitempty"`
 }
 
-var Labelize = func(rule *rules.Rule, event *events.Event) error {
+var Labelize = func(rule *rules.Rule, event *events.Event) (string, error) {
 	pod := event.GetPod()
 	namespace := event.GetNamespace()
 
@@ -37,7 +37,7 @@ var Labelize = func(rule *rules.Rule, event *events.Event) error {
 	payloadBytes, _ := json.Marshal(payload)
 	_, err := client.Clientset.CoreV1().Pods(namespace).Patch(context.Background(), pod, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	payload = make([]patch, 0)
@@ -55,8 +55,8 @@ var Labelize = func(rule *rules.Rule, event *events.Event) error {
 	_, err = client.Clientset.CoreV1().Pods(namespace).Patch(context.Background(), pod, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
 	if err != nil {
 		if err.Error() != "the server rejected our request due to an error in our request" {
-			return err
+			return "", err
 		}
 	}
-	return nil
+	return fmt.Sprintf("Action - Pod: '%v' Namespace: '%v' Status: 'labelized'", pod, namespace), nil
 }
