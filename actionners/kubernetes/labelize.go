@@ -58,5 +58,5 @@ var Labelize = func(rule *rules.Rule, event *events.Event) (string, error) {
 			return "", err
 		}
 	}
-	return fmt.Sprintf("Action - Pod: '%v' Namespace: '%v' Status: 'labelized'", pod, namespace), nil
+	return fmt.Sprintf("Pod: '%v' Namespace: '%v' Status: 'labelized'", pod, namespace), nil
 }

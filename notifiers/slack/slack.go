@@ -78,26 +78,30 @@ func NewPayload(rule *rules.Rule, event *events.Event, message, status string) P
 	var attachments []Attachment
 	var attachment Attachment
 
-	var color, statusPrefix string
+	var color, statusPrefix, resultError string
 	switch status {
 	case "failure":
 		color = Red
 		statusPrefix = "un"
+		resultError = "error"
 	case "success":
 		color = Green
+		resultError = "result"
 	}
 	attachment.Color = color
 
-	attachment.Text = fmt.Sprintf("Action `%v` from rule `%v` has been %vsuccessfully triggered", action, ruleName, statusPrefix)
+	text := fmt.Sprintf("Action `%v` from rule `%v` has been %vsuccessfully triggered", action, ruleName, statusPrefix)
 
-	if slackconfig.Format != "short" {
+	if slackconfig.Format == "short" {
+		attachment.Text = text + fmt.Sprintf(", with %v: `%v`", resultError, message)
+		text = ""
+	} else {
 		var fields []Field
 		var field Field
 
 		field.Title = "Rule"
 		field.Value = "`" + ruleName + "`"
 		field.Short = false
-		fields = append(fields, field)
 		fields = append(fields, field)
 		field.Title = "Action"
 		field.Value = strings.ToUpper("`" + action + "`")
@@ -127,6 +131,7 @@ func NewPayload(rule *rules.Rule, event *events.Event, message, status string) P
 	attachments = append(attachments, attachment)
 
 	s := Payload{
+		Text:        text,
 		Username:    slackconfig.Username,
 		IconURL:     slackconfig.Icon,
 		Attachments: attachments,
