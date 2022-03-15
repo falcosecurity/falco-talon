@@ -23,5 +23,5 @@ var Terminate = func(rule *rules.Rule, event *events.Event) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("Action - Pod: '%v' Namespace: '%v' Status: 'terminated'", pod, namespace), err
+	return fmt.Sprintf("Pod: '%v' Namespace: '%v' Status: 'terminated'", pod, namespace), err
 }

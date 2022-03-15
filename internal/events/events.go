@@ -26,6 +26,11 @@ func DecodeEvent(payload io.Reader) (Event, error) {
 	if err != nil {
 		return Event{}, err
 	}
+
+	if event.Source == "" {
+		event.Source = "syscalls"
+	}
+
 	return event, nil
 }
 
