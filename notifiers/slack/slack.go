@@ -112,11 +112,11 @@ func NewPayload(rule *rules.Rule, event *events.Event, message, status string) P
 		field.Short = true
 		fields = append(fields, field)
 		field.Title = "Event"
-		field.Value = event.Output
+		field.Value = "`" + event.Output + "`"
 		field.Short = false
 		fields = append(fields, field)
 		field.Title = "Message"
-		field.Value = message
+		field.Value = "`" + message + "`"
 		field.Short = false
 		fields = append(fields, field)
 
