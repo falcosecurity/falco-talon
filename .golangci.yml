@@ -22,7 +22,6 @@ linters:
   disable-all: true
   enable:
     - bodyclose
-    - deadcode
     - errcheck
     - goconst
     - gocritic
@@ -36,12 +35,10 @@ linters:
     - misspell
     - nakedret
     - staticcheck
-    # - structcheck
     - stylecheck
     - typecheck
     - unconvert
     - unused
-    - varcheck
     - whitespace
 
 issues:
