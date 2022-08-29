@@ -2,8 +2,8 @@ package rules
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"regexp"
 	"strings"
 
@@ -56,7 +56,7 @@ func init() {
 
 func CreateRules() *[]*Rule {
 	config := configuration.GetConfiguration()
-	yamlRulesFile, err := ioutil.ReadFile(config.RulesFile)
+	yamlRulesFile, err := os.ReadFile(config.RulesFile)
 	if err != nil {
 		log.Fatalf("%v\n", err.Error())
 	}

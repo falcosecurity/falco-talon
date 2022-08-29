@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/Issif/falco-talon/actionners"
 	"github.com/Issif/falco-talon/configuration"
@@ -33,7 +34,14 @@ var serverCmd = &cobra.Command{
 
 		utils.PrintLog("info", fmt.Sprintf("Falco Talon is up and listening on '%s:%d'", config.ListenAddress, config.ListenPort))
 
-		if err := http.ListenAndServe(fmt.Sprintf("%s:%d", config.ListenAddress, config.ListenPort), nil); err != nil {
+		srv := http.Server{
+			Addr:         fmt.Sprintf("%s:%d", config.ListenAddress, config.ListenPort),
+			ReadTimeout:  2 * time.Second,
+			WriteTimeout: 2 * time.Second,
+			Handler:      nil,
+		}
+
+		if err := srv.ListenAndServe(); err != nil {
 			utils.PrintLog("critical", fmt.Sprintf("%v", err.Error()))
 		}
 	},
