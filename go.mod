@@ -1,6 +1,6 @@
 module github.com/Issif/falco-talon
 
-go 1.17
+go 1.19
 
 require (
 	github.com/emersion/go-sasl v0.0.0-20211008083017-0b9dcfb154ac
@@ -15,8 +15,6 @@ require (
 )
 
 require (
-	github.com/PuerkitoBio/purell v1.1.1 // indirect
-	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.9.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
