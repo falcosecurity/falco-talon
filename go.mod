@@ -6,7 +6,7 @@ require (
 	github.com/emersion/go-sasl v0.0.0-20211008083017-0b9dcfb154ac
 	github.com/emersion/go-smtp v0.15.0
 	github.com/magefile/mage v1.14.0
-	github.com/spf13/cobra v1.5.0
+	github.com/spf13/cobra v1.6.0
 	github.com/spf13/viper v1.13.0
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.25.1
