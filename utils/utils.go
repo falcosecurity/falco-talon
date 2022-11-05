@@ -1,10 +1,14 @@
 package utils
 
 import (
-	"log"
+	"fmt"
 	"os"
 	"reflect"
 	"strconv"
+	"strings"
+	"time"
+
+	"github.com/rs/zerolog"
 )
 
 const (
@@ -15,22 +19,100 @@ const (
 	intStr     = "int"
 	int64Str   = "int64"
 
-	errorStr    = "error"
-	criticalStr = "critical"
-	infoStr     = "info"
+	errorStr = "error"
+	fatalStr = "fatal"
+	infoStr  = "info"
+
+	textStr  = "text"
+	colorStr = "color"
 )
 
-func PrintLog(level, message string) {
-	var prefix string
-	switch level {
-	case errorStr, criticalStr:
-		prefix = "[ERROR]"
-	case infoStr:
-		prefix = "[INFO] "
+type LogLine struct {
+	UUID           string
+	Rule           string
+	Event          string
+	Message        string
+	Priority       string
+	Source         string
+	Notifier       string
+	Output         string
+	Actionner      string
+	Action         string
+	ActionCategory string
+	Error          error
+	Status         string
+	Result         string
+}
+
+func PrintLog(level, format string, line LogLine) {
+	// zerolog.TimeFieldFormat = time.RFC3339
+	var output zerolog.ConsoleWriter
+
+	var log zerolog.Logger
+	f := strings.ToLower(format)
+	if f == textStr || f == colorStr {
+		output = zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
+		if f != colorStr {
+			output.NoColor = true
+		}
+		output.FormatFieldValue = func(i interface{}) string {
+			return strings.ToLower(fmt.Sprintf("%s", i))
+		}
+		log = zerolog.New(output).With().Timestamp().Logger()
+	} else {
+		log = zerolog.New(os.Stdout).With().Timestamp().Logger()
 	}
-	log.Printf("%v %v\n", prefix, message)
-	if level == "critical" {
-		os.Exit(1)
+
+	var l *zerolog.Event
+	switch strings.ToLower(level) {
+	case errorStr:
+		l = log.Error()
+	case fatalStr:
+		l = log.Fatal()
+	default:
+		l = log.Info()
+	}
+	if line.Rule != "" {
+		l.Str("rule", line.Rule)
+	}
+	if line.Event != "" {
+		l.Str("event", line.Event)
+	}
+	if line.Priority != "" {
+		l.Str("priority", line.Priority)
+	}
+	if line.Source != "" {
+		l.Str("source", line.Source)
+	}
+	if line.Notifier != "" {
+		l.Str("notifier", line.Notifier)
+	}
+	if line.Output != "" {
+		l.Str("output", line.Output)
+	}
+	if line.Actionner != "" {
+		l.Str("actionner", line.Actionner)
+	}
+	if line.Action != "" {
+		l.Str("action", line.Action)
+	}
+	if line.ActionCategory != "" {
+		l.Str("action_category", line.ActionCategory)
+	}
+	if line.Error != nil {
+		l.Err(line.Error)
+	}
+	if line.Status != "" {
+		l.Str("status", line.Status)
+	}
+	if line.Result != "" {
+		l.Str("result", line.Result)
+	}
+	if line.UUID != "" {
+		l.Str("uuid", line.UUID)
+	}
+	if line.Message != "" {
+		l.Msg(line.Message)
 	}
 }
 

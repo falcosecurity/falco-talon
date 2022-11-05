@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"io"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Event struct {
+	UUID         string
 	Output       string                 `json:"output"`
 	Priority     string                 `json:"priority"`
 	Rule         string                 `json:"rule"`
@@ -29,6 +32,10 @@ func DecodeEvent(payload io.Reader) (Event, error) {
 
 	if event.Source == "" {
 		event.Source = "syscalls"
+	}
+
+	if event.UUID == "" {
+		event.UUID = uuid.New().String()
 	}
 
 	return event, nil

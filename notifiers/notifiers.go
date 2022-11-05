@@ -1,11 +1,12 @@
 package notifiers
 
 import (
-	"fmt"
+	"strings"
 
 	"github.com/Issif/falco-talon/configuration"
 	"github.com/Issif/falco-talon/internal/events"
 	"github.com/Issif/falco-talon/internal/rules"
+	"github.com/Issif/falco-talon/notifiers/k8sevents"
 	"github.com/Issif/falco-talon/notifiers/slack"
 	"github.com/Issif/falco-talon/notifiers/smtp"
 	"github.com/Issif/falco-talon/notifiers/stdout"
@@ -14,9 +15,10 @@ import (
 )
 
 type Notifier struct {
-	Init         func(fields map[string]interface{})
+	Init         func(fields map[string]interface{}) error
 	Notification func(rule *rules.Rule, event *events.Event, message, status string) error
 	Name         string
+	initialized  bool
 }
 
 type Notifiers []*Notifier
@@ -25,11 +27,22 @@ var notifiers *Notifiers
 
 func Init() {
 	notifiers = new(Notifiers)
-	notifiers.Add(
+	n := new(Notifiers)
+	n.Add(
+		&Notifier{
+			Name:         "k8sevents",
+			Init:         nil,
+			Notification: k8sevents.Notify,
+		},
 		&Notifier{
 			Name:         "slack",
 			Init:         slack.Init,
 			Notification: slack.Notify,
+		},
+		&Notifier{
+			Name:         "smtp",
+			Init:         smtp.Init,
+			Notification: smtp.Notify,
 		},
 		&Notifier{
 			Name:         "stdout",
@@ -41,17 +54,37 @@ func Init() {
 			Init:         webhook.Init,
 			Notification: webhook.Notify,
 		},
-		&Notifier{
-			Name:         "smtp",
-			Init:         smtp.Init,
-			Notification: smtp.Notify,
-		},
 	)
 	config := configuration.GetConfiguration()
-	for _, i := range *GetNotifiers() {
-		if i.Init != nil {
-			utils.PrintLog("info", fmt.Sprintf("Init Notifier `%v`", i.Name))
-			i.Init(config.Notifiers[i.Name])
+	for _, i := range *n {
+		for _, j := range config.GetDefaultNotifiers() {
+			if i.Name == strings.ToLower(j) && !i.initialized {
+				i.initialized = true
+				utils.PrintLog("info", config.LogFormat, utils.LogLine{Notifier: i.Name, Message: "init"})
+				if i.Init != nil {
+					if err := i.Init(config.Notifiers[i.Name]); err != nil {
+						utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i.Name, Error: err})
+						continue
+					}
+				}
+				notifiers.Add(i)
+			}
+		}
+		rules := rules.GetRules()
+		for _, j := range *rules {
+			for _, k := range j.GetNotifiers() {
+				if i.Name == strings.ToLower(k) && !i.initialized {
+					i.initialized = true
+					if i.Init != nil {
+						utils.PrintLog("info", config.LogFormat, utils.LogLine{Notifier: i.Name, Message: "init"})
+						if err := i.Init(config.Notifiers[i.Name]); err != nil {
+							utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i.Name, Error: err})
+							continue
+						}
+						notifiers.Add(i)
+					}
+				}
+			}
 		}
 	}
 }
@@ -93,9 +126,9 @@ func notify(rule *rules.Rule, event *events.Event, message, status string) {
 				err = n.Notification(rule, event, message, "failure")
 			}
 			if err != nil {
-				utils.PrintLog("error", fmt.Sprintf("Notification - Notifier: '%v' Status: 'KO' Error: %v", i, err.Error()))
+				utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i, Error: err, Rule: rule.GetName(), Action: rule.GetAction(), UUID: event.UUID, Message: "notification"})
 			} else {
-				utils.PrintLog("info", fmt.Sprintf("Notification - Notifier: '%v' Status: 'OK'", i))
+				utils.PrintLog("info", config.LogFormat, utils.LogLine{Notifier: i, Result: "ok", Rule: rule.GetName(), Action: rule.GetAction(), UUID: event.UUID, Message: "notification"})
 			}
 		}
 	}

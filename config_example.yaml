@@ -2,9 +2,11 @@ listenAddress: "0.0.0.0" # default: "0.0.0.0"
 listenPort: "2803" # default: "2803"
 rulesFile: "./rules.yaml" # default: "./rules.yaml"
 # kubeConfig: "~/.kube/config" # ony if Falco Talon is running outside Kubernetes
+logFormat: "color" # Log Format: text, color, json (default: color)
+
 
 defaultNotifiers: # this notifiers will be enabled for all rules
-  - slack
+  - k8saudit
 
 notifiers:
   slack:

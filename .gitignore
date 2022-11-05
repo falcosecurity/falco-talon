@@ -1,3 +1,4 @@
+.vscode/**
 config.yaml
 **/config.yaml
 falco-talon

@@ -19,12 +19,22 @@ func Lint() error {
 	if err := sh.RunV("go", "mod", "tidy"); err != nil {
 		return err
 	}
+	return nil
+}
 
+func FixLint() error {
+	if err := sh.RunV("golangci-lint", "run", "--fix"); err != nil {
+		return err
+	}
 	return nil
 }
 
 func Test() error {
 	return sh.RunV("go", "test", "./...", "-race")
+}
+
+func Run() error {
+	return sh.RunV("go", "run", "./...")
 }
 
 func BuildLocal() error {

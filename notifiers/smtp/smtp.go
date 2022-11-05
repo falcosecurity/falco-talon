@@ -42,9 +42,10 @@ type Payload struct {
 
 var smtpconfig *Configuration
 
-var Init = func(fields map[string]interface{}) {
+var Init = func(fields map[string]interface{}) error {
 	smtpconfig = new(Configuration)
 	smtpconfig = utils.SetFields(smtpconfig, fields).(*Configuration)
+	return nil
 }
 
 var Notify = func(rule *rules.Rule, event *events.Event, message, status string) error {

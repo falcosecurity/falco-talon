@@ -50,9 +50,10 @@ type Payload struct {
 
 var slackconfig *Configuration
 
-var Init = func(fields map[string]interface{}) {
+var Init = func(fields map[string]interface{}) error {
 	slackconfig = new(Configuration)
 	slackconfig = utils.SetFields(slackconfig, fields).(*Configuration)
+	return nil
 }
 
 var Notify = func(rule *rules.Rule, event *events.Event, message, status string) error {

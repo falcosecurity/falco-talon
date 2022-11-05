@@ -30,9 +30,10 @@ const (
 
 type Configuration struct {
 	Notifiers        map[string]map[string]interface{}
+	LogFormat        string
+	KubeConfig       string
 	ListenAddress    string
 	RulesFile        string
-	KubeConfig       string
 	DefaultNotifiers []string
 	ListenPort       int
 }
@@ -49,6 +50,7 @@ func CreateConfiguration(configFile string) *Configuration {
 	v.SetDefault("ListenPort", defaultListPort)
 	v.SetDefault("RulesFile", defaultRulesFile)
 	v.SetDefault("KubeConfig", "")
+	v.SetDefault("Logformat", "color")
 	v.SetDefault("DefaultNotifiers", []string{})
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
@@ -63,12 +65,12 @@ func CreateConfiguration(configFile string) *Configuration {
 		v.AddConfigPath(d)
 		err := v.ReadInConfig()
 		if err != nil {
-			utils.PrintLog("critical", fmt.Sprintf("Error when reading config file: %v", err.Error()))
+			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: fmt.Errorf("error when reading config file: %v", err.Error())})
 		}
 	}
 
 	if err := v.Unmarshal(config); err != nil {
-		utils.PrintLog("critical", fmt.Sprintf("Error unmarshalling config: %v", err.Error()))
+		utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: fmt.Errorf("error unmarshalling config: %v", err.Error())})
 	}
 
 	// fmt.Printf("%#v\n", config)
@@ -78,4 +80,8 @@ func CreateConfiguration(configFile string) *Configuration {
 
 func GetConfiguration() *Configuration {
 	return config
+}
+
+func (c *Configuration) GetDefaultNotifiers() []string {
+	return c.DefaultNotifiers
 }

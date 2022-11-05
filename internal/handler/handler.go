@@ -1,16 +1,17 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/Issif/falco-talon/actionners"
+	"github.com/Issif/falco-talon/configuration"
 	"github.com/Issif/falco-talon/internal/events"
 	"github.com/Issif/falco-talon/internal/rules"
 	"github.com/Issif/falco-talon/utils"
 )
 
 func MainHandler(w http.ResponseWriter, r *http.Request) {
+	config := configuration.GetConfiguration()
 	if r.Method != http.MethodPost {
 		http.Error(w, "Please send with POST http method", http.StatusBadRequest)
 		return
@@ -26,7 +27,14 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.PrintLog("info", fmt.Sprintf("Event - Rule: '%v' Priority: '%v' Output: '%v' Source: '%v'", event.Rule, event.Priority, event.Output, event.Source))
+	utils.PrintLog("info", config.LogFormat, utils.LogLine{
+		Rule:     event.Rule,
+		Priority: event.Priority,
+		Output:   event.Output,
+		Source:   event.Source,
+		Message:  "event",
+		UUID:     event.UUID,
+	})
 
 	enabledRules := rules.GetRules()
 	triggeredRules := make([]*rules.Rule, 0)
@@ -36,16 +44,17 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	a := actionners.GetActionners()
 	// we trigger first rules with must not continue
 	for _, i := range triggeredRules {
-		if !i.MustContinue() {
+		if !i.MustContinue() || !a.GetActionner(i.GetActionCategory(), i.GetActionName()).MustContinue() {
 			actionners.Trigger(i, &event)
 			return
 		}
 	}
 	// we trigger after rules with continue
 	for _, i := range triggeredRules {
-		if i.MustContinue() {
+		if i.MustContinue() && a.GetActionner(i.GetActionCategory(), i.GetActionName()).MustContinue() {
 			actionners.Trigger(i, &event)
 		}
 	}

@@ -14,7 +14,6 @@ import (
 	"github.com/Issif/falco-talon/configuration"
 	"github.com/Issif/falco-talon/internal/events"
 	"github.com/Issif/falco-talon/internal/rules"
-	"github.com/Issif/falco-talon/utils"
 )
 
 type Client struct {
@@ -23,7 +22,7 @@ type Client struct {
 
 var client *Client
 
-var Init = func() {
+var Init = func() error {
 	client = new(Client)
 	config := configuration.GetConfiguration()
 	var k8sconfig *rest.Config
@@ -34,14 +33,15 @@ var Init = func() {
 		k8sconfig, err = rest.InClusterConfig()
 	}
 	if err != nil {
-		utils.PrintLog("critical", err.Error())
+		return err
 	}
 
 	// creates the clientset
 	client.Clientset, err = k8s.NewForConfig(k8sconfig)
 	if err != nil {
-		utils.PrintLog("critical", err.Error())
+		return err
 	}
+	return nil
 }
 
 func GetClient() *Client {
