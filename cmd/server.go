@@ -27,12 +27,12 @@ var serverCmd = &cobra.Command{
 		rules := ruleengine.CreateRules()
 		actionners.Init()
 		notifiers.Init()
-		utils.PrintLog("info", fmt.Sprintf("%v Rules have been successfully loaded", len(*rules)))
+		utils.PrintLog("info", config.LogFormat, utils.LogLine{Message: fmt.Sprintf("%v rules have been successfully loaded", len(*rules))})
 
 		http.HandleFunc("/", handler.MainHandler)
 		http.HandleFunc("/healthz", handler.HealthHandler)
 
-		utils.PrintLog("info", fmt.Sprintf("Falco Talon is up and listening on '%s:%d'", config.ListenAddress, config.ListenPort))
+		utils.PrintLog("info", config.LogFormat, utils.LogLine{Message: fmt.Sprintf("Falco Talon is up and listening on '%s:%d'", config.ListenAddress, config.ListenPort)})
 
 		srv := http.Server{
 			Addr:         fmt.Sprintf("%s:%d", config.ListenAddress, config.ListenPort),
@@ -42,7 +42,7 @@ var serverCmd = &cobra.Command{
 		}
 
 		if err := srv.ListenAndServe(); err != nil {
-			utils.PrintLog("critical", fmt.Sprintf("%v", err.Error()))
+			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err})
 		}
 	},
 }

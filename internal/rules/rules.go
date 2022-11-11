@@ -1,8 +1,7 @@
 package rules
 
 import (
-	"fmt"
-	"log"
+	"errors"
 	"os"
 	"regexp"
 	"strings"
@@ -58,28 +57,27 @@ func CreateRules() *[]*Rule {
 	config := configuration.GetConfiguration()
 	yamlRulesFile, err := os.ReadFile(config.RulesFile)
 	if err != nil {
-		log.Fatalf("%v\n", err.Error())
+		utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err})
 	}
 
 	err2 := yaml.Unmarshal(yamlRulesFile, &rules)
-
 	if err2 != nil {
-		log.Fatalf("%v\n", err2.Error())
+		utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err2})
 	}
 
 	for _, i := range *rules {
 		if i.Name == "" {
-			utils.PrintLog("critical", "All rules must have a name")
+			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: errors.New("all rules must have a name")})
 		}
 		if !priorityCheckRegex.MatchString(i.Match.Priority) {
-			utils.PrintLog("critical", fmt.Sprintf("Incorrect priority for rule '%v'\n", i.Name))
+			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: errors.New("incorrect priority"), Rule: i.Name})
 		}
 		if !actionCheckRegex.MatchString(i.Action.Name) {
-			utils.PrintLog("critical", fmt.Sprintf("Unknown action for rule '%v'\n", i.Name))
+			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: errors.New("unknown action"), Rule: i.Name})
 		}
 		err := i.setPriorityNumberComparator()
 		if err != nil {
-			utils.PrintLog("critical", fmt.Sprintf("Incorrect Priority for Rule: %v\n", i.Name))
+			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: errors.New("incorrect priority"), Rule: i.Name})
 		}
 	}
 
@@ -104,15 +102,15 @@ func (rule *Rule) GetName() string {
 }
 
 func (rule *Rule) GetAction() string {
-	return rule.Action.Name
+	return strings.ToLower(rule.Action.Name)
 }
 
 func (rule *Rule) GetActionName() string {
-	return strings.Split(rule.Action.Name, ":")[1]
+	return strings.ToLower(strings.Split(rule.Action.Name, ":")[1])
 }
 
 func (rule *Rule) GetActionCategory() string {
-	return strings.Split(rule.Action.Name, ":")[0]
+	return strings.ToLower(strings.Split(rule.Action.Name, ":")[0])
 }
 
 func (rule *Rule) GetParameters() map[string]interface{} {
@@ -121,6 +119,10 @@ func (rule *Rule) GetParameters() map[string]interface{} {
 
 func (rule *Rule) GetArguments() map[string]interface{} {
 	return rule.Action.Arguments
+}
+
+func (rule *Rule) GetNotifiers() []string {
+	return rule.Notifiers
 }
 
 func (rule *Rule) MustContinue() bool {

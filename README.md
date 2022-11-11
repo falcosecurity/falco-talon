@@ -9,6 +9,7 @@
     - [`kubernetes:terminate`](#kubernetesterminate)
     - [`kubernetes:labelize`](#kuberneteslabelize)
   - [Notifiers](#notifiers)
+    - [K8SEvents](#k8sevents)
     - [Slack](#slack)
     - [SMTP](#smtp)
     - [Webhook](#webhook)
@@ -73,6 +74,10 @@ Several rules can match same event, so several action can be triggered, except f
 
 `Notifiers` define which outputs to notify with result of actions.
 
+### K8SEvents
+
+This notifiers creates a [k8s event](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#event-v1-events-k8s-io) in the target resource namespace. No configuration is requested.
+
 ### Slack
 
 | Setting      | Default                                                                           | Description                        |
@@ -123,6 +128,7 @@ The configuration of `Falco Talon` is set with a `.yaml` file (default: `./confi
 | `listenPort`       | `LISTENPORT`       |  `2803`   | Listten Port                                                    |
 | `rulesFile`        | `RULESFILE`        |    n/a    | File with rules                                                 |
 | `kubeConfig`       | `KUBECONFIG`       |    n/a    | Kube config file, only if `Falco Talon` runs outside Kubernetes |
+| `logFormat`        | `LOGFORMAT`        |  `color`   | Log Format: text, color, json                                   |
 | `defaultNotifiers` | `DEFAULTNOTIFIERS` |    n/a    | List of `notifiers` which are enabled for all rules             |
 | `notifiers.x`      | `NOTIFIERS_X`      |    n/a    | List of `notifiers` with their settings                         |
 

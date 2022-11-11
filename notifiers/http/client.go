@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
 
+	"github.com/Issif/falco-talon/configuration"
 	"github.com/Issif/falco-talon/utils"
 )
 
@@ -47,9 +47,10 @@ func NewClient(u string) (*Client, error) {
 
 func (c *Client) Post(payload interface{}) error {
 	// defer + recover to catch panic if output doesn't respond
+	config := configuration.GetConfiguration()
 	defer func() {
 		if err := recover(); err != nil {
-			utils.PrintLog("error", fmt.Sprintf("in recover: %v", err))
+			utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: errors.New("recover")})
 		}
 	}()
 

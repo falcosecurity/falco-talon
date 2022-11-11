@@ -23,9 +23,10 @@ type Payload struct {
 
 var webhookConfig *Configuration
 
-var Init = func(fields map[string]interface{}) {
+var Init = func(fields map[string]interface{}) error {
 	webhookConfig = new(Configuration)
 	webhookConfig = utils.SetFields(webhookConfig, fields).(*Configuration)
+	return nil
 }
 
 var Notify = func(rule *rules.Rule, event *events.Event, message, status string) error {
