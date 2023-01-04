@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/emersion/go-sasl v0.0.0-20211008083017-0b9dcfb154ac
-	github.com/emersion/go-smtp v0.15.0
+	github.com/emersion/go-smtp v0.16.0
 	github.com/google/uuid v1.3.0
 	github.com/magefile/mage v1.14.0
 	github.com/rs/zerolog v1.28.0
