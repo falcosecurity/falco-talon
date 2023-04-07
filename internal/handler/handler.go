@@ -61,7 +61,7 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // HealthHandler is a simple handler to test if daemon is UP.
-func HealthHandler(w http.ResponseWriter, r *http.Request) {
+func HealthHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	_, _ = w.Write([]byte(`{"status": "ok"}`))
 }
