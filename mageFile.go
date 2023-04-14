@@ -72,7 +72,7 @@ func BuildImages() error {
 
 func Build() error {
 	os.Setenv("LDFLAGS", generateLDFlags())
-	return sh.RunV("goreleaser", "release", "--rm-dist", "--snapshot", "--skip-sign", "--skip-publish")
+	return sh.RunV("goreleaser", "release", "--clean", "--snapshot", "--skip-sign", "--skip-publish")
 }
 
 func Release() error {

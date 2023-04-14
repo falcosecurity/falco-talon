@@ -47,6 +47,14 @@ func Init() {
 			Init:     kubernetes.Init,
 			Check:    kubernetes.CheckPodNamespace,
 			Action:   kubernetes.Labelize,
+		},
+		&Actionner{
+			Name:     "networkpolicy",
+			Category: "kubernetes",
+			Continue: true,
+			Init:     kubernetes.Init,
+			Check:    kubernetes.CheckPodNamespace,
+			Action:   kubernetes.NetworkPolicy,
 		})
 	categories := map[string]*category{}
 	for _, i := range *a {
@@ -108,15 +116,15 @@ func Trigger(rule *rules.Rule, event *events.Event) {
 		if i.Category == category && i.Name == actionName {
 			if i.Check != nil {
 				if err := i.Check(rule, event); err != nil {
-					utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, Rule: ruleName, Action: action, UUID: event.UUID, Message: "action"})
+					utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, Rule: ruleName, Action: action, TraceID: event.TraceID, Message: "action"})
 					return
 				}
 			}
 			if result, err := i.Action(rule, event); err != nil {
-				utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, Rule: ruleName, Action: action, UUID: event.UUID, Message: "action"})
+				utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, Rule: ruleName, Action: action, TraceID: event.TraceID, Message: "action"})
 				notifiers.NotifiyFailure(rule, event, err.Error())
 			} else {
-				utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: result, Rule: ruleName, Action: action, UUID: event.UUID, Message: "action"})
+				utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: result, Rule: ruleName, Action: action, TraceID: event.TraceID, Message: "action"})
 				notifiers.NotifiySuccess(rule, event, result)
 			}
 			return

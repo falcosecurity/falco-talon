@@ -126,9 +126,9 @@ func notify(rule *rules.Rule, event *events.Event, message, status string) {
 				err = n.Notification(rule, event, message, "failure")
 			}
 			if err != nil {
-				utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i, Error: err, Rule: rule.GetName(), Action: rule.GetAction(), UUID: event.UUID, Message: "notification"})
+				utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i, Error: err, Rule: rule.GetName(), Action: rule.GetAction(), TraceID: event.TraceID, Message: "notification"})
 			} else {
-				utils.PrintLog("info", config.LogFormat, utils.LogLine{Notifier: i, Result: "ok", Rule: rule.GetName(), Action: rule.GetAction(), UUID: event.UUID, Message: "notification"})
+				utils.PrintLog("info", config.LogFormat, utils.LogLine{Notifier: i, Result: "ok", Rule: rule.GetName(), Action: rule.GetAction(), TraceID: event.TraceID, Message: "notification"})
 			}
 		}
 	}

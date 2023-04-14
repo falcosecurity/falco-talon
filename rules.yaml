@@ -1,4 +1,14 @@
 ---
+- name: Rule Test NetworkPolicy
+  match:
+    rules:
+      - Test NetworkPolicy
+  action:
+    name: kubernetes:networkpolicy
+    arguments:
+  continue: false
+  notifiers:
+    - slack
 - name: Rule Test Label
   match:
     priority: "<Critical"
