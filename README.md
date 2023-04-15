@@ -8,6 +8,7 @@
   - [Actionners](#actionners)
     - [`kubernetes:terminate`](#kubernetesterminate)
     - [`kubernetes:labelize`](#kuberneteslabelize)
+    - [`kubernetes:networkpolicy`](#kubernetesnetworkpolicy)
   - [Notifiers](#notifiers)
     - [K8SEvents](#k8sevents)
     - [Slack](#slack)
@@ -66,7 +67,14 @@ Several rules can match same event, so several action can be triggered, except f
 ### `kubernetes:labelize`
 
 * Description: **Add, modify or delete labels of pod**
-* Arguments: key:value map of labels to add/modify/delete (empty value mean label deletion)
+* Arguments: key:value map of labels to add/modify/delete (empty value means label deletion)
+* Continue: `true`
+* Parameters: N/A
+
+### `kubernetes:networkpolicy`
+
+* Description: **Create, update a network policy to block the egress**
+* Arguments: N/A
 * Continue: `true`
 * Parameters: N/A
 
@@ -89,6 +97,7 @@ This notifiers creates a [k8s event](https://kubernetes.io/docs/reference/genera
 | `format`     | `long`                                                                            | Format for messages (`long|short`) |
 
 Results:
+
 ![./imgs/slack_short.png](./imgs/slack_short.png)
 ![./imgs/slack_long.png](./imgs/slack_long.png)
 
@@ -104,6 +113,7 @@ Results:
 | `format`   | `html`  | Format of the email (`text | html`)   |
 
 Results:
+
 ![./imgs/smtp_html.png](./imgs/smtp_html.png)
 ![./imgs/smtp_text.png](./imgs/smtp_text.png)
 

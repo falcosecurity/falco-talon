@@ -33,7 +33,7 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 		Output:   event.Output,
 		Source:   event.Source,
 		Message:  "event",
-		UUID:     event.UUID,
+		TraceID:  event.TraceID,
 	})
 
 	enabledRules := rules.GetRules()

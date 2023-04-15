@@ -28,7 +28,7 @@ const (
 )
 
 type LogLine struct {
-	UUID           string
+	TraceID        string
 	Rule           string
 	Event          string
 	Message        string
@@ -108,8 +108,8 @@ func PrintLog(level, format string, line LogLine) {
 	if line.Result != "" {
 		l.Str("result", line.Result)
 	}
-	if line.UUID != "" {
-		l.Str("uuid", line.UUID)
+	if line.TraceID != "" {
+		l.Str("trace_id", line.TraceID)
 	}
 	if line.Message != "" {
 		l.Msg(line.Message)
