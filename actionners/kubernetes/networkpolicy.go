@@ -19,7 +19,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (string, error) 
 	pod := event.GetPod()
 	namespace := event.GetNamespace()
 
-	p, err := client.CoreV1().Pods(namespace).Get(context.Background(), pod, metav1.GetOptions{})
+	p, err := client.Clientset.CoreV1().Pods(namespace).Get(context.Background(), pod, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -31,7 +31,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (string, error) 
 		switch p.OwnerReferences[0].Kind {
 		case "DaemonSet":
 			var u *v1.DaemonSet
-			u, err = client.AppsV1().DaemonSets(namespace).Get(context.Background(), p.OwnerReferences[0].Name, metav1.GetOptions{})
+			u, err = client.Clientset.AppsV1().DaemonSets(namespace).Get(context.Background(), p.OwnerReferences[0].Name, metav1.GetOptions{})
 			if err != nil {
 				return "", err
 			}
@@ -39,7 +39,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (string, error) 
 			labels = u.Spec.Selector.MatchLabels
 		case "StatefulSet":
 			var u *v1.StatefulSet
-			u, err = client.AppsV1().StatefulSets(namespace).Get(context.Background(), p.OwnerReferences[0].Name, metav1.GetOptions{})
+			u, err = client.Clientset.AppsV1().StatefulSets(namespace).Get(context.Background(), p.OwnerReferences[0].Name, metav1.GetOptions{})
 			if err != nil {
 				return "", err
 			}
@@ -47,12 +47,12 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (string, error) 
 			labels = u.Spec.Selector.MatchLabels
 		case "ReplicaSet":
 			var u *v1.ReplicaSet
-			u, err = client.AppsV1().ReplicaSets(namespace).Get(context.Background(), p.OwnerReferences[0].Name, metav1.GetOptions{})
+			u, err = client.Clientset.AppsV1().ReplicaSets(namespace).Get(context.Background(), p.OwnerReferences[0].Name, metav1.GetOptions{})
 			if err != nil {
 				return "", err
 			}
 			var v *v1.Deployment
-			v, err = client.AppsV1().Deployments(namespace).Get(context.Background(), u.OwnerReferences[0].Name, metav1.GetOptions{})
+			v, err = client.Clientset.AppsV1().Deployments(namespace).Get(context.Background(), u.OwnerReferences[0].Name, metav1.GetOptions{})
 			if err != nil {
 				return "", err
 			}

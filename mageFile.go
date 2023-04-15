@@ -46,39 +46,35 @@ func BuildLocal() error {
 
 // BuildImagesLocal build images locally and not push
 func BuildImagesLocal() error {
-	gitVersion := getVersion()
-	gitCommit := getCommit()
-	os.Setenv("LDFLAGS", generateLDFlags())
+	exportLDFlags()
+	os.Setenv("KO_DOCKER_REPO", "ko.local/falco-talon")
 
-	return sh.RunV("ko", "publish", "--base-import-paths", "--bare", "--local",
-		"--platform=linux/amd64", "--tags", gitVersion, "--tags", gitCommit, "--tags", "latest",
+	return sh.RunV("ko", "build", "--bare", "--sbom=none", "--tags", getVersion(), "--tags", getCommit(), "--tags", "latest",
 		"github.com/Issif/falco-talon")
 }
 
 // BuildImages build the images and push
 func BuildImages() error {
-	gitVersion := getVersion()
-	gitCommit := getCommit()
-	os.Setenv("LDFLAGS", generateLDFlags())
+	exportLDFlags()
+	os.Setenv("KO_DOCKER_REPO", "issif/falco-talon")
 
 	if os.Getenv("KO_DOCKER_REPO") == "" {
 		return errors.New("missing KO_DOCKER_REPO environment variable")
 	}
 
-	return sh.RunV("ko", "publish", "--base-import-paths", "--bare",
-		"--platform=linux/amd64", "--tags", gitVersion, "--tags", gitCommit, "--tags", "latest",
+	return sh.RunV("ko", "build", "--bare", "--sbom=none", "--tags", getVersion(), "--tags", getCommit(), "--tags", "latest",
 		"github.com/Issif/falco-talon")
 }
 
 func Build() error {
-	os.Setenv("LDFLAGS", generateLDFlags())
+	exportLDFlags()
 	return sh.RunV("goreleaser", "release", "--clean", "--snapshot", "--skip-sign", "--skip-publish")
 }
 
 func Release() error {
 	mg.Deps(Test)
 
-	os.Setenv("LDFLAGS", generateLDFlags())
+	exportLDFlags()
 	return sh.RunV("goreleaser", "release", "--rm-dist")
 }
 
@@ -88,6 +84,11 @@ func Clean() {
 	for _, file := range files {
 		sh.Rm(file)
 	}
+}
+
+// exportLDFlags export as env vars the flags for go build
+func exportLDFlags() {
+	os.Setenv("LDFLAGS", generateLDFlags())
 }
 
 // getVersion gets a description of the commit, e.g. v0.30.1 (latest) or v0.30.1-32-gfe72ff73 (canary)

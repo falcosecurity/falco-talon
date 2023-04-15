@@ -1,13 +1,17 @@
-defaultBaseImage: gcr.io/distroless/static-debian11
+defaultBaseImage: cgr.dev/chainguard/static
+defaultPlatforms:
+  - linux/arm64
+  - linux/amd64
 
 builds:
 - id: falco-talon
   dir: .
   main: .
   env:
-  - CGO_ENABLED=0
+    - CGO_ENABLED=0
   flags:
-  - -trimpath
+    - -trimpath
   ldflags:
-  - -extldflags "-static"
-  - "{{ .Env.LDFLAGS }}"
+    - -s -w
+    - -extldflags "-static"
+    - "{{ .Env.LDFLAGS }}"
