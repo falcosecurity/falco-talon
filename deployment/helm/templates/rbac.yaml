@@ -21,16 +21,25 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 rules:
-- apiGroups:
-    - ""
-  resources:
-    - pods
-  verbs:
-    - get
-    - list
-    - update
-    - patch
-    - delete
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - update
+      - patch
+      - delete
+  - apiGroups:
+      - "networking.k8s.io/v1"
+    resources:
+      - networking.k8s.io/v1
+    verbs:
+      - get
+      - list
+      - update
+      - patch
 {{- if .Values.podSecurityPolicy.create }}
 - apiGroups:
     - policy

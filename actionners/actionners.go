@@ -11,12 +11,14 @@ import (
 
 type Actionner struct {
 	Init     func() error
-	Check    func(rule *rules.Rule, event *events.Event) error
+	Checks   []checkActionner
 	Action   func(rule *rules.Rule, event *events.Event) (string, error)
 	Name     string
 	Category string
 	Continue bool
 }
+
+type checkActionner func(rule *rules.Rule, event *events.Event) error
 
 type category struct {
 	initialized bool
@@ -37,7 +39,7 @@ func Init() {
 			Category: "kubernetes",
 			Continue: false,
 			Init:     kubernetes.Init,
-			Check:    kubernetes.CheckPodNamespace,
+			Checks:   []checkActionner{kubernetes.CheckPodExist},
 			Action:   kubernetes.Terminate,
 		},
 		&Actionner{
@@ -45,7 +47,7 @@ func Init() {
 			Category: "kubernetes",
 			Continue: true,
 			Init:     kubernetes.Init,
-			Check:    kubernetes.CheckPodNamespace,
+			Checks:   []checkActionner{kubernetes.CheckPodExist},
 			Action:   kubernetes.Labelize,
 		},
 		&Actionner{
@@ -53,8 +55,12 @@ func Init() {
 			Category: "kubernetes",
 			Continue: true,
 			Init:     kubernetes.Init,
-			Check:    kubernetes.CheckPodNamespace,
-			Action:   kubernetes.NetworkPolicy,
+			Checks: []checkActionner{
+				kubernetes.CheckPodExist,
+				kubernetes.CheckRemoteIP,
+				kubernetes.CheckRemotePort,
+			},
+			Action: kubernetes.NetworkPolicy,
 		})
 	categories := map[string]*category{}
 	for _, i := range *a {
@@ -114,10 +120,12 @@ func Trigger(rule *rules.Rule, event *events.Event) {
 	utils.PrintLog("info", config.LogFormat, utils.LogLine{Message: "match", Rule: ruleName, Action: action})
 	for _, i := range *actionners {
 		if i.Category == category && i.Name == actionName {
-			if i.Check != nil {
-				if err := i.Check(rule, event); err != nil {
-					utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, Rule: ruleName, Action: action, TraceID: event.TraceID, Message: "action"})
-					return
+			if len(i.Checks) != 0 {
+				for _, j := range i.Checks {
+					if err := j(rule, event); err != nil {
+						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, Rule: ruleName, Action: action, TraceID: event.TraceID, Message: "action"})
+						return
+					}
 				}
 			}
 			if result, err := i.Action(rule, event); err != nil {

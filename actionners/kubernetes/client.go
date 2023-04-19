@@ -3,8 +3,8 @@ package kubernetes
 import (
 	"context"
 	"errors"
-	"fmt"
 
+	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8s "k8s.io/client-go/kubernetes"
@@ -48,22 +48,90 @@ func GetClient() *Client {
 	return client
 }
 
-var CheckPodNamespace = func(rule *rules.Rule, event *events.Event) error {
+var CheckPodName = func(rule *rules.Rule, event *events.Event) error {
 	pod := event.GetPod()
-	namespace := event.GetNamespace()
-	if pod == "" || namespace == "" {
-		return errors.New("missing pod or namespace")
-	}
-	if p := client.GetPod(pod, namespace); p == nil {
-		return fmt.Errorf("pod %v in namespace %v doesn't exist (it may have been already terminated)", pod, namespace)
+	if pod == "" {
+		return errors.New("missing pod name")
 	}
 	return nil
 }
 
-func (client Client) GetPod(pod, namespace string) *corev1.Pod {
+var CheckNamespace = func(rule *rules.Rule, event *events.Event) error {
+	namespace := event.GetNamespace()
+	if namespace == "" {
+		return errors.New("missing namespace")
+	}
+	return nil
+}
+
+var CheckPodExist = func(rule *rules.Rule, event *events.Event) error {
+	pod := event.GetPod()
+	namespace := event.GetNamespace()
+
+	if err := CheckPodName(rule, event); err != nil {
+		return err
+	}
+	if err := CheckNamespace(rule, event); err != nil {
+		return err
+	}
+
+	if _, err := client.GetPod(pod, namespace); err == nil {
+		return err
+	}
+	return nil
+}
+
+var CheckRemoteIP = func(rule *rules.Rule, event *events.Event) error {
+	if event.OutputFields["fd.sip"] == nil &&
+		event.OutputFields["fd.rip"] == nil {
+		return errors.New("missing IP field(s)")
+	}
+	return nil
+}
+var CheckRemotePort = func(rule *rules.Rule, event *events.Event) error {
+	if event.OutputFields["fd.sport"] == nil &&
+		event.OutputFields["fd.rport"] == nil {
+		return errors.New("missing Port field(s)")
+	}
+	return nil
+}
+
+func (client Client) GetPod(pod, namespace string) (*corev1.Pod, error) {
 	p, err := client.Clientset.CoreV1().Pods(namespace).Get(context.Background(), pod, metav1.GetOptions{})
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return p
+	return p, nil
+}
+
+func (client Client) GetDaemonsetFromPod(pod *corev1.Pod) (*v1.DaemonSet, error) {
+	d, err := client.Clientset.AppsV1().DaemonSets(pod.ObjectMeta.Namespace).Get(context.Background(), pod.OwnerReferences[0].Name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return d, nil
+}
+
+func (client Client) GetStatefulsetFromPod(pod *corev1.Pod) (*v1.StatefulSet, error) {
+	s, err := client.Clientset.AppsV1().StatefulSets(pod.ObjectMeta.Namespace).Get(context.Background(), pod.OwnerReferences[0].Name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+func (client Client) GetReplicasetFromPod(pod *corev1.Pod) (*v1.ReplicaSet, error) {
+	r, err := client.Clientset.AppsV1().ReplicaSets(pod.ObjectMeta.Namespace).Get(context.Background(), pod.OwnerReferences[0].Name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func (client Client) GetDeloymentFromPod(pod *corev1.Pod) (*v1.ReplicaSet, error) {
+	r, err := client.Clientset.AppsV1().ReplicaSets(pod.ObjectMeta.Namespace).Get(context.Background(), pod.OwnerReferences[0].Name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
 }

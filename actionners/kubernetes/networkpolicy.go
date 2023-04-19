@@ -16,10 +16,10 @@ import (
 )
 
 var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (string, error) {
-	pod := event.GetPod()
+	podName := event.GetPod()
 	namespace := event.GetNamespace()
 
-	p, err := client.Clientset.CoreV1().Pods(namespace).Get(context.Background(), pod, metav1.GetOptions{})
+	pod, err := client.GetPod(podName, namespace)
 	if err != nil {
 		return "", err
 	}
@@ -27,27 +27,24 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (string, error) 
 	labels := make(map[string]string)
 	var owner string
 
-	if len(p.OwnerReferences) != 0 {
-		switch p.OwnerReferences[0].Kind {
+	if len(pod.OwnerReferences) != 0 {
+		switch pod.OwnerReferences[0].Kind {
 		case "DaemonSet":
-			var u *v1.DaemonSet
-			u, err = client.Clientset.AppsV1().DaemonSets(namespace).Get(context.Background(), p.OwnerReferences[0].Name, metav1.GetOptions{})
+			u, err := client.GetDaemonsetFromPod(pod)
 			if err != nil {
 				return "", err
 			}
 			owner = u.ObjectMeta.Name
 			labels = u.Spec.Selector.MatchLabels
 		case "StatefulSet":
-			var u *v1.StatefulSet
-			u, err = client.Clientset.AppsV1().StatefulSets(namespace).Get(context.Background(), p.OwnerReferences[0].Name, metav1.GetOptions{})
+			u, err := client.GetStatefulsetFromPod(pod)
 			if err != nil {
 				return "", err
 			}
 			owner = u.ObjectMeta.Name
 			labels = u.Spec.Selector.MatchLabels
 		case "ReplicaSet":
-			var u *v1.ReplicaSet
-			u, err = client.Clientset.AppsV1().ReplicaSets(namespace).Get(context.Background(), p.OwnerReferences[0].Name, metav1.GetOptions{})
+			u, err := client.GetStatefulsetFromPod(pod)
 			if err != nil {
 				return "", err
 			}
@@ -60,8 +57,8 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (string, error) 
 			labels = v.Spec.Selector.MatchLabels
 		}
 	} else {
-		owner = p.ObjectMeta.Name
-		labels = p.ObjectMeta.Labels
+		owner = pod.ObjectMeta.Name
+		labels = pod.ObjectMeta.Labels
 	}
 
 	delete(labels, "pod-template-hash")
@@ -107,9 +104,6 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (string, error) 
 
 func createEgressRule(event *events.Event) (networkingv1.NetworkPolicyEgressRule, error) {
 	ips, ports := extractIPsPorts(event)
-	if len(ips) == 0 || len(ports) == 0 {
-		return networkingv1.NetworkPolicyEgressRule{}, fmt.Errorf("missing IP or Port field(s)")
-	}
 	er := networkingv1.NetworkPolicyEgressRule{
 		To:    []networkingv1.NetworkPolicyPeer{},
 		Ports: []networkingv1.NetworkPolicyPort{},
