@@ -10,11 +10,11 @@ import (
 )
 
 type Actionner struct {
-	Init     func() error
-	Checks   []checkActionner
-	Action   func(rule *rules.Rule, event *events.Event) (string, error)
 	Name     string
 	Category string
+	Action   func(rule *rules.Rule, event *events.Event) (string, error)
+	Init     func() error
+	Checks   []checkActionner
 	Continue bool
 }
 

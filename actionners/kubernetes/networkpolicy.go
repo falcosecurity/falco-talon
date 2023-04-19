@@ -30,28 +30,28 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (string, error) 
 	if len(pod.OwnerReferences) != 0 {
 		switch pod.OwnerReferences[0].Kind {
 		case "DaemonSet":
-			u, err := client.GetDaemonsetFromPod(pod)
-			if err != nil {
-				return "", err
+			u, errG := client.GetDaemonsetFromPod(pod)
+			if errG != nil {
+				return "", errG
 			}
 			owner = u.ObjectMeta.Name
 			labels = u.Spec.Selector.MatchLabels
 		case "StatefulSet":
-			u, err := client.GetStatefulsetFromPod(pod)
-			if err != nil {
-				return "", err
+			u, errG := client.GetStatefulsetFromPod(pod)
+			if errG != nil {
+				return "", errG
 			}
 			owner = u.ObjectMeta.Name
 			labels = u.Spec.Selector.MatchLabels
 		case "ReplicaSet":
-			u, err := client.GetStatefulsetFromPod(pod)
-			if err != nil {
-				return "", err
+			u, errG := client.GetStatefulsetFromPod(pod)
+			if errG != nil {
+				return "", errG
 			}
 			var v *v1.Deployment
-			v, err = client.Clientset.AppsV1().Deployments(namespace).Get(context.Background(), u.OwnerReferences[0].Name, metav1.GetOptions{})
-			if err != nil {
-				return "", err
+			v, errG = client.Clientset.AppsV1().Deployments(namespace).Get(context.Background(), u.OwnerReferences[0].Name, metav1.GetOptions{})
+			if errG != nil {
+				return "", errG
 			}
 			owner = v.ObjectMeta.Name
 			labels = v.Spec.Selector.MatchLabels
