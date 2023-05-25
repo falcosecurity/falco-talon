@@ -135,13 +135,15 @@ func extractIPsPorts(event *events.Event) ([]string, []int32) {
 			ips = append(ips, j.(string))
 		}
 		if i == "fd.sport" {
-			k, err := strconv.ParseInt(j.(string), 10, 64)
+			p := fmt.Sprintf("%v", j)
+			k, err := strconv.ParseInt(p, 10, 64)
 			if err == nil {
 				ports = append(ports, int32(k))
 			}
 		}
 		if i == "fd.rport" {
-			k, err := strconv.ParseInt(j.(string), 10, 64)
+			p := fmt.Sprintf("%v", j)
+			k, err := strconv.ParseInt(p, 10, 64)
 			if err == nil {
 				ports = append(ports, int32(k))
 			}
