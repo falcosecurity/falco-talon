@@ -33,7 +33,9 @@ var serverCmd = &cobra.Command{
 		}
 		actionners.Init()
 		notifiers.Init()
-		utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*rules)), Message: "init"})
+		if rules != nil {
+			utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*rules)), Message: "init"})
+		}
 
 		http.HandleFunc("/", handler.MainHandler)
 		http.HandleFunc("/healthz", handler.HealthHandler)
@@ -54,9 +56,16 @@ var serverCmd = &cobra.Command{
 		if config.WatchRules {
 			go func() {
 				ignore := false
-				watcher, _ := fsnotify.NewWatcher()
+				watcher, err := fsnotify.NewWatcher()
+				if err != nil {
+					utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, Message: "rules"})
+					return
+				}
 				defer watcher.Close()
-				watcher.Add(config.RulesFile)
+				if err := watcher.Add(config.RulesFile); err != nil {
+					utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, Message: "rules"})
+					return
+				}
 				for {
 					select {
 					case event := <-watcher.Events:

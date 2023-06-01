@@ -21,8 +21,8 @@ type Rule struct {
 	Notifiers []string `yaml:"notifiers"`
 	Action    Action   `yaml:"action"`
 	Name      string   `yaml:"name"`
-	Match     Match    `yaml:"match"`
 	Continue  string   `yaml:"continue"`
+	Match     Match    `yaml:"match"`
 	// Weight   int    `yaml:"weight"`
 }
 

@@ -10,6 +10,10 @@ import (
 	"github.com/Issif/falco-talon/utils"
 )
 
+const (
+	falseStr string = "false"
+)
+
 func MainHandler(w http.ResponseWriter, r *http.Request) {
 	config := configuration.GetConfiguration()
 	if r.Method != http.MethodPost {
@@ -47,14 +51,14 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 	a := actionners.GetActionners()
 	// we trigger first rules with must not continue
 	for _, i := range triggeredRules {
-		if i.Continue == "false" || !a.GetActionner(i.GetActionCategory(), i.GetActionName()).MustContinue() {
+		if i.Continue == falseStr || !a.GetActionner(i.GetActionCategory(), i.GetActionName()).MustContinue() {
 			actionners.Trigger(i, &event)
 			return
 		}
 	}
 	// we trigger after rules with continue
 	for _, i := range triggeredRules {
-		if i.Continue != "false" && a.GetActionner(i.GetActionCategory(), i.GetActionName()).MustContinue() {
+		if i.Continue != falseStr && a.GetActionner(i.GetActionCategory(), i.GetActionName()).MustContinue() {
 			actionners.Trigger(i, &event)
 		}
 	}
