@@ -137,8 +137,9 @@ The configuration of `Falco Talon` is set with a `.yaml` file (default: `./confi
 | `listenAddress`    | `LISTENADDRESS`    | `0.0.0.0` | Listten Address                                                 |
 | `listenPort`       | `LISTENPORT`       |  `2803`   | Listten Port                                                    |
 | `rulesFile`        | `RULESFILE`        |    n/a    | File with rules                                                 |
+| `watchRules`       | `WATCHRULES`       |    `true`    | reload if the rules file changes                                                 |
 | `kubeConfig`       | `KUBECONFIG`       |    n/a    | Kube config file, only if `Falco Talon` runs outside Kubernetes |
-| `logFormat`        | `LOGFORMAT`        |  `color`   | Log Format: text, color, json                                   |
+| `logFormat`        | `LOGFORMAT`        |  `color`  | Log Format: text, color, json                                   |
 | `defaultNotifiers` | `DEFAULTNOTIFIERS` |    n/a    | List of `notifiers` which are enabled for all rules             |
 | `notifiers.x`      | `NOTIFIERS_X`      |    n/a    | List of `notifiers` with their settings                         |
 

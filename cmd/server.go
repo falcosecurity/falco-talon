@@ -38,6 +38,10 @@ var serverCmd = &cobra.Command{
 		http.HandleFunc("/", handler.MainHandler)
 		http.HandleFunc("/healthz", handler.HealthHandler)
 
+		if config.WatchRules {
+			utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: "watch of rules enabled", Message: "init"})
+		}
+
 		utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("Falco Talon is up and listening on '%s:%d'", config.ListenAddress, config.ListenPort), Message: "init"})
 
 		srv := http.Server{
@@ -47,34 +51,36 @@ var serverCmd = &cobra.Command{
 			Handler:      nil,
 		}
 
-		go func() {
-			ignore := false
-			watcher, _ := fsnotify.NewWatcher()
-			defer watcher.Close()
-			watcher.Add(config.RulesFile)
-			for {
-				select {
-				case event := <-watcher.Events:
-					if event.Has(fsnotify.Write) && !ignore {
-						ignore = true
-						go func() {
-							time.Sleep(200 * time.Millisecond)
-							ignore = false
-						}()
-						utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: "changes detected", Message: "rules"})
-						r := ruleengine.ParseRules()
-						if r == nil {
-							utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: errors.New("invalid rules"), Message: "rules"})
-							break
+		if config.WatchRules {
+			go func() {
+				ignore := false
+				watcher, _ := fsnotify.NewWatcher()
+				defer watcher.Close()
+				watcher.Add(config.RulesFile)
+				for {
+					select {
+					case event := <-watcher.Events:
+						if event.Has(fsnotify.Write) && !ignore {
+							ignore = true
+							go func() {
+								time.Sleep(500 * time.Millisecond)
+								ignore = false
+							}()
+							utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: "changes detected", Message: "rules"})
+							r := ruleengine.ParseRules()
+							if r == nil {
+								utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: errors.New("invalid rules"), Message: "rules"})
+								break
+							}
+							utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*rules)), Message: "rules"})
+							rules = r
 						}
-						utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*rules)), Message: "rules"})
-						rules = r
+					case err := <-watcher.Errors:
+						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, Message: "rules"})
 					}
-				case err := <-watcher.Errors:
-					utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, Message: "rules"})
 				}
-			}
-		}()
+			}()
+		}
 
 		if err := srv.ListenAndServe(); err != nil {
 			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err})

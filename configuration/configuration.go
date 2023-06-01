@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	defaultListenAddress = "0.0.0.0"
-	defaultListPort      = 2803
-	defaultRulesFile     = "./rules.yaml"
+	defaultListenAddress string = "0.0.0.0"
+	defaultListPort      int    = 2803
+	defaultRulesFile     string = "./rules.yaml"
+	defaultWatchRules    bool   = true
 )
 
 // type Actionner interface {
@@ -36,6 +37,7 @@ type Configuration struct {
 	RulesFile        string
 	DefaultNotifiers []string
 	ListenPort       int
+	WatchRules       bool
 }
 
 var config *Configuration
@@ -52,6 +54,7 @@ func CreateConfiguration(configFile string) *Configuration {
 	v.SetDefault("KubeConfig", "")
 	v.SetDefault("Logformat", "color")
 	v.SetDefault("DefaultNotifiers", []string{})
+	v.SetDefault("WatchRules", defaultWatchRules)
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()

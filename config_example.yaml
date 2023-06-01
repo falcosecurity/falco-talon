@@ -3,7 +3,7 @@ listenPort: "2803" # default: "2803"
 rulesFile: "./rules.yaml" # default: "./rules.yaml"
 # kubeConfig: "~/.kube/config" # only if Falco Talon is running outside Kubernetes
 logFormat: "color" # Log Format: text, color, json (default: color)
-
+watchRules: true # reload if the rules file changes (default: true)
 
 defaultNotifiers: # this notifiers will be enabled for all rules
   - k8saudit
