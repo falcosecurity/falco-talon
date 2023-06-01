@@ -22,7 +22,7 @@ type Rule struct {
 	Action    Action   `yaml:"action"`
 	Name      string   `yaml:"name"`
 	Match     Match    `yaml:"match"`
-	Continue  bool     `yaml:"continue"`
+	Continue  string   `yaml:"continue"`
 	// Weight   int    `yaml:"weight"`
 }
 
@@ -53,35 +53,52 @@ func init() {
 	priorityComparatorRegex = regexp.MustCompile("^(<|>)?(=)?")
 }
 
-func CreateRules() *[]*Rule {
+func ParseRules() *[]*Rule {
 	config := configuration.GetConfiguration()
 	yamlRulesFile, err := os.ReadFile(config.RulesFile)
 	if err != nil {
-		utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err})
+		utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err, Message: "rules"})
 	}
 
 	err2 := yaml.Unmarshal(yamlRulesFile, &rules)
 	if err2 != nil {
-		utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err2})
+		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err2, Message: "rules"})
+		return nil
 	}
 
 	for _, i := range *rules {
-		if i.Name == "" {
-			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: errors.New("all rules must have a name")})
+		invalid := false
+		if !i.isValid() {
+			invalid = true
 		}
-		if !priorityCheckRegex.MatchString(i.Match.Priority) {
-			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: errors.New("incorrect priority"), Rule: i.Name})
-		}
-		if !actionCheckRegex.MatchString(i.Action.Name) {
-			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: errors.New("unknown action"), Rule: i.Name})
-		}
-		err := i.setPriorityNumberComparator()
-		if err != nil {
-			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: errors.New("incorrect priority"), Rule: i.Name})
+		if invalid {
+			return nil
 		}
 	}
 
 	return rules
+}
+
+func (rule *Rule) isValid() bool {
+	config := configuration.GetConfiguration()
+	result := true
+	if rule.Name == "" {
+		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: errors.New("all rules must have a name"), Message: "rules"})
+		result = false
+	}
+	if !actionCheckRegex.MatchString(rule.Action.Name) {
+		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: errors.New("unknown action"), Message: "rules", Rule: rule.Name})
+		result = false
+	}
+	if !priorityCheckRegex.MatchString(rule.Match.Priority) {
+		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: errors.New("incorrect priority"), Message: "rules", Rule: rule.Name})
+		result = false
+	}
+	if err := rule.setPriorityNumberComparator(); err != nil {
+		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: errors.New("incorrect priority comparator"), Message: "rules", Rule: rule.Name})
+		result = false
+	}
+	return result
 }
 
 func (rule *Rule) setPriorityNumberComparator() error {
@@ -125,30 +142,30 @@ func (rule *Rule) GetNotifiers() []string {
 	return rule.Notifiers
 }
 
-func (rule *Rule) MustContinue() bool {
-	return rule.Continue
-}
+// func (rule *Rule) MustContinue() bool {
+// 	return strings.ToLower(rule.Continue) == "true"
+// }
 
 func (rule *Rule) CompareRule(event *events.Event) bool {
-	if !rule.checkRules(event) {
+	if !rule.findRules(event) {
 		return false
 	}
-	if !rule.checkOutputFields(event) {
+	if !rule.compareOutputFields(event) {
 		return false
 	}
-	if !rule.checkPriority(event) {
+	if !rule.comparePriority(event) {
 		return false
 	}
-	if !rule.checkTags(event) {
+	if !rule.compareTags(event) {
 		return false
 	}
-	if !rule.checkSoure(event) {
+	if !rule.compareSoure(event) {
 		return false
 	}
 	return true
 }
 
-func (rule *Rule) checkRules(event *events.Event) bool {
+func (rule *Rule) findRules(event *events.Event) bool {
 	if len(rule.Match.Rules) == 0 {
 		return true
 	}
@@ -160,7 +177,7 @@ func (rule *Rule) checkRules(event *events.Event) bool {
 	return false
 }
 
-func (rule *Rule) checkOutputFields(event *events.Event) bool {
+func (rule *Rule) compareOutputFields(event *events.Event) bool {
 	if len(rule.Match.OutputFields) == 0 {
 		return true
 	}
@@ -173,7 +190,7 @@ func (rule *Rule) checkOutputFields(event *events.Event) bool {
 	return true
 }
 
-func (rule *Rule) checkTags(event *events.Event) bool {
+func (rule *Rule) compareTags(event *events.Event) bool {
 	if len(rule.Match.Tags) == 0 {
 		return true
 	}
@@ -188,14 +205,14 @@ func (rule *Rule) checkTags(event *events.Event) bool {
 	return count == len(rule.Match.Tags)
 }
 
-func (rule *Rule) checkSoure(event *events.Event) bool {
+func (rule *Rule) compareSoure(event *events.Event) bool {
 	if rule.Match.Source == "" {
 		return true
 	}
 	return event.Source == rule.Match.Source
 }
 
-func (rule *Rule) checkPriority(event *events.Event) bool {
+func (rule *Rule) comparePriority(event *events.Event) bool {
 	if rule.Match.PriorityNumber == 0 {
 		return true
 	}

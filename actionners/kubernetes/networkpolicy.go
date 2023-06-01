@@ -7,7 +7,7 @@ import (
 
 	v1 "k8s.io/api/apps/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	errorsv1 "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -34,31 +34,55 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (string, error) 
 			if errG != nil {
 				return "", errG
 			}
+			if u == nil {
+				return "", fmt.Errorf("can't find the daemonset for the pod %v in namespace %v", podName, namespace)
+			}
 			owner = u.ObjectMeta.Name
 			labels = u.Spec.Selector.MatchLabels
+			if owner == "" || len(labels) == 0 {
+				return "", fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace)
+			}
 		case "StatefulSet":
 			u, errG := client.GetStatefulsetFromPod(pod)
 			if errG != nil {
 				return "", errG
 			}
+			if u == nil {
+				return "", fmt.Errorf("can't find the statefulset for the pod %v in namespace %v", podName, namespace)
+			}
 			owner = u.ObjectMeta.Name
 			labels = u.Spec.Selector.MatchLabels
+			if owner == "" || len(labels) == 0 {
+				return "", fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace)
+			}
 		case "ReplicaSet":
 			u, errG := client.GetStatefulsetFromPod(pod)
 			if errG != nil {
 				return "", errG
+			}
+			if u == nil {
+				return "", fmt.Errorf("can't find the replicaset for the pod %v in namespace %v", podName, namespace)
 			}
 			var v *v1.Deployment
 			v, errG = client.Clientset.AppsV1().Deployments(namespace).Get(context.Background(), u.OwnerReferences[0].Name, metav1.GetOptions{})
 			if errG != nil {
 				return "", errG
 			}
+			if v == nil {
+				return "", fmt.Errorf("can't find the deployment for the pod %v in namespace %v", podName, namespace)
+			}
 			owner = v.ObjectMeta.Name
 			labels = v.Spec.Selector.MatchLabels
+			if owner == "" || len(labels) == 0 {
+				return "", fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace)
+			}
 		}
 	} else {
 		owner = pod.ObjectMeta.Name
 		labels = pod.ObjectMeta.Labels
+		if owner == "" || len(labels) == 0 {
+			return "", fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace)
+		}
 	}
 
 	delete(labels, "pod-template-hash")
@@ -70,7 +94,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (string, error) 
 
 	var status string
 	n, err := client.NetworkingV1().NetworkPolicies(namespace).Get(context.Background(), owner, metav1.GetOptions{})
-	if errors.IsNotFound(err) {
+	if errorsv1.IsNotFound(err) {
 		payload := networkingv1.NetworkPolicy{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      owner,

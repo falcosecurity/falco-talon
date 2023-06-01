@@ -12,19 +12,18 @@ import (
 )
 
 const (
-	boolStr    = "bool"
-	floatStr   = "float"
-	float64Str = "float64"
-	stringStr  = "string"
-	intStr     = "int"
-	int64Str   = "int64"
+	boolStr    string = "bool"
+	floatStr   string = "float"
+	float64Str string = "float64"
+	stringStr  string = "string"
+	intStr     string = "int"
+	int64Str   string = "int64"
 
-	errorStr = "error"
-	fatalStr = "fatal"
-	infoStr  = "info"
+	errorStr string = "error"
+	fatalStr string = "fatal"
 
-	textStr  = "text"
-	colorStr = "color"
+	textStr  string = "text"
+	colorStr string = "color"
 )
 
 type LogLine struct {
@@ -99,9 +98,6 @@ func PrintLog(level, format string, line LogLine) {
 	if line.ActionCategory != "" {
 		l.Str("action_category", line.ActionCategory)
 	}
-	if line.Error != nil {
-		l.Err(line.Error)
-	}
 	if line.Status != "" {
 		l.Str("status", line.Status)
 	}
@@ -110,6 +106,9 @@ func PrintLog(level, format string, line LogLine) {
 	}
 	if line.TraceID != "" {
 		l.Str("trace_id", line.TraceID)
+	}
+	if line.Error != nil {
+		l.Err(line.Error)
 	}
 	if line.Message != "" {
 		l.Msg(line.Message)
