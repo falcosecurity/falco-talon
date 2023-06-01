@@ -19,8 +19,8 @@ type patch struct {
 }
 
 var Labelize = func(rule *rules.Rule, event *events.Event) (string, error) {
-	pod := event.GetPod()
-	namespace := event.GetNamespace()
+	pod := event.GetPodName()
+	namespace := event.GetNamespaceName()
 
 	payload := make([]patch, 0)
 	for i, j := range rule.GetArguments() {

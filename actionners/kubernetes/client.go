@@ -13,7 +13,6 @@ import (
 
 	"github.com/Issif/falco-talon/configuration"
 	"github.com/Issif/falco-talon/internal/events"
-	"github.com/Issif/falco-talon/internal/rules"
 )
 
 type Client struct {
@@ -48,47 +47,44 @@ func GetClient() *Client {
 	return client
 }
 
-var CheckPodName = func(rule *rules.Rule, event *events.Event) error {
-	pod := event.GetPod()
+var CheckPodName = func(event *events.Event) error {
+	pod := event.GetPodName()
 	if pod == "" {
 		return errors.New("missing pod name")
 	}
 	return nil
 }
 
-var CheckNamespace = func(rule *rules.Rule, event *events.Event) error {
-	namespace := event.GetNamespace()
+var CheckNamespace = func(event *events.Event) error {
+	namespace := event.GetNamespaceName()
 	if namespace == "" {
 		return errors.New("missing namespace")
 	}
 	return nil
 }
 
-var CheckPodExist = func(rule *rules.Rule, event *events.Event) error {
-	pod := event.GetPod()
-	namespace := event.GetNamespace()
-
-	if err := CheckPodName(rule, event); err != nil {
+var CheckPodExist = func(event *events.Event) error {
+	if err := CheckPodName(event); err != nil {
 		return err
 	}
-	if err := CheckNamespace(rule, event); err != nil {
+	if err := CheckNamespace(event); err != nil {
 		return err
 	}
 
-	if _, err := client.GetPod(pod, namespace); err == nil {
+	if _, err := client.GetPod(event.GetPodName(), event.GetNamespaceName()); err == nil {
 		return err
 	}
 	return nil
 }
 
-var CheckRemoteIP = func(rule *rules.Rule, event *events.Event) error {
+var CheckRemoteIP = func(event *events.Event) error {
 	if event.OutputFields["fd.sip"] == nil &&
 		event.OutputFields["fd.rip"] == nil {
 		return errors.New("missing IP field(s)")
 	}
 	return nil
 }
-var CheckRemotePort = func(rule *rules.Rule, event *events.Event) error {
+var CheckRemotePort = func(event *events.Event) error {
 	if event.OutputFields["fd.sport"] == nil &&
 		event.OutputFields["fd.rport"] == nil {
 		return errors.New("missing Port field(s)")

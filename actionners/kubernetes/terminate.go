@@ -11,8 +11,8 @@ import (
 )
 
 var Terminate = func(rule *rules.Rule, event *events.Event) (string, error) {
-	pod := event.GetPod()
-	namespace := event.GetNamespace()
+	pod := event.GetPodName()
+	namespace := event.GetNamespaceName()
 
 	parameters := rule.GetParameters()
 	gracePeriodSeconds := new(int64)

@@ -18,7 +18,7 @@ type Actionner struct {
 	Continue bool
 }
 
-type checkActionner func(rule *rules.Rule, event *events.Event) error
+type checkActionner func(event *events.Event) error
 
 type category struct {
 	initialized bool
@@ -117,12 +117,12 @@ func Trigger(rule *rules.Rule, event *events.Event) {
 	actionName := rule.GetActionName()
 	category := rule.GetActionCategory()
 	ruleName := rule.GetName()
-	utils.PrintLog("info", config.LogFormat, utils.LogLine{Message: "match", Rule: ruleName, Action: action})
+	utils.PrintLog("info", config.LogFormat, utils.LogLine{Rule: ruleName, Action: action, TraceID: event.TraceID, Message: "match"})
 	for _, i := range *actionners {
 		if i.Category == category && i.Name == actionName {
 			if len(i.Checks) != 0 {
 				for _, j := range i.Checks {
-					if err := j(rule, event); err != nil {
+					if err := j(event); err != nil {
 						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, Rule: ruleName, Action: action, TraceID: event.TraceID, Message: "action"})
 						return
 					}

@@ -56,7 +56,7 @@ func PrintLog(level, format string, line LogLine) {
 			output.NoColor = true
 		}
 		output.FormatFieldValue = func(i interface{}) string {
-			return strings.ToLower(fmt.Sprintf("%s", i))
+			return fmt.Sprintf("%s", i)
 		}
 		log = zerolog.New(output).With().Timestamp().Logger()
 	} else {

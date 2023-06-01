@@ -41,14 +41,14 @@ func DecodeEvent(payload io.Reader) (Event, error) {
 	return event, nil
 }
 
-func (event *Event) GetPod() string {
+func (event *Event) GetPodName() string {
 	if event.OutputFields["k8s.pod.name"] != nil {
 		return event.OutputFields["k8s.pod.name"].(string)
 	}
 	return ""
 }
 
-func (event *Event) GetNamespace() string {
+func (event *Event) GetNamespaceName() string {
 	if event.OutputFields["k8s.ns.name"] != nil {
 		return event.OutputFields["k8s.ns.name"].(string)
 	}

@@ -16,8 +16,8 @@ import (
 )
 
 var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (string, error) {
-	podName := event.GetPod()
-	namespace := event.GetNamespace()
+	podName := event.GetPodName()
+	namespace := event.GetNamespaceName()
 
 	pod, err := client.GetPod(podName, namespace)
 	if err != nil {

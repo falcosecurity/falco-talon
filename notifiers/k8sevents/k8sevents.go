@@ -23,8 +23,8 @@ var Notify = func(rule *rules.Rule, event *events.Event, message, status string)
 		},
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "Pod",
-			Namespace: event.GetNamespace(),
-			Name:      event.GetPod(),
+			Namespace: event.GetNamespaceName(),
+			Name:      event.GetPodName(),
 		},
 		Reason:  "falco-talon:" + rule.GetAction(),
 		Message: strings.ReplaceAll(message, `'`, `"`),
@@ -38,7 +38,7 @@ var Notify = func(rule *rules.Rule, event *events.Event, message, status string)
 		Action:              "falco-talon:" + rule.GetAction(),
 	}
 	k8sclient := client.GetClient()
-	_, err := k8sclient.CoreV1().Events(event.GetNamespace()).Create(context.TODO(), k8sevent, metav1.CreateOptions{})
+	_, err := k8sclient.CoreV1().Events(event.GetNamespaceName()).Create(context.TODO(), k8sevent, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
