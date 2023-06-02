@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -22,12 +20,17 @@ import (
 
 var serverCmd = &cobra.Command{
 	Use:   "server",
-	Short: "Start Falco Talon.",
+	Short: "Start Falco Talon",
 	Long:  "Start Falco Talon",
 	Run: func(cmd *cobra.Command, args []string) {
 		configFile, _ := cmd.Flags().GetString("config")
 		config := configuration.CreateConfiguration(configFile)
-		rules := ruleengine.ParseRules()
+		rulesFile, _ := cmd.Flags().GetString("rules")
+		if rulesFile != "" && rulesFile != configuration.DefaultRulesFile {
+			config.RulesFile = rulesFile
+		}
+		fmt.Println(config.RulesFile)
+		rules := ruleengine.ParseRules(config.RulesFile)
 		if rules == nil {
 			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: errors.New("invalid rules"), Message: "rules"})
 		}
@@ -76,7 +79,7 @@ var serverCmd = &cobra.Command{
 								ignore = false
 							}()
 							utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: "changes detected", Message: "rules"})
-							r := ruleengine.ParseRules()
+							r := ruleengine.ParseRules(config.RulesFile)
 							if r == nil {
 								utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: errors.New("invalid rules"), Message: "rules"})
 								break
@@ -99,5 +102,4 @@ var serverCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(serverCmd)
-	serverCmd.PersistentFlags().StringP("config", "c", filepath.Join(os.Getenv("PWD"), "config.yaml"), "Talon Config File")
 }

@@ -49,14 +49,20 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	a := actionners.GetActionners()
-	// we trigger first rules with must not continue
+	// we trigger rules with before=true
+	for _, i := range triggeredRules {
+		if i.Before == "true" || a.GetActionner(i.GetActionCategory(), i.GetActionName()).RunBefore() {
+			actionners.Trigger(i, &event)
+		}
+	}
+	// we trigger then rules with continue=false
 	for _, i := range triggeredRules {
 		if i.Continue == falseStr || !a.GetActionner(i.GetActionCategory(), i.GetActionName()).MustContinue() {
 			actionners.Trigger(i, &event)
 			return
 		}
 	}
-	// we trigger after rules with continue
+	// we trigger after rules with continue=true
 	for _, i := range triggeredRules {
 		if i.Continue != falseStr && a.GetActionner(i.GetActionCategory(), i.GetActionName()).MustContinue() {
 			actionners.Trigger(i, &event)

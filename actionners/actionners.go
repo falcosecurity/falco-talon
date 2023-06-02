@@ -1,6 +1,7 @@
 package actionners
 
 import (
+	"github.com/Issif/falco-talon/actionners/checks"
 	"github.com/Issif/falco-talon/actionners/kubernetes"
 	"github.com/Issif/falco-talon/configuration"
 	"github.com/Issif/falco-talon/internal/events"
@@ -16,6 +17,7 @@ type Actionner struct {
 	Init     func() error
 	Checks   []checkActionner
 	Continue bool
+	Before   bool
 }
 
 type checkActionner func(event *events.Event) error
@@ -38,6 +40,7 @@ func Init() {
 			Name:     "terminate",
 			Category: "kubernetes",
 			Continue: false,
+			Before:   false,
 			Init:     kubernetes.Init,
 			Checks:   []checkActionner{kubernetes.CheckPodExist},
 			Action:   kubernetes.Terminate,
@@ -46,6 +49,7 @@ func Init() {
 			Name:     "labelize",
 			Category: "kubernetes",
 			Continue: true,
+			Before:   false,
 			Init:     kubernetes.Init,
 			Checks:   []checkActionner{kubernetes.CheckPodExist},
 			Action:   kubernetes.Labelize,
@@ -54,11 +58,12 @@ func Init() {
 			Name:     "networkpolicy",
 			Category: "kubernetes",
 			Continue: true,
+			Before:   true,
 			Init:     kubernetes.Init,
 			Checks: []checkActionner{
 				kubernetes.CheckPodExist,
-				kubernetes.CheckRemoteIP,
-				kubernetes.CheckRemotePort,
+				checks.CheckRemoteIP,
+				checks.CheckRemotePort,
 			},
 			Action: kubernetes.NetworkPolicy,
 		})
@@ -104,6 +109,10 @@ func (actionners *Actionners) GetActionner(category, name string) *Actionner {
 
 func (actionner *Actionner) MustContinue() bool {
 	return actionner.Continue
+}
+
+func (actionner *Actionner) RunBefore() bool {
+	return actionner.Before
 }
 
 func (actionners *Actionners) Add(actionner ...*Actionner) {

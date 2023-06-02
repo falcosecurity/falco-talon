@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"context"
-	"errors"
 
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -11,6 +10,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/Issif/falco-talon/actionners/checks"
 	"github.com/Issif/falco-talon/configuration"
 	"github.com/Issif/falco-talon/internal/events"
 )
@@ -47,47 +47,16 @@ func GetClient() *Client {
 	return client
 }
 
-var CheckPodName = func(event *events.Event) error {
-	pod := event.GetPodName()
-	if pod == "" {
-		return errors.New("missing pod name")
-	}
-	return nil
-}
-
-var CheckNamespace = func(event *events.Event) error {
-	namespace := event.GetNamespaceName()
-	if namespace == "" {
-		return errors.New("missing namespace")
-	}
-	return nil
-}
-
 var CheckPodExist = func(event *events.Event) error {
-	if err := CheckPodName(event); err != nil {
+	if err := checks.CheckPodName(event); err != nil {
 		return err
 	}
-	if err := CheckNamespace(event); err != nil {
+	if err := checks.CheckNamespace(event); err != nil {
 		return err
 	}
 
 	if _, err := client.GetPod(event.GetPodName(), event.GetNamespaceName()); err == nil {
 		return err
-	}
-	return nil
-}
-
-var CheckRemoteIP = func(event *events.Event) error {
-	if event.OutputFields["fd.sip"] == nil &&
-		event.OutputFields["fd.rip"] == nil {
-		return errors.New("missing IP field(s)")
-	}
-	return nil
-}
-var CheckRemotePort = func(event *events.Event) error {
-	if event.OutputFields["fd.sport"] == nil &&
-		event.OutputFields["fd.rport"] == nil {
-		return errors.New("missing Port field(s)")
 	}
 	return nil
 }

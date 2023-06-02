@@ -61,6 +61,7 @@ Several rules can match same event, so several action can be triggered, except f
 * Description: **Terminate pod**
 * Arguments: N/A
 * Continue: `false`
+* Before: `false`
 * Parameters:
   * `gracePeriodSeconds`: The duration in seconds before the pod should be deleted. The value zero indicates delete immediately.
 
@@ -69,6 +70,7 @@ Several rules can match same event, so several action can be triggered, except f
 * Description: **Add, modify or delete labels of pod**
 * Arguments: key:value map of labels to add/modify/delete (empty value means label deletion)
 * Continue: `true`
+* Before: `false`
 * Parameters: N/A
 
 ### `kubernetes:networkpolicy`
@@ -76,6 +78,7 @@ Several rules can match same event, so several action can be triggered, except f
 * Description: **Create, update a network policy to block the egress**
 * Arguments: N/A
 * Continue: `true`
+* Before: `true`
 * Parameters: N/A
 
 ## Notifiers
@@ -173,8 +176,11 @@ Actions to trigger for events are set with rules with this syntax:
       - <string>
     priority: <string>
     tags:
-      <string>: <string>
-      <string>: <string>
+      - <string>, <string>, <string>
+      - <string>, <string>
+    output_fields:
+      - <key|string>=<value|string>, <key|string>=<value|string>
+      - <key|string>!=<value|string>, <key|string>=<value|string>
   action:
     name: <string>
     arguments:
@@ -184,6 +190,7 @@ Actions to trigger for events are set with rules with this syntax:
       <string>: <value>
       <string>: <value>
   continue: <bool>
+  before: <bool>
   notifiers:
     - <string>
     - <string>
@@ -194,14 +201,15 @@ With:
 * `name`: (*mandatory*) Name of your rule
 * `match`:
   * `rules`: (*list*) (`OR` logic) Falco rules to match. If empty, all rules match.
-  * `priority`: Priority to match. If empty, all priorities match. Syntax is like `>=Critical`.
-  * `tags`: (*list*) (`AND` logic) Tags to match. If empty, all tags match.
-  * `output_fields`: (*list*) (`AND` logic) Output fields to match. If emtpy, all output fields match.
+  * `priority`: Priority to match. If empty, all priorities match. Syntax is like: `>=Critical`, `<Warning`, `Debug`.
+  * `tags`: (*list*) (`OR` logic) Comma separated lists of Tags to match (`AND` logic). If empty, all tags match.
+  * `output_fields`: (*list*) (`OR` logic) Comma separated lists of key:comparison:value for Output fields to match (`AND` logic). If emtpy, all output fields match.
 * `action`:
   * `name`: name of action to trigger
   * `arguments`: key:value map of arguments for the action
   * `parameters`: key:value map of parameters for the action
 * `continue`: if `true`, no more action are applied after the rule has been triggerd (default is `true`).
+* `before`: if `true`, no more action are applied after the rule has been triggerd (default is `true`).
 
 Examples:
 
@@ -230,21 +238,24 @@ Examples:
 ```shell
 $ falco-talon --help
 
-Falco Talon is a Response Engine for managing threats in Kubernetes.
-It enhances the solutions proposed by Falco community with a dedicated,
-no-code solution. With easy rules, you can perform actions over compromised pods.
+Falco Talon is a Response Engine for managing threats in Kubernetes 
+It enhances the solutions proposed by Falco community with a dedicated, 
+no-code solution. With easy rules, you can perform actions over compromised pods
 
 Usage:
   falco-talon [command]
 
 Available Commands:
+  check       Check Falco Talon Rules file
   completion  Generate the autocompletion script for the specified shell
   help        Help about any command
-  server      Start Falco Talon.
+  server      Start Falco Talon
   version     Print version of Falco Talon.
 
 Flags:
-  -h, --help   help for falco-talon
+  -c, --config string   Falco Talon Config File (default "/etc/falco-talon/config.yaml")
+  -h, --help            help for falco-talon
+  -r, --rules string    Falco Talon Rules File (default "/etc/falco-talon/rules.yaml")
 
 Use "falco-talon [command] --help" for more information about a command.
 ```
@@ -258,8 +269,11 @@ Usage:
   falco-talon server [flags]
 
 Flags:
-  -c, --config string   Talon Config File (default "./config.yaml")
-  -h, --help            help for server
+  -h, --help   help for server
+
+Global Flags:
+  -c, --config string   Falco Talon Config File (default "/etc/falco-talon/config.yaml")
+  -r, --rules string    Falco Talon Rules File (default "/etc/falco-talon/rules.yaml")
 ```
 
 ## Images

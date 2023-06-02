@@ -2,6 +2,7 @@ package rules
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"regexp"
 	"strings"
@@ -22,6 +23,7 @@ type Rule struct {
 	Action    Action   `yaml:"action"`
 	Name      string   `yaml:"name"`
 	Continue  string   `yaml:"continue"`
+	Before    string   `yaml:"before"`
 	Match     Match    `yaml:"match"`
 	// Weight   int    `yaml:"weight"`
 }
@@ -33,29 +35,43 @@ type Action struct {
 }
 
 type Match struct {
-	OutputFields       map[string]interface{} `yaml:"output_fields"`
+	OutputFields       []string `yaml:"output_fields"`
+	OutputFieldsC      [][]outputfield
 	PriorityComparator string
 	Priority           string   `yaml:"priority"`
 	Source             string   `yaml:"Source"`
 	Rules              []string `yaml:"rules"`
 	Tags               []string `yaml:"tags"`
+	TagsC              [][]string
 	PriorityNumber     int
 }
 
-var rules *[]*Rule
-var priorityCheckRegex *regexp.Regexp
-var actionCheckRegex *regexp.Regexp
-var priorityComparatorRegex *regexp.Regexp
-
-func init() {
-	priorityCheckRegex = regexp.MustCompile("(?i)^(<|>)?(=)?(|Debug|Informational|Notice|Warning|Error|Critical|Alert|Emergency)")
-	actionCheckRegex = regexp.MustCompile("[a-z]+:[a-z]+")
-	priorityComparatorRegex = regexp.MustCompile("^(<|>)?(=)?")
+type outputfield struct {
+	Key        string
+	Comparator string
+	Value      string
 }
 
-func ParseRules() *[]*Rule {
+var rules *[]*Rule
+var (
+	priorityCheckRegex       *regexp.Regexp
+	actionCheckRegex         *regexp.Regexp
+	priorityComparatorRegex  *regexp.Regexp
+	tagCheckRegex            *regexp.Regexp
+	outputFieldKeyCheckRegex *regexp.Regexp
+)
+
+func init() {
+	priorityCheckRegex = regexp.MustCompile(`(?i)^(<|>)?(=)?(Debug|Informational|Notice|Warning|Error|Critical|Alert|Emergency|)$`)
+	actionCheckRegex = regexp.MustCompile(`[a-z]+:[a-z]+`)
+	priorityComparatorRegex = regexp.MustCompile(`^(<|>)?(=)?`)
+	tagCheckRegex = regexp.MustCompile(`(?i)^[a-z_0-9.]*[a-z0-9]$`)
+	outputFieldKeyCheckRegex = regexp.MustCompile(`(?i)^[a-z0-9.\[\]]*(!)?(=)`)
+}
+
+func ParseRules(rulesFile string) *[]*Rule {
 	config := configuration.GetConfiguration()
-	yamlRulesFile, err := os.ReadFile(config.RulesFile)
+	yamlRulesFile, err := os.ReadFile(rulesFile)
 	if err != nil {
 		utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err, Message: "rules"})
 	}
@@ -67,13 +83,42 @@ func ParseRules() *[]*Rule {
 	}
 
 	for _, i := range *rules {
-		invalid := false
+		for _, j := range i.Match.Tags {
+			t := strings.Split(strings.ReplaceAll(j, " ", ""), ",")
+			i.Match.TagsC = append(i.Match.TagsC, t)
+		}
+	}
+
+	for _, i := range *rules {
+		for _, j := range i.Match.OutputFields {
+			t := strings.Split(strings.ReplaceAll(strings.ReplaceAll(j, "!=", "!"), ", ", ","), ",")
+			o := []outputfield{}
+			for _, k := range t {
+				if strings.Contains(k, "=") {
+					p := strings.Split(k, "=")
+					if len(p) == 2 {
+						o = append(o, outputfield{p[0], "=", strings.ReplaceAll(p[1], `"`, "")})
+					}
+				}
+				if strings.Contains(k, "!") {
+					p := strings.Split(k, "!")
+					if len(p) == 2 {
+						o = append(o, outputfield{p[0], "!=", strings.ReplaceAll(p[1], `"`, "")})
+					}
+				}
+			}
+			i.Match.OutputFieldsC = append(i.Match.OutputFieldsC, o)
+		}
+	}
+
+	invalid := false
+	for _, i := range *rules {
 		if !i.isValid() {
 			invalid = true
 		}
-		if invalid {
-			return nil
-		}
+	}
+	if invalid {
+		return nil
 	}
 
 	return rules
@@ -87,16 +132,36 @@ func (rule *Rule) isValid() bool {
 		result = false
 	}
 	if !actionCheckRegex.MatchString(rule.Action.Name) {
-		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: errors.New("unknown action"), Message: "rules", Rule: rule.Name})
+		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: fmt.Errorf("incorrect action '%v'", rule.Action.Name), Message: "rules", Rule: rule.Name})
 		result = false
 	}
 	if !priorityCheckRegex.MatchString(rule.Match.Priority) {
-		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: errors.New("incorrect priority"), Message: "rules", Rule: rule.Name})
+		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: fmt.Errorf("incorrect priority '%v'", rule.Match.Priority), Message: "rules", Rule: rule.Name})
 		result = false
 	}
+	for _, i := range rule.Match.TagsC {
+		for _, j := range i {
+			if !tagCheckRegex.MatchString(j) {
+				utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: fmt.Errorf("incorrect tag '%v'", j), Message: "rules", Rule: rule.Name})
+				result = false
+			}
+		}
+	}
+	for _, i := range rule.Match.OutputFields {
+		t := strings.Split(strings.ReplaceAll(i, ", ", ","), ",")
+		for _, j := range t {
+			if !outputFieldKeyCheckRegex.MatchString(j) {
+				utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: fmt.Errorf("incorrect output field key '%v'", j), Message: "rules", Rule: rule.Name})
+				result = false
+			}
+		}
+	}
 	if err := rule.setPriorityNumberComparator(); err != nil {
-		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: errors.New("incorrect priority comparator"), Message: "rules", Rule: rule.Name})
+		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: fmt.Errorf("incorrect priority comparator '%v'", rule.Match.PriorityComparator), Message: "rules", Rule: rule.Name})
 		result = false
+	}
+	if rule.Continue == "false" && rule.Before == "true" {
+		utils.PrintLog("warning", config.LogFormat, utils.LogLine{Error: errors.New("if before=true, continue=false is ignored"), Message: "rules", Rule: rule.Name})
 	}
 	return result
 }
@@ -142,10 +207,6 @@ func (rule *Rule) GetNotifiers() []string {
 	return rule.Notifiers
 }
 
-// func (rule *Rule) MustContinue() bool {
-// 	return strings.ToLower(rule.Continue) == "true"
-// }
-
 func (rule *Rule) CompareRule(event *events.Event) bool {
 	if !rule.findRules(event) {
 		return false
@@ -181,28 +242,48 @@ func (rule *Rule) compareOutputFields(event *events.Event) bool {
 	if len(rule.Match.OutputFields) == 0 {
 		return true
 	}
-	for i, j := range rule.Match.OutputFields {
-		if event.OutputFields[i] == j {
-			continue
+	for _, i := range rule.Match.OutputFieldsC {
+		var countK, countV, countF int
+		for _, j := range i {
+			if j.Comparator == "=" {
+				countK++
+			}
 		}
-		return false
+		for _, j := range i {
+			for k, v := range event.OutputFields {
+				if j.Comparator == "!=" && j.Key == k && j.Value == fmt.Sprintf("%v", v) {
+					countF++
+				}
+				if j.Comparator == "=" && j.Key == k && j.Value == fmt.Sprintf("%v", v) {
+					countV++
+				}
+			}
+		}
+		if countK == countV && countF == 0 {
+			return true
+		}
 	}
-	return true
+	return false
 }
 
 func (rule *Rule) compareTags(event *events.Event) bool {
-	if len(rule.Match.Tags) == 0 {
+	if len(rule.Match.TagsC) == 0 {
 		return true
 	}
-	count := 0
-	for _, i := range rule.Match.Tags {
-		for _, j := range event.Tags {
-			if i == j {
-				count++
+	for _, i := range rule.Match.TagsC {
+		count := 0
+		for _, j := range i {
+			for _, k := range event.Tags {
+				if k == j {
+					count++
+				}
 			}
 		}
+		if count == len(i) {
+			return true
+		}
 	}
-	return count == len(rule.Match.Tags)
+	return false
 }
 
 func (rule *Rule) compareSoure(event *events.Event) bool {

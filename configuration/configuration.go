@@ -14,7 +14,7 @@ import (
 const (
 	defaultListenAddress string = "0.0.0.0"
 	defaultListPort      int    = 2803
-	defaultRulesFile     string = "./rules.yaml"
+	DefaultRulesFile     string = "/etc/falco-talon/rules.yaml"
 	defaultWatchRules    bool   = true
 )
 
@@ -50,7 +50,7 @@ func CreateConfiguration(configFile string) *Configuration {
 	v := viper.New()
 	v.SetDefault("ListenAddress", defaultListenAddress)
 	v.SetDefault("ListenPort", defaultListPort)
-	v.SetDefault("RulesFile", defaultRulesFile)
+	v.SetDefault("RulesFile", DefaultRulesFile)
 	v.SetDefault("KubeConfig", "")
 	v.SetDefault("Logformat", "color")
 	v.SetDefault("DefaultNotifiers", []string{})
@@ -68,12 +68,12 @@ func CreateConfiguration(configFile string) *Configuration {
 		v.AddConfigPath(d)
 		err := v.ReadInConfig()
 		if err != nil {
-			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: fmt.Errorf("error when reading config file: %v", err.Error())})
+			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: fmt.Errorf("error when reading config file: '%v'", err.Error())})
 		}
 	}
 
 	if err := v.Unmarshal(config); err != nil {
-		utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: fmt.Errorf("error unmarshalling config: %v", err.Error())})
+		utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: fmt.Errorf("error unmarshalling config file: '%v'", err.Error())})
 	}
 
 	// fmt.Printf("%#v\n", config)

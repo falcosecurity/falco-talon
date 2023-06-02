@@ -19,8 +19,9 @@ const (
 	intStr     string = "int"
 	int64Str   string = "int64"
 
-	errorStr string = "error"
-	fatalStr string = "fatal"
+	errorStr   string = "error"
+	warningStr string = "warning"
+	fatalStr   string = "fatal"
 
 	textStr  string = "text"
 	colorStr string = "color"
@@ -64,6 +65,8 @@ func PrintLog(level, format string, line LogLine) {
 
 	var l *zerolog.Event
 	switch strings.ToLower(level) {
+	case warningStr:
+		l = log.Warn()
 	case errorStr:
 		l = log.Error()
 	case fatalStr:
