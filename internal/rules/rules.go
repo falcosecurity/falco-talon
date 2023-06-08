@@ -28,8 +28,8 @@ type Rule struct {
 }
 
 type Action struct {
-	Name       string                 `yaml:"name"`
 	Parameters map[string]interface{} `yaml:"parameters,omitempty"`
+	Name       string                 `yaml:"name"`
 }
 
 type Match struct {
