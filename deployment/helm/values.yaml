@@ -73,6 +73,8 @@ affinity: {}
 defaultNotifiers:
   - slack
 
+watchRules: true
+
 notifiers:
   slack:
     # webhookurl: "https://hooks.slack.com/services/XXXX"
