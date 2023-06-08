@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 
+	"github.com/Issif/falco-talon/actionners"
 	"github.com/Issif/falco-talon/configuration"
 	ruleengine "github.com/Issif/falco-talon/internal/rules"
 	"github.com/Issif/falco-talon/utils"
@@ -24,6 +25,17 @@ var checkCmd = &cobra.Command{
 		rules := ruleengine.ParseRules(config.RulesFile)
 		if rules == nil {
 			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: errors.New("invalid rules"), Message: "rules"})
+		}
+		actionners.Init()
+		actions := actionners.GetActionners()
+		for _, i := range *actions {
+			for _, j := range *rules {
+				if i.CheckParameters != nil {
+					if err := i.CheckParameters(j); err != nil {
+						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, Rule: j.GetName(), Message: "rules"})
+					}
+				}
+			}
 		}
 		utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: "rules file valid", Message: "rules"})
 	},

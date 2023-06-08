@@ -12,12 +12,15 @@ import (
 )
 
 const (
-	boolStr    string = "bool"
-	floatStr   string = "float"
-	float64Str string = "float64"
-	stringStr  string = "string"
-	intStr     string = "int"
-	int64Str   string = "int64"
+	BoolStr         string = "bool"
+	FloatStr        string = "float"
+	Float64Str      string = "float64"
+	StringStr       string = "string"
+	IntStr          string = "int"
+	Int64Str        string = "int64"
+	MapStringStr    string = "map[string]string"
+	MapIntStr       string = "map[string]int"
+	MapInterfaceStr string = "map[string]interface {}"
 
 	errorStr   string = "error"
 	warningStr string = "warning"
@@ -130,27 +133,29 @@ func SetFields(structure interface{}, fields map[string]interface{}) interface{}
 		deflt := fieldType.Tag.Get("default")
 		if fields[field] != nil {
 			switch valueOf.Type().Field(i).Type.String() {
-			case stringStr:
+			case StringStr:
 				valueOf.Field(i).SetString(fields[field].(string))
-			case intStr, int64Str:
+			case IntStr, Int64Str:
 				d := int64(fields[field].(int))
 				valueOf.Field(i).SetInt(d)
-			case floatStr, float64Str:
+			case FloatStr, Float64Str:
 				valueOf.Field(i).SetFloat(fields[field].(float64))
-			case boolStr:
+			case BoolStr:
 				valueOf.Field(i).SetBool(fields[field].(bool))
+			case MapStringStr:
+				valueOf.Field(i).SetMapIndex(reflect.ValueOf(fields[field]), reflect.ValueOf(fields[field]).Elem())
 			}
 		} else if deflt != "" {
 			switch valueOf.Type().Field(i).Type.String() {
-			case stringStr:
+			case StringStr:
 				valueOf.Field(i).SetString(deflt)
-			case intStr, int64Str:
+			case IntStr, Int64Str:
 				d, _ := strconv.Atoi(deflt)
 				valueOf.Field(i).SetInt(int64(d))
-			case floatStr, float64Str:
+			case FloatStr, Float64Str:
 				d, _ := strconv.ParseFloat(deflt, 64)
 				valueOf.Field(i).SetFloat(d)
-			case boolStr:
+			case BoolStr:
 				d, _ := strconv.ParseBool(deflt)
 				valueOf.Field(i).SetBool(d)
 			}
@@ -158,4 +163,14 @@ func SetFields(structure interface{}, fields map[string]interface{}) interface{}
 	}
 
 	return structure
+}
+
+func CheckParameters(parameters map[string]interface{}, name, typ string) error {
+	if parameters[name] == nil {
+		return nil
+	}
+	if reflect.TypeOf(parameters[name]).String() != typ {
+		return fmt.Errorf("wrong type for parameter '%v'", name)
+	}
+	return nil
 }

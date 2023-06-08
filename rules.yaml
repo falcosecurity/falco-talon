@@ -5,7 +5,6 @@
       - Test NetworkPolicy
   action:
     name: kubernetes:networkpolicy
-    arguments:
   continue: false
   notifiers:
     - slack
@@ -14,10 +13,11 @@
     priority: "<Critical"
   action:
     name: kubernetes:labelize
-    arguments:
-      keyA: "valueA"
-      keyB: valueB
-      run: ""
+    parameters:
+      labels:
+        keyA: "valueA"
+        keyB: valueB
+        run: ""
   continue: false
   notifiers:
     - slack
