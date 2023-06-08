@@ -51,15 +51,13 @@ or
 `category` allows to group `actions` and avoid multiple initializations (eg, multi Kubernetes API client, multi AWS clients, ...).
 
 Each `actionner` is configured with:
-* `arguments`: key:value map of arguments passed to the action, eg: list of `labels` for `kubernetes:labelize`
-* `parameters`: key:value map of parameters for configuration of context of the `action`, eg: `gracePeriod` for `kubernetes:terminate`
+* `parameters`: key:value map of parameters passed to the action, eg: list of `labels` for `kubernetes:labelize`. value can be a string, an int or a map.
 
 Several rules can match same event, so several action can be triggered, except for `actionners` with `Continue: false`.
 
 ### `kubernetes:terminate`
 
 * Description: **Terminate pod**
-* Arguments: N/A
 * Continue: `false`
 * Before: `false`
 * Parameters:
@@ -68,15 +66,14 @@ Several rules can match same event, so several action can be triggered, except f
 ### `kubernetes:labelize`
 
 * Description: **Add, modify or delete labels of pod**
-* Arguments: key:value map of labels to add/modify/delete (empty value means label deletion)
 * Continue: `true`
 * Before: `false`
-* Parameters: N/A
+* Parameters: 
+  * `labels`: key:value map of labels to add/modify/delete (empty value means label deletion)
 
 ### `kubernetes:networkpolicy`
 
 * Description: **Create, update a network policy to block the egress**
-* Arguments: N/A
 * Continue: `true`
 * Before: `true`
 * Parameters: N/A
@@ -140,7 +137,7 @@ The configuration of `Falco Talon` is set with a `.yaml` file (default: `./confi
 | `listenAddress`    | `LISTENADDRESS`    | `0.0.0.0` | Listten Address                                                 |
 | `listenPort`       | `LISTENPORT`       |  `2803`   | Listten Port                                                    |
 | `rulesFile`        | `RULESFILE`        |    n/a    | File with rules                                                 |
-| `watchRules`       | `WATCHRULES`       |  `true`   | reload if the rules file changes                                |
+| `watchRules`       | `WATCHRULES`       |  `true`   | reload rules if they change                              |
 | `kubeConfig`       | `KUBECONFIG`       |    n/a    | Kube config file, only if `Falco Talon` runs outside Kubernetes |
 | `logFormat`        | `LOGFORMAT`        |  `color`  | Log Format: text, color, json                                   |
 | `defaultNotifiers` | `DEFAULTNOTIFIERS` |    n/a    | List of `notifiers` which are enabled for all rules             |
@@ -183,12 +180,11 @@ Actions to trigger for events are set with rules with this syntax:
       - <key|string>!=<value|string>, <key|string>=<value|string>
   action:
     name: <string>
-    arguments:
-      <string>: <value>
-      <string>: <value>
     parameters:
       <string>: <value>
-      <string>: <value>
+      <string>:
+        <string>: <string>
+        <string>: <string>
   continue: <bool>
   before: <bool>
   notifiers:
@@ -206,8 +202,7 @@ With:
   * `output_fields`: (*list*) (`OR` logic) Comma separated lists of key:comparison:value for Output fields to match (`AND` logic). If emtpy, all output fields match.
 * `action`:
   * `name`: name of action to trigger
-  * `arguments`: key:value map of arguments for the action
-  * `parameters`: key:value map of parameters for the action
+  * `parameters`: key:value map of parameters for the action. value can be a string, an int or a map.
 * `continue`: if `true`, no more action are applied after the rule has been triggerd (default is `true`).
 * `before`: if `true`, no more action are applied after the rule has been triggerd (default is `true`).
 
@@ -228,8 +223,9 @@ Examples:
     priority: "<Critical"
   action:
     name: kubernetes:labelize
-    arguments:
-      suspicious: "true"
+    parameters:
+      labels:
+        suspicious: "true"
   continue: false
 ```
 

@@ -2,22 +2,26 @@ package actionners
 
 import (
 	"github.com/Issif/falco-talon/actionners/checks"
-	"github.com/Issif/falco-talon/actionners/kubernetes"
+	labelize "github.com/Issif/falco-talon/actionners/kubernetes/labelize"
+	networkpolicy "github.com/Issif/falco-talon/actionners/kubernetes/networkpolicy"
+	terminate "github.com/Issif/falco-talon/actionners/kubernetes/terminate"
 	"github.com/Issif/falco-talon/configuration"
 	"github.com/Issif/falco-talon/internal/events"
+	kubernetes "github.com/Issif/falco-talon/internal/kubernetes/client"
 	"github.com/Issif/falco-talon/internal/rules"
 	"github.com/Issif/falco-talon/notifiers"
 	"github.com/Issif/falco-talon/utils"
 )
 
 type Actionner struct {
-	Name     string
-	Category string
-	Action   func(rule *rules.Rule, event *events.Event) (string, error)
-	Init     func() error
-	Checks   []checkActionner
-	Continue bool
-	Before   bool
+	Name            string
+	Category        string
+	Action          func(rule *rules.Rule, event *events.Event) (string, error)
+	CheckParameters func(rule *rules.Rule) error
+	Init            func() error
+	Checks          []checkActionner
+	Continue        bool
+	Before          bool
 }
 
 type checkActionner func(event *events.Event) error
@@ -37,22 +41,24 @@ func Init() {
 	a := new(Actionners)
 	a.Add(
 		&Actionner{
-			Name:     "terminate",
-			Category: "kubernetes",
-			Continue: false,
-			Before:   false,
-			Init:     kubernetes.Init,
-			Checks:   []checkActionner{kubernetes.CheckPodExist},
-			Action:   kubernetes.Terminate,
+			Name:            "terminate",
+			Category:        "kubernetes",
+			Continue:        false,
+			Before:          false,
+			Init:            kubernetes.Init,
+			Checks:          []checkActionner{kubernetes.CheckPodExist},
+			CheckParameters: terminate.CheckParameters,
+			Action:          terminate.Terminate,
 		},
 		&Actionner{
-			Name:     "labelize",
-			Category: "kubernetes",
-			Continue: true,
-			Before:   false,
-			Init:     kubernetes.Init,
-			Checks:   []checkActionner{kubernetes.CheckPodExist},
-			Action:   kubernetes.Labelize,
+			Name:            "labelize",
+			Category:        "kubernetes",
+			Continue:        true,
+			Before:          false,
+			Init:            kubernetes.Init,
+			Checks:          []checkActionner{kubernetes.CheckPodExist},
+			CheckParameters: labelize.CheckParameters,
+			Action:          labelize.Labelize,
 		},
 		&Actionner{
 			Name:     "networkpolicy",
@@ -65,7 +71,8 @@ func Init() {
 				checks.CheckRemoteIP,
 				checks.CheckRemotePort,
 			},
-			Action: kubernetes.NetworkPolicy,
+			CheckParameters: nil,
+			Action:          networkpolicy.NetworkPolicy,
 		})
 	categories := map[string]*category{}
 	for _, i := range *a {
@@ -74,6 +81,11 @@ func Init() {
 	rules := rules.GetRules()
 	for _, i := range *a {
 		for _, j := range *rules {
+			if i.CheckParameters != nil {
+				if err := i.CheckParameters(j); err != nil {
+					utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err, Rule: j.GetName(), Message: "rules"})
+				}
+			}
 			if i.Category == j.GetActionCategory() {
 				if !categories[i.Category].initialized {
 					categories[i.Category].initialized = true

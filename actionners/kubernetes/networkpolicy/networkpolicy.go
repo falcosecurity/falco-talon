@@ -12,12 +12,15 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/Issif/falco-talon/internal/events"
+	kubernetes "github.com/Issif/falco-talon/internal/kubernetes/client"
 	"github.com/Issif/falco-talon/internal/rules"
 )
 
 var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (string, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
+
+	client := kubernetes.GetClient()
 
 	pod, err := client.GetPod(podName, namespace)
 	if err != nil {

@@ -7,8 +7,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	client "github.com/Issif/falco-talon/actionners/kubernetes"
 	"github.com/Issif/falco-talon/internal/events"
+	kubernetes "github.com/Issif/falco-talon/internal/kubernetes/client"
 	"github.com/Issif/falco-talon/internal/rules"
 )
 
@@ -37,7 +37,7 @@ var Notify = func(rule *rules.Rule, event *events.Event, message, status string)
 		ReportingInstance:   "falco-talon",
 		Action:              "falco-talon:" + rule.GetAction(),
 	}
-	k8sclient := client.GetClient()
+	k8sclient := kubernetes.GetClient()
 	_, err := k8sclient.CoreV1().Events(event.GetNamespaceName()).Create(context.TODO(), k8sevent, metav1.CreateOptions{})
 	if err != nil {
 		return err

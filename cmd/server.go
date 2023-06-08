@@ -29,7 +29,6 @@ var serverCmd = &cobra.Command{
 		if rulesFile != "" && rulesFile != configuration.DefaultRulesFile {
 			config.RulesFile = rulesFile
 		}
-		fmt.Println(config.RulesFile)
 		rules := ruleengine.ParseRules(config.RulesFile)
 		if rules == nil {
 			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: errors.New("invalid rules"), Message: "rules"})
@@ -79,13 +78,28 @@ var serverCmd = &cobra.Command{
 								ignore = false
 							}()
 							utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: "changes detected", Message: "rules"})
-							r := ruleengine.ParseRules(config.RulesFile)
-							if r == nil {
+							newRules := ruleengine.ParseRules(config.RulesFile)
+							if newRules == nil {
 								utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: errors.New("invalid rules"), Message: "rules"})
 								break
 							}
-							utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*rules)), Message: "rules"})
-							rules = r
+							actions := actionners.GetActionners()
+							parametersOk := true
+							for _, i := range *actions {
+								for _, j := range *newRules {
+									if i.CheckParameters != nil {
+										if err := i.CheckParameters(j); err != nil {
+											utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, Rule: j.GetName(), Message: "rules"})
+											parametersOk = false
+										}
+									}
+								}
+							}
+							if parametersOk {
+								utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*rules)), Message: "rules"})
+								rules = newRules
+							}
+
 						}
 					case err := <-watcher.Errors:
 						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, Message: "rules"})

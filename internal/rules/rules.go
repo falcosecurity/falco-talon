@@ -25,13 +25,11 @@ type Rule struct {
 	Continue  string   `yaml:"continue"`
 	Before    string   `yaml:"before"`
 	Match     Match    `yaml:"match"`
-	// Weight   int    `yaml:"weight"`
 }
 
 type Action struct {
-	Arguments  map[string]interface{} `yaml:"arguments,omitempty"`
-	Parameters map[string]interface{} `yaml:"parameters,omitempty"`
 	Name       string                 `yaml:"name"`
+	Parameters map[string]interface{} `yaml:"parameters,omitempty"`
 }
 
 type Match struct {
@@ -113,7 +111,7 @@ func ParseRules(rulesFile string) *[]*Rule {
 
 	invalid := false
 	for _, i := range *rules {
-		if !i.isValid() {
+		if !i.isRuleValid() {
 			invalid = true
 		}
 	}
@@ -124,7 +122,7 @@ func ParseRules(rulesFile string) *[]*Rule {
 	return rules
 }
 
-func (rule *Rule) isValid() bool {
+func (rule *Rule) isRuleValid() bool {
 	config := configuration.GetConfiguration()
 	result := true
 	if rule.Name == "" {
@@ -199,10 +197,6 @@ func (rule *Rule) GetParameters() map[string]interface{} {
 	return rule.Action.Parameters
 }
 
-func (rule *Rule) GetArguments() map[string]interface{} {
-	return rule.Action.Arguments
-}
-
 func (rule *Rule) GetNotifiers() []string {
 	return rule.Notifiers
 }
@@ -220,7 +214,7 @@ func (rule *Rule) CompareRule(event *events.Event) bool {
 	if !rule.compareTags(event) {
 		return false
 	}
-	if !rule.compareSoure(event) {
+	if !rule.compareSource(event) {
 		return false
 	}
 	return true
@@ -286,7 +280,7 @@ func (rule *Rule) compareTags(event *events.Event) bool {
 	return false
 }
 
-func (rule *Rule) compareSoure(event *events.Event) bool {
+func (rule *Rule) compareSource(event *events.Event) bool {
 	if rule.Match.Source == "" {
 		return true
 	}

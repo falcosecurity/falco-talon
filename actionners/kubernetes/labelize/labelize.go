@@ -9,7 +9,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/Issif/falco-talon/internal/events"
+	kubernetes "github.com/Issif/falco-talon/internal/kubernetes/client"
 	"github.com/Issif/falco-talon/internal/rules"
+	"github.com/Issif/falco-talon/utils"
 )
 
 type patch struct {
@@ -23,7 +25,7 @@ var Labelize = func(rule *rules.Rule, event *events.Event) (string, error) {
 	namespace := event.GetNamespaceName()
 
 	payload := make([]patch, 0)
-	for i, j := range rule.GetArguments() {
+	for i, j := range rule.GetParameters() {
 		if j == "" {
 			continue
 		}
@@ -34,6 +36,8 @@ var Labelize = func(rule *rules.Rule, event *events.Event) (string, error) {
 		})
 	}
 
+	client := kubernetes.GetClient()
+
 	payloadBytes, _ := json.Marshal(payload)
 	_, err := client.Clientset.CoreV1().Pods(namespace).Patch(context.Background(), pod, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
 	if err != nil {
@@ -41,7 +45,9 @@ var Labelize = func(rule *rules.Rule, event *events.Event) (string, error) {
 	}
 
 	payload = make([]patch, 0)
-	for i, j := range rule.GetArguments() {
+	rule.GetParameters()
+	parameters := rule.GetParameters()
+	for i, j := range parameters["labels"].(map[string]string) {
 		if j != "" {
 			continue
 		}
@@ -59,4 +65,9 @@ var Labelize = func(rule *rules.Rule, event *events.Event) (string, error) {
 		}
 	}
 	return fmt.Sprintf("Pod: '%v' Namespace: '%v' Status: 'labelized'", pod, namespace), nil
+}
+
+var CheckParameters = func(rule *rules.Rule) error {
+	parameters := rule.GetParameters()
+	return utils.CheckParameters(parameters, "labels", utils.MapInterfaceStr)
 }
