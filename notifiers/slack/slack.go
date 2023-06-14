@@ -3,7 +3,6 @@ package slack
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/Issif/falco-talon/internal/events"
 	"github.com/Issif/falco-talon/internal/rules"
@@ -56,7 +55,7 @@ var Init = func(fields map[string]interface{}) error {
 	return nil
 }
 
-var Notify = func(rule *rules.Rule, event *events.Event, message, status string) error {
+var Notify = func(rule *rules.Rule, event *events.Event, log utils.LogLine) error {
 	if slackconfig.WebhookURL == "" {
 		return errors.New("wrong config")
 	}
@@ -65,22 +64,19 @@ var Notify = func(rule *rules.Rule, event *events.Event, message, status string)
 	if err != nil {
 		return err
 	}
-	err = client.Post(NewPayload(rule, event, message, status))
+	err = client.Post(NewPayload(rule, event, log))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func NewPayload(rule *rules.Rule, event *events.Event, message, status string) Payload {
-	action := rule.GetAction()
-	ruleName := rule.GetName()
-
+func NewPayload(rule *rules.Rule, event *events.Event, log utils.LogLine) Payload {
 	var attachments []Attachment
 	var attachment Attachment
 
 	var color, statusPrefix, resultError string
-	switch status {
+	switch log.Status {
 	case "failure":
 		color = Red
 		statusPrefix = "un"
@@ -91,35 +87,59 @@ func NewPayload(rule *rules.Rule, event *events.Event, message, status string) P
 	}
 	attachment.Color = color
 
-	text := fmt.Sprintf("Action `%v` from rule `%v` has been %vsuccessfully triggered", action, ruleName, statusPrefix)
+	text := fmt.Sprintf("Action `%v` from rule `%v` has been %vsuccessfully triggered", log.Action, log.Rule, statusPrefix)
 
 	if slackconfig.Format == "short" {
-		attachment.Text = text + fmt.Sprintf(", with %v: `%v`", resultError, message)
+		attachment.Text = text + fmt.Sprintf(", with %v: `%v`", resultError, log.Message)
 		text = ""
 	} else {
 		var fields []Field
 		var field Field
 
 		field.Title = "Rule"
-		field.Value = "`" + ruleName + "`"
+		field.Value = "`" + log.Rule + "`"
 		field.Short = false
 		fields = append(fields, field)
 		field.Title = "Action"
-		field.Value = strings.ToUpper("`" + action + "`")
+		field.Value = "`" + log.Action + "`"
 		field.Short = true
 		fields = append(fields, field)
 		field.Title = "Status"
-		field.Value = "`" + status + "`"
+		field.Value = "`" + log.Status + "`"
 		field.Short = true
 		fields = append(fields, field)
+		if log.Pod != "" {
+			field.Title = "Pod"
+			field.Value = "`" + log.Pod + "`"
+			field.Short = true
+			fields = append(fields, field)
+		}
+		if log.NetworkPolicy != "" {
+			field.Title = "NetworkPolicy"
+			field.Value = "`" + log.NetworkPolicy + "`"
+			field.Short = true
+			fields = append(fields, field)
+		}
+		if log.Namespace != "" {
+			field.Title = "Namespace"
+			field.Value = "`" + log.Namespace + "`"
+			field.Short = true
+			fields = append(fields, field)
+		}
 		field.Title = "Event"
 		field.Value = "`" + event.Output + "`"
 		field.Short = false
 		fields = append(fields, field)
 		field.Title = "Message"
-		field.Value = "`" + message + "`"
+		field.Value = "`" + log.Message + "`"
 		field.Short = false
 		fields = append(fields, field)
+		if log.Output != "" {
+			field.Title = "Output"
+			field.Value = fmt.Sprintf("```\n%v```", utils.RemoveSpecialCharacters(log.Output))
+			field.Short = false
+			fields = append(fields, field)
+		}
 
 		if slackconfig.Footer != "" {
 			attachment.Footer = slackconfig.Footer

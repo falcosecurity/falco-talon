@@ -4,6 +4,7 @@ description: React to events from Falco
 name: falco-talon
 version: 0.0.1
 keywords:
+  - falco
   - monitoring
   - security
   - response-engine

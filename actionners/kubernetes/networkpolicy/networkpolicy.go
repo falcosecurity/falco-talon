@@ -14,9 +14,10 @@ import (
 	"github.com/Issif/falco-talon/internal/events"
 	kubernetes "github.com/Issif/falco-talon/internal/kubernetes/client"
 	"github.com/Issif/falco-talon/internal/rules"
+	"github.com/Issif/falco-talon/utils"
 )
 
-var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (string, error) {
+var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
@@ -24,7 +25,13 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (string, error) 
 
 	pod, err := client.GetPod(podName, namespace)
 	if err != nil {
-		return "", err
+		return utils.LogLine{
+				Pod:       podName,
+				Namespace: namespace,
+				Error:     err,
+				Status:    "failure",
+			},
+			err
 	}
 
 	labels := make(map[string]string)
@@ -35,56 +42,128 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (string, error) 
 		case "DaemonSet":
 			u, errG := client.GetDaemonsetFromPod(pod)
 			if errG != nil {
-				return "", errG
+				return utils.LogLine{
+						Pod:       podName,
+						Namespace: namespace,
+						Error:     errG,
+						Status:    "failure",
+					},
+					errG
 			}
 			if u == nil {
-				return "", fmt.Errorf("can't find the daemonset for the pod %v in namespace %v", podName, namespace)
+				return utils.LogLine{
+						Pod:       podName,
+						Namespace: namespace,
+						Error:     fmt.Errorf("can't find the daemonset for the pod %v in namespace %v", podName, namespace),
+						Status:    "failure",
+					},
+					fmt.Errorf("can't find the daemonset for the pod %v in namespace %v", podName, namespace)
 			}
 			owner = u.ObjectMeta.Name
 			labels = u.Spec.Selector.MatchLabels
 			if owner == "" || len(labels) == 0 {
-				return "", fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace)
+				return utils.LogLine{
+						Pod:       podName,
+						Namespace: namespace,
+						Error:     fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace),
+						Status:    "failure",
+					},
+					fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace)
 			}
 		case "StatefulSet":
 			u, errG := client.GetStatefulsetFromPod(pod)
 			if errG != nil {
-				return "", errG
+				return utils.LogLine{
+						Pod:       podName,
+						Namespace: namespace,
+						Error:     errG,
+						Status:    "failure",
+					},
+					errG
 			}
 			if u == nil {
-				return "", fmt.Errorf("can't find the statefulset for the pod %v in namespace %v", podName, namespace)
+				return utils.LogLine{
+						Pod:       podName,
+						Namespace: namespace,
+						Error:     fmt.Errorf("can't find the statefulset for the pod %v in namespace %v", podName, namespace),
+						Status:    "failure",
+					},
+					fmt.Errorf("can't find the statefulset for the pod %v in namespace %v", podName, namespace)
 			}
 			owner = u.ObjectMeta.Name
 			labels = u.Spec.Selector.MatchLabels
 			if owner == "" || len(labels) == 0 {
-				return "", fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace)
+				return utils.LogLine{
+						Pod:       podName,
+						Namespace: namespace,
+						Error:     fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace),
+						Status:    "failure",
+					},
+					fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace)
 			}
 		case "ReplicaSet":
 			u, errG := client.GetStatefulsetFromPod(pod)
 			if errG != nil {
-				return "", errG
+				return utils.LogLine{
+						Pod:       podName,
+						Namespace: namespace,
+						Error:     errG,
+						Status:    "failure",
+					},
+					errG
 			}
 			if u == nil {
-				return "", fmt.Errorf("can't find the replicaset for the pod %v in namespace %v", podName, namespace)
+				return utils.LogLine{
+						Pod:       podName,
+						Namespace: namespace,
+						Error:     fmt.Errorf("can't find the replicaset for the pod %v in namespace %v", podName, namespace),
+						Status:    "failure",
+					},
+					fmt.Errorf("can't find the replicaset for the pod %v in namespace %v", podName, namespace)
 			}
 			var v *v1.Deployment
 			v, errG = client.Clientset.AppsV1().Deployments(namespace).Get(context.Background(), u.OwnerReferences[0].Name, metav1.GetOptions{})
 			if errG != nil {
-				return "", errG
+				return utils.LogLine{
+						Pod:       podName,
+						Namespace: namespace,
+						Error:     errG,
+						Status:    "failure",
+					},
+					errG
 			}
 			if v == nil {
-				return "", fmt.Errorf("can't find the deployment for the pod %v in namespace %v", podName, namespace)
+				return utils.LogLine{
+						Pod:       podName,
+						Namespace: namespace,
+						Error:     fmt.Errorf("can't find the deployment for the pod %v in namespace %v", podName, namespace),
+						Status:    "failure",
+					},
+					fmt.Errorf("can't find the deployment for the pod %v in namespace %v", podName, namespace)
 			}
 			owner = v.ObjectMeta.Name
 			labels = v.Spec.Selector.MatchLabels
 			if owner == "" || len(labels) == 0 {
-				return "", fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace)
+				return utils.LogLine{
+						Pod:       podName,
+						Namespace: namespace,
+						Error:     fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace),
+						Status:    "failure",
+					},
+					fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace)
 			}
 		}
 	} else {
 		owner = pod.ObjectMeta.Name
 		labels = pod.ObjectMeta.Labels
 		if owner == "" || len(labels) == 0 {
-			return "", fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace)
+			return utils.LogLine{
+					Pod:       podName,
+					Namespace: namespace,
+					Error:     fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace),
+					Status:    "failure",
+				},
+				fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace)
 		}
 	}
 
@@ -92,7 +171,13 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (string, error) 
 
 	np, err := createEgressRule(event)
 	if err != nil {
-		return "", err
+		return utils.LogLine{
+				Pod:       podName,
+				Namespace: namespace,
+				Error:     err,
+				Status:    "failure",
+			},
+			err
 	}
 
 	var status string
@@ -114,19 +199,36 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (string, error) 
 		}
 		_, err = client.NetworkingV1().NetworkPolicies(namespace).Create(context.Background(), &payload, metav1.CreateOptions{})
 		if err != nil {
-			return "", err
+			return utils.LogLine{
+					Pod:       podName,
+					Namespace: namespace,
+					Error:     err,
+					Status:    "failure",
+				},
+				err
 		}
 		status = "created"
 	} else {
 		n.Spec.Egress = append(n.Spec.Egress, np)
 		_, err = client.NetworkingV1().NetworkPolicies(namespace).Update(context.Background(), n, metav1.UpdateOptions{})
 		if err != nil {
-			return "", err
+			return utils.LogLine{
+					Pod:       podName,
+					Namespace: namespace,
+					Error:     err,
+					Status:    "failure",
+				},
+				err
 		}
 		status = "updated"
 	}
-
-	return fmt.Sprintf("NetworkPolicy: '%v' Namespace: '%v' Status: '%v'", owner, namespace, status), nil
+	return utils.LogLine{
+			NetworkPolicy: owner,
+			Namespace:     namespace,
+			Output:        status,
+			Status:        "success",
+		},
+		nil
 }
 
 func createEgressRule(event *events.Event) (networkingv1.NetworkPolicyEgressRule, error) {

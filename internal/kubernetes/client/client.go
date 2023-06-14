@@ -17,6 +17,7 @@ import (
 
 type Client struct {
 	*k8s.Clientset
+	RestConfig *rest.Config
 }
 
 var client *Client
@@ -24,19 +25,18 @@ var client *Client
 var Init = func() error {
 	client = new(Client)
 	config := configuration.GetConfiguration()
-	var k8sconfig *rest.Config
 	var err error
 	if config.KubeConfig != "" {
-		k8sconfig, err = clientcmd.BuildConfigFromFlags("", config.KubeConfig)
+		client.RestConfig, err = clientcmd.BuildConfigFromFlags("", config.KubeConfig)
 	} else {
-		k8sconfig, err = rest.InClusterConfig()
+		client.RestConfig, err = rest.InClusterConfig()
 	}
 	if err != nil {
 		return err
 	}
 
 	// creates the clientset
-	client.Clientset, err = k8s.NewForConfig(k8sconfig)
+	client.Clientset, err = k8s.NewForConfig(client.RestConfig)
 	if err != nil {
 		return err
 	}

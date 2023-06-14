@@ -2,6 +2,7 @@ package k8sevents
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -10,9 +11,21 @@ import (
 	"github.com/Issif/falco-talon/internal/events"
 	kubernetes "github.com/Issif/falco-talon/internal/kubernetes/client"
 	"github.com/Issif/falco-talon/internal/rules"
+	"github.com/Issif/falco-talon/utils"
 )
 
-var Notify = func(rule *rules.Rule, event *events.Event, message, status string) error {
+var Notify = func(rule *rules.Rule, event *events.Event, log utils.LogLine) error {
+	if len(log.Message)+len(utils.RemoveSpecialCharacters(log.Output)) > 1022 {
+		log.Output = utils.RemoveSpecialCharacters(log.Output)[:1024-len(log.Message)-1]
+	}
+
+	fmt.Println(len(log.Output))
+
+	message := fmt.Sprintf("%v\n%v", log.Message, utils.RemoveSpecialCharacters(log.Output))
+	if log.Error != nil {
+		message += " " + log.Error.Error()
+	}
+
 	k8sevent := &corev1.Event{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Event",

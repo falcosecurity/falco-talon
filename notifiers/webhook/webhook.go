@@ -13,14 +13,6 @@ type Configuration struct {
 	URL string `field:"url"`
 }
 
-type Payload struct {
-	Rule    string `json:"rule"`
-	Action  string `json:"action"`
-	Event   string `json:"event"`
-	Message string `json:"message"`
-	Status  string `json:"status"`
-}
-
 var webhookConfig *Configuration
 
 var Init = func(fields map[string]interface{}) error {
@@ -29,7 +21,7 @@ var Init = func(fields map[string]interface{}) error {
 	return nil
 }
 
-var Notify = func(rule *rules.Rule, event *events.Event, message, status string) error {
+var Notify = func(rule *rules.Rule, event *events.Event, log utils.LogLine) error {
 	if webhookConfig.URL == "" {
 		return errors.New("wrong config")
 	}
@@ -38,19 +30,9 @@ var Notify = func(rule *rules.Rule, event *events.Event, message, status string)
 	if err != nil {
 		return err
 	}
-	err = client.Post(NewWebhookPayload(rule, event, message, status))
+	err = client.Post(log)
 	if err != nil {
 		return err
 	}
 	return nil
-}
-
-func NewWebhookPayload(rule *rules.Rule, event *events.Event, message, status string) Payload {
-	return Payload{
-		Rule:    rule.GetName(),
-		Action:  rule.GetAction(),
-		Event:   event.Output,
-		Message: message,
-		Status:  status,
-	}
 }

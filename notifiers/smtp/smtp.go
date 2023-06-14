@@ -2,11 +2,11 @@ package smtp
 
 import (
 	"bytes"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"strings"
 
-	htmlTemplate "html/template"
 	textTemplate "text/template"
 
 	sasl "github.com/emersion/go-sasl"
@@ -31,6 +31,7 @@ type Configuration struct {
 	From     string `field:"from"`
 	To       string `field:"to"`
 	Format   string `field:"format" default:"html"`
+	TLS      bool   `field:"tls" default:"true"`
 }
 
 // Payload
@@ -48,12 +49,12 @@ var Init = func(fields map[string]interface{}) error {
 	return nil
 }
 
-var Notify = func(rule *rules.Rule, event *events.Event, message, status string) error {
+var Notify = func(rule *rules.Rule, event *events.Event, log utils.LogLine) error {
 	if smtpconfig.HostPort == "" {
 		return errors.New("wrong config")
 	}
 
-	payload, err := NewPayload(rule, event, message, status)
+	payload, err := NewPayload(rule, event, log)
 	if err != nil {
 		return err
 	}
@@ -64,26 +65,15 @@ var Notify = func(rule *rules.Rule, event *events.Event, message, status string)
 	return nil
 }
 
-type templateData struct {
-	Rule    string
-	Action  string
-	Event   string
-	Message string
-	Status  string
-}
-
-func NewPayload(rule *rules.Rule, event *events.Event, message, status string) (Payload, error) {
-	ruleName := rule.GetName()
-	action := rule.GetAction()
-
+func NewPayload(rule *rules.Rule, event *events.Event, log utils.LogLine) (Payload, error) {
 	var statusPrefix string
-	if status == "failure" {
+	if log.Status == "failure" {
 		statusPrefix = "un"
 	}
 
 	payload := Payload{
 		To:      fmt.Sprintf("To: %v", smtpconfig.To),
-		Subject: fmt.Sprintf("Subject: [falco] Action `%v` from rule `%v` has been %vsuccessfully triggered", action, ruleName, statusPrefix),
+		Subject: fmt.Sprintf("Subject: [falco] Action `%v` from rule `%v` has been %vsuccessfully triggered", log.Action, log.Rule, statusPrefix),
 		Body:    "MIME-version: 1.0;\n",
 	}
 
@@ -93,14 +83,6 @@ func NewPayload(rule *rules.Rule, event *events.Event, message, status string) (
 
 	payload.Body += "Content-Type: text/plain; charset=\"UTF-8\";\n\n"
 
-	data := templateData{
-		Action:  rule.GetAction(),
-		Event:   event.Output,
-		Message: message,
-		Rule:    rule.GetName(),
-		Status:  status,
-	}
-
 	var err error
 
 	ttmpl := textTemplate.New(Text)
@@ -109,7 +91,7 @@ func NewPayload(rule *rules.Rule, event *events.Event, message, status string) (
 		return Payload{}, err
 	}
 	var outtext bytes.Buffer
-	err = ttmpl.Execute(&outtext, data)
+	err = ttmpl.Execute(&outtext, log)
 	if err != nil {
 		return Payload{}, err
 	}
@@ -121,13 +103,14 @@ func NewPayload(rule *rules.Rule, event *events.Event, message, status string) (
 
 	payload.Body += "--4t74weu9byeSdJTM\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
 
-	htmpl := htmlTemplate.New("html")
+	htmpl := textTemplate.New("html")
 	htmpl, err = htmpl.Parse(htmlTmpl)
 	if err != nil {
 		return Payload{}, err
 	}
 	var outhtml bytes.Buffer
-	err = htmpl.Execute(&outhtml, data)
+	log.Output = strings.ReplaceAll(utils.RemoveSpecialCharacters(log.Output), "\n", "<br>")
+	err = htmpl.Execute(&outhtml, log)
 	if err != nil {
 		return Payload{}, err
 	}
@@ -141,8 +124,23 @@ func Send(payload Payload) error {
 	auth := sasl.NewPlainClient("", smtpconfig.User, smtpconfig.Password)
 	body := payload.To + "\n" + payload.Subject + "\n" + payload.Body
 
-	err := smtp.SendMail(smtpconfig.HostPort, auth, smtpconfig.From, to, strings.NewReader(body))
+	smtpClient, err := smtp.Dial(smtpconfig.HostPort)
 	if err != nil {
+		return err
+	}
+	if smtpconfig.TLS {
+		tlsCfg := &tls.Config{
+			ServerName: strings.Split(smtpconfig.HostPort, ":")[0],
+			MinVersion: tls.VersionTLS12,
+		}
+		if err := smtpClient.StartTLS(tlsCfg); err != nil {
+			return err
+		}
+	}
+	if err := smtpClient.Auth(auth); err != nil {
+		return err
+	}
+	if err := smtpClient.SendMail(smtpconfig.From, to, strings.NewReader(body)); err != nil {
 		return err
 	}
 	return nil

@@ -20,13 +20,14 @@ type patch struct {
 	Value string `json:"value,omitempty"`
 }
 
-var Labelize = func(rule *rules.Rule, event *events.Event) (string, error) {
+var Labelize = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
 	pod := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
 	payload := make([]patch, 0)
-	for i, j := range rule.GetParameters() {
-		if j == "" {
+	parameters := rule.GetParameters()
+	for i, j := range parameters["labels"].(map[string]interface{}) {
+		if j.(string) == "" {
 			continue
 		}
 		payload = append(payload, patch{
@@ -41,14 +42,19 @@ var Labelize = func(rule *rules.Rule, event *events.Event) (string, error) {
 	payloadBytes, _ := json.Marshal(payload)
 	_, err := client.Clientset.CoreV1().Pods(namespace).Patch(context.Background(), pod, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
 	if err != nil {
-		return "", err
+		return utils.LogLine{
+				Pod:       pod,
+				Namespace: namespace,
+				Error:     err,
+				Status:    "failure",
+			},
+			err
 	}
 
 	payload = make([]patch, 0)
 	rule.GetParameters()
-	parameters := rule.GetParameters()
-	for i, j := range parameters["labels"].(map[string]string) {
-		if j != "" {
+	for i, j := range parameters["labels"].(map[string]interface{}) {
+		if j.(string) != "" {
 			continue
 		}
 		payload = append(payload, patch{
@@ -61,10 +67,21 @@ var Labelize = func(rule *rules.Rule, event *events.Event) (string, error) {
 	_, err = client.Clientset.CoreV1().Pods(namespace).Patch(context.Background(), pod, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
 	if err != nil {
 		if err.Error() != "the server rejected our request due to an error in our request" {
-			return "", err
+			return utils.LogLine{
+					Pod:       pod,
+					Namespace: namespace,
+					Error:     err,
+					Status:    "failure",
+				},
+				err
 		}
 	}
-	return fmt.Sprintf("Pod: '%v' Namespace: '%v' Status: 'labelized'", pod, namespace), nil
+	return utils.LogLine{
+			Pod:       pod,
+			Namespace: namespace,
+			Status:    "success",
+		},
+		nil
 }
 
 var CheckParameters = func(rule *rules.Rule) error {
