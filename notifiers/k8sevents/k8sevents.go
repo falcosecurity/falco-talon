@@ -10,9 +10,7 @@ import (
 
 	textTemplate "text/template"
 
-	"github.com/Issif/falco-talon/internal/events"
 	kubernetes "github.com/Issif/falco-talon/internal/kubernetes/client"
-	"github.com/Issif/falco-talon/internal/rules"
 	"github.com/Issif/falco-talon/utils"
 )
 
@@ -39,7 +37,7 @@ Output:
 {{- end }}
 `
 
-var Notify = func(rule *rules.Rule, event *events.Event, log utils.LogLine) error {
+var Notify = func(log utils.LogLine) error {
 	var err error
 	var message string
 	ttmpl := textTemplate.New("message")
@@ -69,10 +67,10 @@ var Notify = func(rule *rules.Rule, event *events.Event, log utils.LogLine) erro
 		},
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "Pod",
-			Namespace: event.GetNamespaceName(),
-			Name:      event.GetPodName(),
+			Namespace: log.Namespace,
+			Name:      log.Pod,
 		},
-		Reason:  "falco-talon:" + rule.GetAction() + ":" + log.Status,
+		Reason:  "falco-talon:" + log.Action + ":" + log.Status,
 		Message: strings.ReplaceAll(message, `'`, `"`),
 		Source: corev1.EventSource{
 			Component: "falco-talon",
@@ -81,10 +79,10 @@ var Notify = func(rule *rules.Rule, event *events.Event, log utils.LogLine) erro
 		EventTime:           metav1.NowMicro(),
 		ReportingController: "falcosecurity.org/falco-talon",
 		ReportingInstance:   "falco-talon",
-		Action:              "falco-talon:" + rule.GetAction(),
+		Action:              "falco-talon:" + log.Action,
 	}
 	k8sclient := kubernetes.GetClient()
-	_, err = k8sclient.CoreV1().Events(event.GetNamespaceName()).Create(context.TODO(), k8sevent, metav1.CreateOptions{})
+	_, err = k8sclient.CoreV1().Events(log.Namespace).Create(context.TODO(), k8sevent, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}

@@ -17,11 +17,6 @@ import (
 // allow to set rule by file or CRD
 // watch CRD and update rules
 
-const (
-	trueStr  string = "true"
-	falseStr string = "false"
-)
-
 type Rule struct {
 	Notifiers []string `yaml:"notifiers"`
 	Action    Action   `yaml:"action"`

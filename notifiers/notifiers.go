@@ -15,7 +15,7 @@ import (
 
 type Notifier struct {
 	Init         func(fields map[string]interface{}) error
-	Notification func(rule *rules.Rule, event *events.Event, log utils.LogLine) error
+	Notification func(log utils.LogLine) error
 	Name         string
 	initialized  bool
 }
@@ -105,7 +105,7 @@ func Notify(rule *rules.Rule, event *events.Event, log utils.LogLine) {
 
 	for i := range enabledNotifiers {
 		if n := GetNotifiers().GetNotifier(i); n != nil {
-			if err := n.Notification(rule, event, log); err != nil {
+			if err := n.Notification(log); err != nil {
 				utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i, Status: "failure", Error: err.Error(), Rule: rule.GetName(), Action: rule.GetAction(), TraceID: event.TraceID, Message: "notification"})
 			} else {
 				utils.PrintLog("info", config.LogFormat, utils.LogLine{Notifier: i, Status: "success", Rule: rule.GetName(), Action: rule.GetAction(), TraceID: event.TraceID, Message: "notification"})

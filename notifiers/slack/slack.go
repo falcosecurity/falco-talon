@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Issif/falco-talon/internal/events"
-	"github.com/Issif/falco-talon/internal/rules"
 	"github.com/Issif/falco-talon/notifiers/http"
 	"github.com/Issif/falco-talon/utils"
 )
@@ -55,7 +53,7 @@ var Init = func(fields map[string]interface{}) error {
 	return nil
 }
 
-var Notify = func(rule *rules.Rule, event *events.Event, log utils.LogLine) error {
+var Notify = func(log utils.LogLine) error {
 	if slackconfig.WebhookURL == "" {
 		return errors.New("wrong config")
 	}
@@ -64,14 +62,14 @@ var Notify = func(rule *rules.Rule, event *events.Event, log utils.LogLine) erro
 	if err != nil {
 		return err
 	}
-	err = client.Post(NewPayload(rule, event, log))
+	err = client.Post(NewPayload(log))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func NewPayload(rule *rules.Rule, event *events.Event, log utils.LogLine) Payload {
+func NewPayload(log utils.LogLine) Payload {
 	var attachments []Attachment
 	var attachment Attachment
 
@@ -127,7 +125,7 @@ func NewPayload(rule *rules.Rule, event *events.Event, log utils.LogLine) Payloa
 			fields = append(fields, field)
 		}
 		field.Title = "Event"
-		field.Value = "`" + event.Output + "`"
+		field.Value = "`" + log.Event + "`"
 		field.Short = false
 		fields = append(fields, field)
 		field.Title = "Message"

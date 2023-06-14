@@ -3,8 +3,6 @@ package webhook
 import (
 	"errors"
 
-	"github.com/Issif/falco-talon/internal/events"
-	"github.com/Issif/falco-talon/internal/rules"
 	"github.com/Issif/falco-talon/notifiers/http"
 	"github.com/Issif/falco-talon/utils"
 )
@@ -21,7 +19,7 @@ var Init = func(fields map[string]interface{}) error {
 	return nil
 }
 
-var Notify = func(rule *rules.Rule, event *events.Event, log utils.LogLine) error {
+var Notify = func(log utils.LogLine) error {
 	if webhookConfig.URL == "" {
 		return errors.New("wrong config")
 	}

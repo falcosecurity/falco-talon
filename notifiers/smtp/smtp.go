@@ -12,8 +12,6 @@ import (
 	sasl "github.com/emersion/go-sasl"
 	smtp "github.com/emersion/go-smtp"
 
-	"github.com/Issif/falco-talon/internal/events"
-	"github.com/Issif/falco-talon/internal/rules"
 	"github.com/Issif/falco-talon/utils"
 )
 
@@ -49,12 +47,12 @@ var Init = func(fields map[string]interface{}) error {
 	return nil
 }
 
-var Notify = func(rule *rules.Rule, event *events.Event, log utils.LogLine) error {
+var Notify = func(log utils.LogLine) error {
 	if smtpconfig.HostPort == "" {
 		return errors.New("wrong config")
 	}
 
-	payload, err := NewPayload(rule, event, log)
+	payload, err := NewPayload(log)
 	if err != nil {
 		return err
 	}
@@ -65,7 +63,7 @@ var Notify = func(rule *rules.Rule, event *events.Event, log utils.LogLine) erro
 	return nil
 }
 
-func NewPayload(rule *rules.Rule, event *events.Event, log utils.LogLine) (Payload, error) {
+func NewPayload(log utils.LogLine) (Payload, error) {
 	var statusPrefix string
 	if log.Status == "failure" {
 		statusPrefix = "un"
@@ -133,14 +131,17 @@ func Send(payload Payload) error {
 			ServerName: strings.Split(smtpconfig.HostPort, ":")[0],
 			MinVersion: tls.VersionTLS12,
 		}
-		if err := smtpClient.StartTLS(tlsCfg); err != nil {
+		if err = smtpClient.StartTLS(tlsCfg); err != nil {
 			return err
 		}
 	}
-	if err := smtpClient.Auth(auth); err != nil {
+
+	err = smtpClient.Auth(auth)
+	if err != nil {
 		return err
 	}
-	if err := smtpClient.SendMail(smtpconfig.From, to, strings.NewReader(body)); err != nil {
+	err = smtpClient.SendMail(smtpconfig.From, to, strings.NewReader(body))
+	if err != nil {
 		return err
 	}
 	return nil

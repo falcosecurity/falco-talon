@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"context"
 
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/remotecommand"
+	"k8s.io/kubectl/pkg/scheme"
+
 	"github.com/Issif/falco-talon/internal/events"
 	kubernetes "github.com/Issif/falco-talon/internal/kubernetes/client"
 	"github.com/Issif/falco-talon/internal/rules"
 	"github.com/Issif/falco-talon/utils"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/tools/remotecommand"
-	"k8s.io/kubectl/pkg/scheme"
 )
 
 var Exec = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
@@ -82,10 +83,13 @@ var Exec = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
 
 var CheckParameters = func(rule *rules.Rule) error {
 	parameters := rule.GetParameters()
-	if err := utils.CheckParameters(parameters, "shell", utils.StringStr); err != nil {
+	var err error
+	err = utils.CheckParameters(parameters, "shell", utils.StringStr)
+	if err != nil {
 		return err
 	}
-	if err := utils.CheckParameters(parameters, "command", utils.StringStr); err != nil {
+	err = utils.CheckParameters(parameters, "command", utils.StringStr)
+	if err != nil {
 		return err
 	}
 	return nil
