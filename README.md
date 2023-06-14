@@ -9,6 +9,7 @@
     - [`kubernetes:terminate`](#kubernetesterminate)
     - [`kubernetes:labelize`](#kuberneteslabelize)
     - [`kubernetes:networkpolicy`](#kubernetesnetworkpolicy)
+    - [`kubernetes:exec`](#kubernetesexec)
   - [Notifiers](#notifiers)
     - [K8SEvents](#k8sevents)
     - [Slack](#slack)
@@ -77,6 +78,15 @@ Several rules can match same event, so several action can be triggered, except f
 * Continue: `true`
 * Before: `true`
 * Parameters: N/A
+
+### `kubernetes:exec`
+
+* Description: **Create, update a network policy to block the egress**
+* Continue: `true`
+* Before: `true`
+* Parameters:
+  * `shell`: SHELL used to run the command (default; `/bin/sh`)
+  * `command` Command to run
 
 ## Notifiers
 
