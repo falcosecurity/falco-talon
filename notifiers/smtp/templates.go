@@ -4,7 +4,21 @@ var plaintextTmpl = `Status: {{ .Status }}
 Action: {{ .Action }}
 Rule: {{ .Rule }}
 Event: {{ .Event }}
-Message: {{ .Message }}`
+Message: {{ .Message }}
+{{- if .Pod }}
+Pod: {{ .Pod }}
+{{- end }}
+{{- if .NetworkPolicy }}
+NetworkPolicy: {{ .NetworkPolicy }}
+{{- end }}
+{{- if .Namespace }}
+Namespace: {{ .Namespace }}
+{{- end }}
+{{- if .Output }}
+Output: 
+{{ .Output }}
+{{- end }}
+`
 
 var htmlTmpl = `
 {{ $color := "#858585" }}
@@ -43,6 +57,24 @@ var htmlTmpl = `
             <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Rule</strong></span></td>
             <td style="background-color:#d1d6da">{{ .Rule }}</td>
         </tr>
+        {{ if .Pod }}
+        <tr>
+            <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Pod</strong></span></td>
+            <td style="background-color:#d1d6da">{{ .Pod }}</td>
+        </tr>
+        {{ end }}
+        {{ if .NetworkPolicy }}
+        <tr>
+            <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>NetworkPolicy</strong></span></td>
+            <td style="background-color:#d1d6da">{{ .NetworkPolicy }}</td>
+        </tr>
+        {{ end }}
+        {{ if .Namespace }}
+        <tr>
+            <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Namespace</strong></span></td>
+            <td style="background-color:#d1d6da">{{ .Namespace }}</td>
+        </tr>
+        {{ end }}
         <tr>
             <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Event</strong></span></td>
             <td style="background-color:#d1d6da">{{ .Event }}</td>
@@ -51,6 +83,12 @@ var htmlTmpl = `
             <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Message</strong></span></td>
             <td style="background-color:#d1d6da">{{ .Message }}</td>
         </tr>
+        {{ if .Output }}
+        <tr>
+            <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Output</strong></span></td>
+            <td style="background-color:#d1d6da">{{ printf "%s" .Output }}</td>
+        </tr>
+        {{ end }}
     </tbody>
 </table>
 <br>

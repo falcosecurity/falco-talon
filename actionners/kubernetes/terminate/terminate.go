@@ -2,7 +2,6 @@ package terminate
 
 import (
 	"context"
-	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -12,7 +11,7 @@ import (
 	"github.com/Issif/falco-talon/utils"
 )
 
-var Terminate = func(rule *rules.Rule, event *events.Event) (string, error) {
+var Terminate = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
 	pod := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
@@ -26,9 +25,20 @@ var Terminate = func(rule *rules.Rule, event *events.Event) (string, error) {
 
 	err := client.Clientset.CoreV1().Pods(namespace).Delete(context.Background(), pod, metav1.DeleteOptions{GracePeriodSeconds: gracePeriodSeconds})
 	if err != nil {
-		return "", err
+		return utils.LogLine{
+				Pod:       pod,
+				Namespace: namespace,
+				Status:    "failure",
+				Error:     err,
+			},
+			err
 	}
-	return fmt.Sprintf("Pod: '%v' Namespace: '%v' Status: 'terminated'", pod, namespace), err
+	return utils.LogLine{
+			Pod:       pod,
+			Namespace: namespace,
+			Status:    "success",
+		},
+		nil
 }
 
 var CheckParameters = func(rule *rules.Rule) error {

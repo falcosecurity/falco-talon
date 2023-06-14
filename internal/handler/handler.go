@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/Issif/falco-talon/actionners"
@@ -11,6 +12,7 @@ import (
 )
 
 const (
+	trueStr  string = "true"
 	falseStr string = "false"
 )
 
@@ -50,23 +52,24 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	a := actionners.GetActionners()
 	// we trigger rules with before=true
-	for _, i := range triggeredRules {
-		if i.Before == "true" || a.GetActionner(i.GetActionCategory(), i.GetActionName()).RunBefore() {
-			actionners.Trigger(i, &event)
+	fmt.Println(len(triggeredRules))
+	for i, j := range triggeredRules {
+		if j.Before == trueStr || j.Before != falseStr && a.GetActionner(j.GetActionCategory(), j.GetActionName()).RunBefore() {
+			actionners.Trigger(j, &event)
+			triggeredRules = removeAlreadyTriggeredRule(triggeredRules, i)
 		}
 	}
+	fmt.Println(len(triggeredRules))
 	// we trigger then rules with continue=false
 	for _, i := range triggeredRules {
-		if i.Continue == falseStr || !a.GetActionner(i.GetActionCategory(), i.GetActionName()).MustContinue() {
+		if i.Continue == falseStr || i.Continue != trueStr && !a.GetActionner(i.GetActionCategory(), i.GetActionName()).MustContinue() {
 			actionners.Trigger(i, &event)
 			return
 		}
 	}
-	// we trigger after rules with continue=true
+	// we trigger after rules with continue=true and before=false
 	for _, i := range triggeredRules {
-		if i.Continue != falseStr && a.GetActionner(i.GetActionCategory(), i.GetActionName()).MustContinue() {
-			actionners.Trigger(i, &event)
-		}
+		actionners.Trigger(i, &event)
 	}
 }
 
@@ -74,4 +77,12 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 func HealthHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	_, _ = w.Write([]byte(`{"status": "ok"}`))
+}
+
+func removeAlreadyTriggeredRule(rules []*rules.Rule, index int) []*rules.Rule {
+	if index < 0 || index >= len(rules) {
+		return rules
+	}
+	copy(rules[index:], rules[index+1:])
+	return rules[:len(rules)-1]
 }

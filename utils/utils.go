@@ -31,20 +31,23 @@ const (
 )
 
 type LogLine struct {
-	TraceID        string
-	Rule           string
-	Event          string
-	Message        string
-	Priority       string
-	Source         string
-	Notifier       string
-	Output         string
-	Actionner      string
-	Action         string
-	ActionCategory string
-	Error          error
-	Status         string
-	Result         string
+	TraceID        string `json:"trace_id,omitempty"`
+	Rule           string `json:"rule,omitempty"`
+	Event          string `json:"event,omitempty"`
+	Message        string `json:"message,omitempty"`
+	Priority       string `json:"priority,omitempty"`
+	Source         string `json:"source,omitempty"`
+	Result         string `json:"result,omitempty"`
+	Notifier       string `json:"notifier,omitempty"`
+	Output         string `json:"output,omitempty"`
+	Actionner      string `json:"actionner,omitempty"`
+	Action         string `json:"action,omitempty"`
+	ActionCategory string `json:"action_category,omitempty"`
+	Error          error  `json:"error,omitempty"`
+	Status         string `json:"status,omitempty"`
+	Pod            string `json:"pod,omitempty"`
+	NetworkPolicy  string `json:"network_policy,omitempty"`
+	Namespace      string `json:"namespace,omitempty"`
 }
 
 func PrintLog(level, format string, line LogLine) {
@@ -110,6 +113,12 @@ func PrintLog(level, format string, line LogLine) {
 	if line.Result != "" {
 		l.Str("result", line.Result)
 	}
+	if line.Pod != "" {
+		l.Str("result", line.Pod)
+	}
+	if line.Namespace != "" {
+		l.Str("result", line.Namespace)
+	}
 	if line.TraceID != "" {
 		l.Str("trace_id", line.TraceID)
 	}
@@ -173,4 +182,8 @@ func CheckParameters(parameters map[string]interface{}, name, typ string) error 
 		return fmt.Errorf("wrong type for parameter '%v'", name)
 	}
 	return nil
+}
+
+func RemoveSpecialCharacters(input string) string {
+	return strings.ReplaceAll(input, "\r\n", "\n")
 }

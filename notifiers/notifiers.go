@@ -9,14 +9,13 @@ import (
 	"github.com/Issif/falco-talon/notifiers/k8sevents"
 	"github.com/Issif/falco-talon/notifiers/slack"
 	"github.com/Issif/falco-talon/notifiers/smtp"
-	"github.com/Issif/falco-talon/notifiers/stdout"
 	"github.com/Issif/falco-talon/notifiers/webhook"
 	"github.com/Issif/falco-talon/utils"
 )
 
 type Notifier struct {
 	Init         func(fields map[string]interface{}) error
-	Notification func(rule *rules.Rule, event *events.Event, message, status string) error
+	Notification func(rule *rules.Rule, event *events.Event, log utils.LogLine) error
 	Name         string
 	initialized  bool
 }
@@ -43,11 +42,6 @@ func Init() {
 			Name:         "smtp",
 			Init:         smtp.Init,
 			Notification: smtp.Notify,
-		},
-		&Notifier{
-			Name:         "stdout",
-			Init:         nil,
-			Notification: stdout.Notify,
 		},
 		&Notifier{
 			Name:         "webhook",
@@ -78,7 +72,7 @@ func Init() {
 					if i.Init != nil {
 						utils.PrintLog("info", config.LogFormat, utils.LogLine{Notifier: i.Name, Message: "init"})
 						if err := i.Init(config.Notifiers[i.Name]); err != nil {
-							utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i.Name, Error: err})
+							utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i.Name, Message: "init", Error: err})
 							continue
 						}
 						notifiers.Add(i)
@@ -93,14 +87,7 @@ func GetNotifiers() *Notifiers {
 	return notifiers
 }
 
-func NotifiySuccess(rule *rules.Rule, event *events.Event, message string) {
-	notify(rule, event, message, "success")
-}
-func NotifiyFailure(rule *rules.Rule, event *events.Event, message string) {
-	notify(rule, event, message, "failure")
-}
-
-func notify(rule *rules.Rule, event *events.Event, message, status string) {
+func Notify(rule *rules.Rule, event *events.Event, log utils.LogLine) {
 	config := configuration.GetConfiguration()
 
 	if len(rule.Notifiers) == 0 && len(config.DefaultNotifiers) == 0 {
@@ -118,17 +105,10 @@ func notify(rule *rules.Rule, event *events.Event, message, status string) {
 
 	for i := range enabledNotifiers {
 		if n := GetNotifiers().GetNotifier(i); n != nil {
-			var err error
-			switch status {
-			case "success":
-				err = n.Notification(rule, event, message, "success")
-			case "failure":
-				err = n.Notification(rule, event, message, "failure")
-			}
-			if err != nil {
-				utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i, Error: err, Rule: rule.GetName(), Action: rule.GetAction(), TraceID: event.TraceID, Message: "notification"})
+			if err := n.Notification(rule, event, log); err != nil {
+				utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i, Status: "failure", Error: err, Rule: rule.GetName(), Action: rule.GetAction(), TraceID: event.TraceID, Message: "notification"})
 			} else {
-				utils.PrintLog("info", config.LogFormat, utils.LogLine{Notifier: i, Result: "ok", Rule: rule.GetName(), Action: rule.GetAction(), TraceID: event.TraceID, Message: "notification"})
+				utils.PrintLog("info", config.LogFormat, utils.LogLine{Notifier: i, Status: "success", Rule: rule.GetName(), Action: rule.GetAction(), TraceID: event.TraceID, Message: "notification"})
 			}
 		}
 	}

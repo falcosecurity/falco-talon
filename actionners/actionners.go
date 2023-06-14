@@ -2,6 +2,7 @@ package actionners
 
 import (
 	"github.com/Issif/falco-talon/actionners/checks"
+	"github.com/Issif/falco-talon/actionners/kubernetes/exec"
 	labelize "github.com/Issif/falco-talon/actionners/kubernetes/labelize"
 	networkpolicy "github.com/Issif/falco-talon/actionners/kubernetes/networkpolicy"
 	terminate "github.com/Issif/falco-talon/actionners/kubernetes/terminate"
@@ -16,7 +17,7 @@ import (
 type Actionner struct {
 	Name            string
 	Category        string
-	Action          func(rule *rules.Rule, event *events.Event) (string, error)
+	Action          func(rule *rules.Rule, event *events.Event) (utils.LogLine, error)
 	CheckParameters func(rule *rules.Rule) error
 	Init            func() error
 	Checks          []checkActionner
@@ -73,6 +74,18 @@ func Init() {
 			},
 			CheckParameters: nil,
 			Action:          networkpolicy.NetworkPolicy,
+		},
+		&Actionner{
+			Name:     "exec",
+			Category: "kubernetes",
+			Continue: true,
+			Before:   true,
+			Init:     kubernetes.Init,
+			Checks: []checkActionner{
+				kubernetes.CheckPodExist,
+			},
+			CheckParameters: nil,
+			Action:          exec.Exec,
 		})
 	categories := map[string]*category{}
 	for _, i := range *a {
@@ -149,13 +162,18 @@ func Trigger(rule *rules.Rule, event *events.Event) {
 					}
 				}
 			}
-			if result, err := i.Action(rule, event); err != nil {
-				utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, Rule: ruleName, Action: action, TraceID: event.TraceID, Message: "action"})
-				notifiers.NotifiyFailure(rule, event, err.Error())
+			result, err := i.Action(rule, event)
+			result.Rule = ruleName
+			result.Action = action
+			result.TraceID = event.TraceID
+			result.Message = "action"
+			result.Event = event.Output
+			if err != nil {
+				utils.PrintLog("error", config.LogFormat, result)
 			} else {
-				utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: result, Rule: ruleName, Action: action, TraceID: event.TraceID, Message: "action"})
-				notifiers.NotifiySuccess(rule, event, result)
+				utils.PrintLog("info", config.LogFormat, result)
 			}
+			notifiers.Notify(rule, event, result)
 			return
 		}
 	}
