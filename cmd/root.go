@@ -19,7 +19,7 @@ func Execute() {
 	config := configuration.GetConfiguration()
 	err := RootCmd.Execute()
 	if err != nil {
-		utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err})
+		utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err.Error()})
 	}
 }
 

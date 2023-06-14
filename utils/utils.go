@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -43,7 +44,7 @@ type LogLine struct {
 	Actionner      string `json:"actionner,omitempty"`
 	Action         string `json:"action,omitempty"`
 	ActionCategory string `json:"action_category,omitempty"`
-	Error          error  `json:"error,omitempty"`
+	Error          string `json:"error,omitempty"`
 	Status         string `json:"status,omitempty"`
 	Pod            string `json:"pod,omitempty"`
 	NetworkPolicy  string `json:"network_policy,omitempty"`
@@ -122,8 +123,8 @@ func PrintLog(level, format string, line LogLine) {
 	if line.TraceID != "" {
 		l.Str("trace_id", line.TraceID)
 	}
-	if line.Error != nil {
-		l.Err(line.Error)
+	if line.Error != "" {
+		l.Err(errors.New(line.Error))
 	}
 	if line.Message != "" {
 		l.Msg(line.Message)

@@ -28,7 +28,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 		return utils.LogLine{
 				Pod:       podName,
 				Namespace: namespace,
-				Error:     err,
+				Error:     err.Error(),
 				Status:    "failure",
 			},
 			err
@@ -45,7 +45,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 				return utils.LogLine{
 						Pod:       podName,
 						Namespace: namespace,
-						Error:     errG,
+						Error:     errG.Error(),
 						Status:    "failure",
 					},
 					errG
@@ -54,7 +54,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 				return utils.LogLine{
 						Pod:       podName,
 						Namespace: namespace,
-						Error:     fmt.Errorf("can't find the daemonset for the pod %v in namespace %v", podName, namespace),
+						Error:     fmt.Sprintf("can't find the daemonset for the pod %v in namespace %v", podName, namespace),
 						Status:    "failure",
 					},
 					fmt.Errorf("can't find the daemonset for the pod %v in namespace %v", podName, namespace)
@@ -65,7 +65,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 				return utils.LogLine{
 						Pod:       podName,
 						Namespace: namespace,
-						Error:     fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace),
+						Error:     fmt.Sprintf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace),
 						Status:    "failure",
 					},
 					fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace)
@@ -76,7 +76,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 				return utils.LogLine{
 						Pod:       podName,
 						Namespace: namespace,
-						Error:     errG,
+						Error:     errG.Error(),
 						Status:    "failure",
 					},
 					errG
@@ -85,7 +85,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 				return utils.LogLine{
 						Pod:       podName,
 						Namespace: namespace,
-						Error:     fmt.Errorf("can't find the statefulset for the pod %v in namespace %v", podName, namespace),
+						Error:     fmt.Sprintf("can't find the statefulset for the pod %v in namespace %v", podName, namespace),
 						Status:    "failure",
 					},
 					fmt.Errorf("can't find the statefulset for the pod %v in namespace %v", podName, namespace)
@@ -96,7 +96,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 				return utils.LogLine{
 						Pod:       podName,
 						Namespace: namespace,
-						Error:     fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace),
+						Error:     fmt.Sprintf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace),
 						Status:    "failure",
 					},
 					fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace)
@@ -107,7 +107,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 				return utils.LogLine{
 						Pod:       podName,
 						Namespace: namespace,
-						Error:     errG,
+						Error:     errG.Error(),
 						Status:    "failure",
 					},
 					errG
@@ -116,7 +116,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 				return utils.LogLine{
 						Pod:       podName,
 						Namespace: namespace,
-						Error:     fmt.Errorf("can't find the replicaset for the pod %v in namespace %v", podName, namespace),
+						Error:     fmt.Sprintf("can't find the replicaset for the pod %v in namespace %v", podName, namespace),
 						Status:    "failure",
 					},
 					fmt.Errorf("can't find the replicaset for the pod %v in namespace %v", podName, namespace)
@@ -127,7 +127,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 				return utils.LogLine{
 						Pod:       podName,
 						Namespace: namespace,
-						Error:     errG,
+						Error:     errG.Error(),
 						Status:    "failure",
 					},
 					errG
@@ -136,7 +136,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 				return utils.LogLine{
 						Pod:       podName,
 						Namespace: namespace,
-						Error:     fmt.Errorf("can't find the deployment for the pod %v in namespace %v", podName, namespace),
+						Error:     fmt.Sprintf("can't find the deployment for the pod %v in namespace %v", podName, namespace),
 						Status:    "failure",
 					},
 					fmt.Errorf("can't find the deployment for the pod %v in namespace %v", podName, namespace)
@@ -147,7 +147,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 				return utils.LogLine{
 						Pod:       podName,
 						Namespace: namespace,
-						Error:     fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace),
+						Error:     fmt.Sprintf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace),
 						Status:    "failure",
 					},
 					fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace)
@@ -160,7 +160,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 			return utils.LogLine{
 					Pod:       podName,
 					Namespace: namespace,
-					Error:     fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace),
+					Error:     fmt.Sprintf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace),
 					Status:    "failure",
 				},
 				fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace)
@@ -174,7 +174,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 		return utils.LogLine{
 				Pod:       podName,
 				Namespace: namespace,
-				Error:     err,
+				Error:     err.Error(),
 				Status:    "failure",
 			},
 			err
@@ -202,7 +202,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 			return utils.LogLine{
 					Pod:       podName,
 					Namespace: namespace,
-					Error:     err,
+					Error:     err.Error(),
 					Status:    "failure",
 				},
 				err
@@ -215,7 +215,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 			return utils.LogLine{
 					Pod:       podName,
 					Namespace: namespace,
-					Error:     err,
+					Error:     err.Error(),
 					Status:    "failure",
 				},
 				err

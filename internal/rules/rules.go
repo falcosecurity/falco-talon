@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -76,12 +75,12 @@ func ParseRules(rulesFile string) *[]*Rule {
 	config := configuration.GetConfiguration()
 	yamlRulesFile, err := os.ReadFile(rulesFile)
 	if err != nil {
-		utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err, Message: "rules"})
+		utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "rules"})
 	}
 
 	err2 := yaml.Unmarshal(yamlRulesFile, &rules)
 	if err2 != nil {
-		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err2, Message: "rules"})
+		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err2.Error(), Message: "rules"})
 		return nil
 	}
 
@@ -131,21 +130,21 @@ func (rule *Rule) isRuleValid() bool {
 	config := configuration.GetConfiguration()
 	result := true
 	if rule.Name == "" {
-		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: errors.New("all rules must have a name"), Message: "rules"})
+		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "all rules must have a name", Message: "rules"})
 		result = false
 	}
 	if !actionCheckRegex.MatchString(rule.Action.Name) {
-		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: fmt.Errorf("incorrect action '%v'", rule.Action.Name), Message: "rules", Rule: rule.Name})
+		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: fmt.Sprintf("incorrect action '%v'", rule.Action.Name), Message: "rules", Rule: rule.Name})
 		result = false
 	}
 	if !priorityCheckRegex.MatchString(rule.Match.Priority) {
-		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: fmt.Errorf("incorrect priority '%v'", rule.Match.Priority), Message: "rules", Rule: rule.Name})
+		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: fmt.Sprintf("incorrect priority '%v'", rule.Match.Priority), Message: "rules", Rule: rule.Name})
 		result = false
 	}
 	for _, i := range rule.Match.TagsC {
 		for _, j := range i {
 			if !tagCheckRegex.MatchString(j) {
-				utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: fmt.Errorf("incorrect tag '%v'", j), Message: "rules", Rule: rule.Name})
+				utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: fmt.Sprintf("incorrect tag '%v'", j), Message: "rules", Rule: rule.Name})
 				result = false
 			}
 		}
@@ -154,17 +153,17 @@ func (rule *Rule) isRuleValid() bool {
 		t := strings.Split(strings.ReplaceAll(i, ", ", ","), ",")
 		for _, j := range t {
 			if !outputFieldKeyCheckRegex.MatchString(j) {
-				utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: fmt.Errorf("incorrect output field key '%v'", j), Message: "rules", Rule: rule.Name})
+				utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: fmt.Sprintf("incorrect output field key '%v'", j), Message: "rules", Rule: rule.Name})
 				result = false
 			}
 		}
 	}
 	if err := rule.setPriorityNumberComparator(); err != nil {
-		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: fmt.Errorf("incorrect priority comparator '%v'", rule.Match.PriorityComparator), Message: "rules", Rule: rule.Name})
+		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: fmt.Sprintf("incorrect priority comparator '%v'", rule.Match.PriorityComparator), Message: "rules", Rule: rule.Name})
 		result = false
 	}
 	if rule.Continue == "false" && rule.Before == "true" {
-		utils.PrintLog("warning", config.LogFormat, utils.LogLine{Error: errors.New("if before=true, continue=false is ignored"), Message: "rules", Rule: rule.Name})
+		utils.PrintLog("warning", config.LogFormat, utils.LogLine{Error: "if before=true, continue=false is ignored", Message: "rules", Rule: rule.Name})
 	}
 	return result
 }

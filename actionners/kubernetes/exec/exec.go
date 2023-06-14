@@ -52,7 +52,7 @@ var Exec = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
 		return utils.LogLine{
 				Pod:       pod,
 				Namespace: namespace,
-				Error:     err,
+				Error:     err.Error(),
 				Status:    "failure",
 			},
 			err
@@ -65,7 +65,7 @@ var Exec = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
 		return utils.LogLine{
 				Pod:       pod,
 				Namespace: namespace,
-				Error:     err,
+				Error:     err.Error(),
 				Status:    "failure",
 			},
 			err

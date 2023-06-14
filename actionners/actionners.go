@@ -96,7 +96,7 @@ func Init() {
 		for _, j := range *rules {
 			if i.CheckParameters != nil {
 				if err := i.CheckParameters(j); err != nil {
-					utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err, Rule: j.GetName(), Message: "rules"})
+					utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: j.GetName(), Message: "rules"})
 				}
 			}
 			if i.Category == j.GetActionCategory() {
@@ -105,7 +105,7 @@ func Init() {
 					if i.Init != nil {
 						utils.PrintLog("info", config.LogFormat, utils.LogLine{Message: "init", ActionCategory: i.Category})
 						if err := i.Init(); err != nil {
-							utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, ActionCategory: i.Category})
+							utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), ActionCategory: i.Category})
 							continue
 						}
 					}
@@ -157,7 +157,7 @@ func Trigger(rule *rules.Rule, event *events.Event) {
 			if len(i.Checks) != 0 {
 				for _, j := range i.Checks {
 					if err := j(event); err != nil {
-						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, Rule: ruleName, Action: action, TraceID: event.TraceID, Message: "action"})
+						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: ruleName, Action: action, TraceID: event.TraceID, Message: "action"})
 						return
 					}
 				}

@@ -50,7 +50,7 @@ func (c *Client) Post(payload interface{}) error {
 	config := configuration.GetConfiguration()
 	defer func() {
 		if err := recover(); err != nil {
-			utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: errors.New("recover")})
+			utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "recover"})
 		}
 	}()
 

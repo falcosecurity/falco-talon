@@ -14,6 +14,9 @@ NetworkPolicy: {{ .NetworkPolicy }}
 {{- if .Namespace }}
 Namespace: {{ .Namespace }}
 {{- end }}
+{{- if .Error }}
+Error: {{ .Error }}
+{{- end }}
 {{- if .Output }}
 Output: 
 {{ .Output }}
@@ -82,6 +85,10 @@ var htmlTmpl = `
         <tr>
             <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Message</strong></span></td>
             <td style="background-color:#d1d6da">{{ .Message }}</td>
+        </tr>
+        <tr>
+            <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Error</strong></span></td>
+            <td style="background-color:#d1d6da">{{ .Error }}</td>
         </tr>
         {{ if .Output }}
         <tr>

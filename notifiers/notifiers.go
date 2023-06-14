@@ -57,7 +57,7 @@ func Init() {
 				utils.PrintLog("info", config.LogFormat, utils.LogLine{Notifier: i.Name, Message: "init"})
 				if i.Init != nil {
 					if err := i.Init(config.Notifiers[i.Name]); err != nil {
-						utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i.Name, Error: err})
+						utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i.Name, Error: err.Error()})
 						continue
 					}
 				}
@@ -72,7 +72,7 @@ func Init() {
 					if i.Init != nil {
 						utils.PrintLog("info", config.LogFormat, utils.LogLine{Notifier: i.Name, Message: "init"})
 						if err := i.Init(config.Notifiers[i.Name]); err != nil {
-							utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i.Name, Message: "init", Error: err})
+							utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i.Name, Message: "init", Error: err.Error()})
 							continue
 						}
 						notifiers.Add(i)
@@ -106,7 +106,7 @@ func Notify(rule *rules.Rule, event *events.Event, log utils.LogLine) {
 	for i := range enabledNotifiers {
 		if n := GetNotifiers().GetNotifier(i); n != nil {
 			if err := n.Notification(rule, event, log); err != nil {
-				utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i, Status: "failure", Error: err, Rule: rule.GetName(), Action: rule.GetAction(), TraceID: event.TraceID, Message: "notification"})
+				utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i, Status: "failure", Error: err.Error(), Rule: rule.GetName(), Action: rule.GetAction(), TraceID: event.TraceID, Message: "notification"})
 			} else {
 				utils.PrintLog("info", config.LogFormat, utils.LogLine{Notifier: i, Status: "success", Rule: rule.GetName(), Action: rule.GetAction(), TraceID: event.TraceID, Message: "notification"})
 			}

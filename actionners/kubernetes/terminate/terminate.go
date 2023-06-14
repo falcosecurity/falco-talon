@@ -29,7 +29,7 @@ var Terminate = func(rule *rules.Rule, event *events.Event) (utils.LogLine, erro
 				Pod:       pod,
 				Namespace: namespace,
 				Status:    "failure",
-				Error:     err,
+				Error:     err.Error(),
 			},
 			err
 	}

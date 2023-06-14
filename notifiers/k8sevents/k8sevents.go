@@ -1,12 +1,14 @@
 package k8sevents
 
 import (
+	"bytes"
 	"context"
-	"fmt"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	textTemplate "text/template"
 
 	"github.com/Issif/falco-talon/internal/events"
 	kubernetes "github.com/Issif/falco-talon/internal/kubernetes/client"
@@ -14,16 +16,47 @@ import (
 	"github.com/Issif/falco-talon/utils"
 )
 
+var plaintextTmpl = `Status: {{ .Status }}
+Action: {{ .Action }}
+Rule: {{ .Rule }}
+Event: {{ .Event }}
+Message: {{ .Message }}
+{{- if .Pod }}
+Pod: {{ .Pod }}
+{{- end }}
+{{- if .NetworkPolicy }}
+NetworkPolicy: {{ .NetworkPolicy }}
+{{- end }}
+{{- if .Namespace }}
+Namespace: {{ .Namespace }}
+{{- end }}
+{{- if .Error }}
+Error: {{ .Error }}
+{{- end }}
+{{- if .Output }}
+Output: 
+{{ .Output }}
+{{- end }}
+`
+
 var Notify = func(rule *rules.Rule, event *events.Event, log utils.LogLine) error {
-	if len(log.Message)+len(utils.RemoveSpecialCharacters(log.Output)) > 1022 {
-		log.Output = utils.RemoveSpecialCharacters(log.Output)[:1024-len(log.Message)-1]
+	var err error
+	var message string
+	ttmpl := textTemplate.New("message")
+	ttmpl, err = ttmpl.Parse(plaintextTmpl)
+	if err != nil {
+		return err
+	}
+	var messageBuf bytes.Buffer
+	err = ttmpl.Execute(&messageBuf, log)
+	if err != nil {
+		return err
 	}
 
-	fmt.Println(len(log.Output))
+	message = utils.RemoveSpecialCharacters(messageBuf.String())
 
-	message := fmt.Sprintf("%v\n%v", log.Message, utils.RemoveSpecialCharacters(log.Output))
-	if log.Error != nil {
-		message += " " + log.Error.Error()
+	if len(message) > 1024 {
+		message = message[:1024]
 	}
 
 	k8sevent := &corev1.Event{
@@ -39,7 +72,7 @@ var Notify = func(rule *rules.Rule, event *events.Event, log utils.LogLine) erro
 			Namespace: event.GetNamespaceName(),
 			Name:      event.GetPodName(),
 		},
-		Reason:  "falco-talon:" + rule.GetAction(),
+		Reason:  "falco-talon:" + rule.GetAction() + ":" + log.Status,
 		Message: strings.ReplaceAll(message, `'`, `"`),
 		Source: corev1.EventSource{
 			Component: "falco-talon",
@@ -51,7 +84,7 @@ var Notify = func(rule *rules.Rule, event *events.Event, log utils.LogLine) erro
 		Action:              "falco-talon:" + rule.GetAction(),
 	}
 	k8sclient := kubernetes.GetClient()
-	_, err := k8sclient.CoreV1().Events(event.GetNamespaceName()).Create(context.TODO(), k8sevent, metav1.CreateOptions{})
+	_, err = k8sclient.CoreV1().Events(event.GetNamespaceName()).Create(context.TODO(), k8sevent, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}

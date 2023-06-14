@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -31,7 +30,7 @@ var serverCmd = &cobra.Command{
 		}
 		rules := ruleengine.ParseRules(config.RulesFile)
 		if rules == nil {
-			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: errors.New("invalid rules"), Message: "rules"})
+			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
 		}
 		actionners.Init()
 		notifiers.Init()
@@ -60,12 +59,12 @@ var serverCmd = &cobra.Command{
 				ignore := false
 				watcher, err := fsnotify.NewWatcher()
 				if err != nil {
-					utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, Message: "rules"})
+					utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "rules"})
 					return
 				}
 				defer watcher.Close()
 				if err := watcher.Add(config.RulesFile); err != nil {
-					utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, Message: "rules"})
+					utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "rules"})
 					return
 				}
 				for {
@@ -80,7 +79,7 @@ var serverCmd = &cobra.Command{
 							utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: "changes detected", Message: "rules"})
 							newRules := ruleengine.ParseRules(config.RulesFile)
 							if newRules == nil {
-								utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: errors.New("invalid rules"), Message: "rules"})
+								utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
 								break
 							}
 							actions := actionners.GetActionners()
@@ -89,7 +88,7 @@ var serverCmd = &cobra.Command{
 								for _, j := range *newRules {
 									if i.CheckParameters != nil {
 										if err := i.CheckParameters(j); err != nil {
-											utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, Rule: j.GetName(), Message: "rules"})
+											utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: j.GetName(), Message: "rules"})
 											parametersOk = false
 										}
 									}
@@ -102,14 +101,14 @@ var serverCmd = &cobra.Command{
 
 						}
 					case err := <-watcher.Errors:
-						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err, Message: "rules"})
+						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "rules"})
 					}
 				}
 			}()
 		}
 
 		if err := srv.ListenAndServe(); err != nil {
-			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err})
+			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err.Error()})
 		}
 	},
 }

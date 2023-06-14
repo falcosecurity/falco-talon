@@ -134,6 +134,10 @@ func NewPayload(rule *rules.Rule, event *events.Event, log utils.LogLine) Payloa
 		field.Value = "`" + log.Message + "`"
 		field.Short = false
 		fields = append(fields, field)
+		field.Title = "Error"
+		field.Value = "`" + log.Error + "`"
+		field.Short = false
+		fields = append(fields, field)
 		if log.Output != "" {
 			field.Title = "Output"
 			field.Value = fmt.Sprintf("```\n%v```", utils.RemoveSpecialCharacters(log.Output))
