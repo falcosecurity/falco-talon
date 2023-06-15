@@ -32,6 +32,13 @@ rules:
       - patch
       - delete
   - apiGroups:
+      - ""
+    resources:
+      - pods/exec
+    verbs:
+      - get
+      - create
+  - apiGroups:
       - "networking.k8s.io/v1"
     resources:
       - networking.k8s.io/v1
