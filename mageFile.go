@@ -44,23 +44,10 @@ func BuildLocal() error {
 	return sh.RunV("go", "build", "-trimpath", "-ldflags", ldFlags, "-o", "falco-talon", ".")
 }
 
-// BuildImagesLocal build images locally and not push
-func BuildImagesLocal() error {
+// BuildImage build image locally and not push
+func BuildImage() error {
 	exportLDFlags()
 	os.Setenv("KO_DOCKER_REPO", "ko.local/falco-talon")
-
-	return sh.RunV("ko", "build", "--bare", "--sbom=none", "--tags", getVersion(), "--tags", getCommit(), "--tags", "latest",
-		"github.com/Issif/falco-talon")
-}
-
-// BuildImages build the images and push
-func BuildImages() error {
-	exportLDFlags()
-	os.Setenv("KO_DOCKER_REPO", "issif/falco-talon")
-
-	if os.Getenv("KO_DOCKER_REPO") == "" {
-		return errors.New("missing KO_DOCKER_REPO environment variable")
-	}
 
 	return sh.RunV("ko", "build", "--bare", "--sbom=none", "--tags", getVersion(), "--tags", getCommit(), "--tags", "latest",
 		"github.com/Issif/falco-talon")
