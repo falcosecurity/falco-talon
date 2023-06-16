@@ -18,6 +18,11 @@ var Exec = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
 	pod := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
+	objects := map[string]string{
+		"Pod":       pod,
+		"Namespace": namespace,
+	}
+
 	parameters := rule.GetParameters()
 	shell := new(string)
 	if parameters["shell"] != nil {
@@ -51,10 +56,9 @@ var Exec = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
 	exec, err := remotecommand.NewSPDYExecutor(client.RestConfig, "POST", request.URL())
 	if err != nil {
 		return utils.LogLine{
-				Pod:       pod,
-				Namespace: namespace,
-				Error:     err.Error(),
-				Status:    "failure",
+				Objects: objects,
+				Error:   err.Error(),
+				Status:  "failure",
 			},
 			err
 	}
@@ -64,19 +68,20 @@ var Exec = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
 	})
 	if err != nil {
 		return utils.LogLine{
-				Pod:       pod,
-				Namespace: namespace,
-				Error:     err.Error(),
-				Status:    "failure",
+				Objects: objects,
+				Error:   err.Error(),
+				Status:  "failure",
 			},
 			err
 	}
 
 	return utils.LogLine{
-			Pod:       pod,
-			Namespace: namespace,
-			Output:    buf.String(),
-			Status:    "success",
+			Objects: map[string]string{
+				"Pod":       pod,
+				"Namespace": namespace,
+			},
+			Output: buf.String(),
+			Status: "success",
 		},
 		nil
 }

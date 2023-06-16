@@ -19,17 +19,14 @@ Action: {{ .Action }}
 Rule: {{ .Rule }}
 Event: {{ .Event }}
 Message: {{ .Message }}
-{{- if .Pod }}
-Pod: {{ .Pod }}
-{{- end }}
-{{- if .NetworkPolicy }}
-NetworkPolicy: {{ .NetworkPolicy }}
-{{- end }}
-{{- if .Namespace }}
-Namespace: {{ .Namespace }}
+{{- range $key, $value := .Objects }}
+{{ $key }}: {{ $value }}
 {{- end }}
 {{- if .Error }}
 Error: {{ .Error }}
+{{- end }}
+{{- if .Result }}
+Result: {{ .Result }}
 {{- end }}
 {{- if .Output }}
 Output: 
@@ -67,8 +64,8 @@ var Notify = func(log utils.LogLine) error {
 		},
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "Pod",
-			Namespace: log.Namespace,
-			Name:      log.Pod,
+			Namespace: log.Objects["Namespace"],
+			Name:      log.Objects["Pod"],
 		},
 		Reason:  "falco-talon:" + log.Action + ":" + log.Status,
 		Message: strings.ReplaceAll(message, `'`, `"`),
@@ -82,7 +79,7 @@ var Notify = func(log utils.LogLine) error {
 		Action:              "falco-talon:" + log.Action,
 	}
 	k8sclient := kubernetes.GetClient()
-	_, err = k8sclient.CoreV1().Events(log.Namespace).Create(context.TODO(), k8sevent, metav1.CreateOptions{})
+	_, err = k8sclient.CoreV1().Events(log.Objects["Namespace"]).Create(context.TODO(), k8sevent, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}

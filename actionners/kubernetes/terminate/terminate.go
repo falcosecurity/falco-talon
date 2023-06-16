@@ -15,6 +15,11 @@ var Terminate = func(rule *rules.Rule, event *events.Event) (utils.LogLine, erro
 	pod := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
+	objects := map[string]string{
+		"Pod":       pod,
+		"Namespace": namespace,
+	}
+
 	parameters := rule.GetParameters()
 	gracePeriodSeconds := new(int64)
 	if parameters["gracePeriodSeconds"] != nil {
@@ -26,17 +31,15 @@ var Terminate = func(rule *rules.Rule, event *events.Event) (utils.LogLine, erro
 	err := client.Clientset.CoreV1().Pods(namespace).Delete(context.Background(), pod, metav1.DeleteOptions{GracePeriodSeconds: gracePeriodSeconds})
 	if err != nil {
 		return utils.LogLine{
-				Pod:       pod,
-				Namespace: namespace,
-				Status:    "failure",
-				Error:     err.Error(),
+				Objects: objects,
+				Status:  "failure",
+				Error:   err.Error(),
 			},
 			err
 	}
 	return utils.LogLine{
-			Pod:       pod,
-			Namespace: namespace,
-			Status:    "success",
+			Objects: objects,
+			Status:  "success",
 		},
 		nil
 }

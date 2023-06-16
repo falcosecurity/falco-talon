@@ -32,23 +32,21 @@ const (
 )
 
 type LogLine struct {
-	TraceID        string `json:"trace_id,omitempty"`
-	Rule           string `json:"rule,omitempty"`
-	Event          string `json:"event,omitempty"`
-	Message        string `json:"message,omitempty"`
-	Priority       string `json:"priority,omitempty"`
-	Source         string `json:"source,omitempty"`
-	Result         string `json:"result,omitempty"`
-	Notifier       string `json:"notifier,omitempty"`
-	Output         string `json:"output,omitempty"`
-	Actionner      string `json:"actionner,omitempty"`
-	Action         string `json:"action,omitempty"`
-	ActionCategory string `json:"action_category,omitempty"`
-	Error          string `json:"error,omitempty"`
-	Status         string `json:"status,omitempty"`
-	Pod            string `json:"pod,omitempty"`
-	NetworkPolicy  string `json:"network_policy,omitempty"`
-	Namespace      string `json:"namespace,omitempty"`
+	TraceID        string            `json:"trace_id,omitempty"`
+	Rule           string            `json:"rule,omitempty"`
+	Event          string            `json:"event,omitempty"`
+	Message        string            `json:"message,omitempty"`
+	Priority       string            `json:"priority,omitempty"`
+	Source         string            `json:"source,omitempty"`
+	Result         string            `json:"result,omitempty"`
+	Notifier       string            `json:"notifier,omitempty"`
+	Output         string            `json:"output,omitempty"`
+	Actionner      string            `json:"actionner,omitempty"`
+	Action         string            `json:"action,omitempty"`
+	ActionCategory string            `json:"action_category,omitempty"`
+	Error          string            `json:"error,omitempty"`
+	Status         string            `json:"status,omitempty"`
+	Objects        map[string]string `json:"objects,omitempty"`
 }
 
 func PrintLog(level, format string, line LogLine) {
@@ -114,14 +112,13 @@ func PrintLog(level, format string, line LogLine) {
 	if line.Result != "" {
 		l.Str("result", line.Result)
 	}
-	if line.Pod != "" {
-		l.Str("result", line.Pod)
-	}
-	if line.Namespace != "" {
-		l.Str("result", line.Namespace)
-	}
 	if line.TraceID != "" {
 		l.Str("trace_id", line.TraceID)
+	}
+	if len(line.Objects) > 0 {
+		for i, j := range line.Objects {
+			l.Str(i, j)
+		}
 	}
 	if line.Error != "" {
 		l.Err(errors.New(line.Error))

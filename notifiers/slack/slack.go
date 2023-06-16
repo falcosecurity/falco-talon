@@ -106,23 +106,13 @@ func NewPayload(log utils.LogLine) Payload {
 		field.Value = "`" + log.Status + "`"
 		field.Short = true
 		fields = append(fields, field)
-		if log.Pod != "" {
-			field.Title = "Pod"
-			field.Value = "`" + log.Pod + "`"
-			field.Short = true
-			fields = append(fields, field)
-		}
-		if log.NetworkPolicy != "" {
-			field.Title = "NetworkPolicy"
-			field.Value = "`" + log.NetworkPolicy + "`"
-			field.Short = true
-			fields = append(fields, field)
-		}
-		if log.Namespace != "" {
-			field.Title = "Namespace"
-			field.Value = "`" + log.Namespace + "`"
-			field.Short = true
-			fields = append(fields, field)
+		if len(log.Objects) > 0 {
+			for i, j := range log.Objects {
+				field.Title = i
+				field.Value = "`" + j + "`"
+				field.Short = true
+				fields = append(fields, field)
+			}
 		}
 		field.Title = "Event"
 		field.Value = "`" + log.Event + "`"
@@ -132,10 +122,18 @@ func NewPayload(log utils.LogLine) Payload {
 		field.Value = "`" + log.Message + "`"
 		field.Short = false
 		fields = append(fields, field)
-		field.Title = "Error"
-		field.Value = "`" + log.Error + "`"
-		field.Short = false
-		fields = append(fields, field)
+		if log.Error != "" {
+			field.Title = "Error"
+			field.Value = "`" + log.Error + "`"
+			field.Short = false
+			fields = append(fields, field)
+		}
+		if log.Result != "" {
+			field.Title = "Result"
+			field.Value = "`" + log.Result + "`"
+			field.Short = false
+			fields = append(fields, field)
+		}
 		if log.Output != "" {
 			field.Title = "Output"
 			field.Value = fmt.Sprintf("```\n%v```", utils.RemoveSpecialCharacters(log.Output))

@@ -24,6 +24,11 @@ var Labelize = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error
 	pod := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
+	objects := map[string]string{
+		"Pod":       pod,
+		"Namespace": namespace,
+	}
+
 	payload := make([]patch, 0)
 	parameters := rule.GetParameters()
 	for i, j := range parameters["labels"].(map[string]interface{}) {
@@ -43,10 +48,9 @@ var Labelize = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error
 	_, err := client.Clientset.CoreV1().Pods(namespace).Patch(context.Background(), pod, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
 	if err != nil {
 		return utils.LogLine{
-				Pod:       pod,
-				Namespace: namespace,
-				Error:     err.Error(),
-				Status:    "failure",
+				Objects: objects,
+				Error:   err.Error(),
+				Status:  "failure",
 			},
 			err
 	}
@@ -68,18 +72,16 @@ var Labelize = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error
 	if err != nil {
 		if err.Error() != "the server rejected our request due to an error in our request" {
 			return utils.LogLine{
-					Pod:       pod,
-					Namespace: namespace,
-					Error:     err.Error(),
-					Status:    "failure",
+					Objects: objects,
+					Error:   err.Error(),
+					Status:  "failure",
 				},
 				err
 		}
 	}
 	return utils.LogLine{
-			Pod:       pod,
-			Namespace: namespace,
-			Status:    "success",
+			Objects: objects,
+			Status:  "success",
 		},
 		nil
 }
