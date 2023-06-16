@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/Issif/falco-talon/actionners"
@@ -52,14 +51,12 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	a := actionners.GetActionners()
 	// we trigger rules with before=true
-	fmt.Println(len(triggeredRules))
 	for i, j := range triggeredRules {
 		if j.Before == trueStr || j.Before != falseStr && a.GetActionner(j.GetActionCategory(), j.GetActionName()).RunBefore() {
 			actionners.Trigger(j, &event)
 			triggeredRules = removeAlreadyTriggeredRule(triggeredRules, i)
 		}
 	}
-	fmt.Println(len(triggeredRules))
 	// we trigger then rules with continue=false
 	for _, i := range triggeredRules {
 		if i.Continue == falseStr || i.Continue != trueStr && !a.GetActionner(i.GetActionCategory(), i.GetActionName()).MustContinue() {
