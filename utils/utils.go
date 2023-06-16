@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -29,6 +30,8 @@ const (
 
 	textStr  string = "text"
 	colorStr string = "color"
+
+	ansiChars string = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
 )
 
 type LogLine struct {
@@ -184,4 +187,9 @@ func CheckParameters(parameters map[string]interface{}, name, typ string) error 
 
 func RemoveSpecialCharacters(input string) string {
 	return strings.ReplaceAll(input, "\r\n", "\n")
+}
+
+func RemoveAnsiCharacters(str string) string {
+	var reg = regexp.MustCompile(ansiChars)
+	return reg.ReplaceAllString(str, "")
 }

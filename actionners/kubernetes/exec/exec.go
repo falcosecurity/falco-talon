@@ -75,12 +75,14 @@ var Exec = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
 			err
 	}
 
+	output := utils.RemoveAnsiCharacters(buf.String())
+
 	return utils.LogLine{
 			Objects: map[string]string{
 				"Pod":       pod,
 				"Namespace": namespace,
 			},
-			Output: buf.String(),
+			Output: output,
 			Status: "success",
 		},
 		nil
