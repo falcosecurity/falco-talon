@@ -32,6 +32,7 @@ const (
 )
 
 type LogLine struct {
+	Objects        map[string]string `json:"objects,omitempty"`
 	TraceID        string            `json:"trace_id,omitempty"`
 	Rule           string            `json:"rule,omitempty"`
 	Event          string            `json:"event,omitempty"`
@@ -46,7 +47,6 @@ type LogLine struct {
 	ActionCategory string            `json:"action_category,omitempty"`
 	Error          string            `json:"error,omitempty"`
 	Status         string            `json:"status,omitempty"`
-	Objects        map[string]string `json:"objects,omitempty"`
 }
 
 func PrintLog(level, format string, line LogLine) {
