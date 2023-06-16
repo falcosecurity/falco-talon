@@ -5,27 +5,31 @@
       - Test NetworkPolicy
   action:
     name: kubernetes:networkpolicy
-  continue: false
-  notifiers:
-    - slack
 - name: Rule Test Label
   match:
-    priority: "<Critical"
+    priority: "Critical"
   action:
     name: kubernetes:labelize
     parameters:
-      labels:
+      labels: 
         keyA: "valueA"
-        keyB: valueB
+        keyB: "valueB"
         run: ""
-  continue: false
-  notifiers:
-    - slack
-- name: Rule Test Terminate
+  # continue: false
+# - name: Rule Test Terminate
+#   match:
+#     rules:
+#       - Test Terminate
+#   action:
+#     name: kubernetes:terminate
+#     parameters:
+#       gracePeriodSeconds: 0
+- name: Rule Test Exec
   match:
     rules:
-      - Test Terminate
+      - Test Exec
   action:
-    name: kubernetes:terminate
+    name: kubernetes:exec
     parameters:
-      gracePeriodSeconds: 0
+      shell: "sh"
+      command: "top -n 1"
