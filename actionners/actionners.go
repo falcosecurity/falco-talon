@@ -138,6 +138,9 @@ func GetActionners() *Actionners {
 }
 
 func (actionners *Actionners) GetActionner(category, name string) *Actionner {
+	if actionners == nil {
+		return nil
+	}
 	for _, i := range *actionners {
 		if i.Category == category && i.Name == name {
 			return i
