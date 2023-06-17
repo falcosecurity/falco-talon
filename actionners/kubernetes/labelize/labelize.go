@@ -3,6 +3,7 @@ package labelize
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -88,5 +89,11 @@ var Labelize = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error
 
 var CheckParameters = func(rule *rules.Rule) error {
 	parameters := rule.GetParameters()
-	return utils.CheckParameters(parameters, "labels", utils.MapInterfaceStr)
+	if err := utils.CheckParameters(parameters, "labels", utils.MapInterfaceStr, true); err != nil {
+		return err
+	}
+	if len(parameters["labels"].(map[string]interface{})) == 0 {
+		return errors.New("missing parameter 'labels'")
+	}
+	return nil
 }

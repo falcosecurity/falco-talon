@@ -16,14 +16,14 @@
         keyB: "valueB"
         run: ""
   # continue: false
-# - name: Rule Test Terminate
-#   match:
-#     rules:
-#       - Test Terminate
-#   action:
-#     name: kubernetes:terminate
-#     parameters:
-#       gracePeriodSeconds: 0
+- name: Rule Test Terminate
+  match:
+    rules:
+      - Test Terminate
+  action:
+    name: kubernetes:terminate
+    parameters:
+      # gracePeriodSeconds: 0
 - name: Rule Test Exec
   match:
     rules:
@@ -31,5 +31,18 @@
   action:
     name: kubernetes:exec
     parameters:
-      shell: "sh"
       command: "top -n 1"
+- name: Rule Test Script
+  match:
+    rules:
+      - Test Script
+    output_fields:
+      - k8s.pod.name=test
+  action:
+    name: kubernetes:script
+    parameters:
+      shell: "sh"
+      script: |
+        apk add curl
+        curl https://httpbin.org/ip
+        top -n 1 -b

@@ -24,15 +24,20 @@ var checkCmd = &cobra.Command{
 		if rules == nil {
 			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
 		}
-		actionners.Init()
-		actions := actionners.GetActionners()
-		for _, i := range *actions {
-			for _, j := range *rules {
-				if i.CheckParameters != nil {
-					if err := i.CheckParameters(j); err != nil {
-						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: j.GetName(), Message: "rules"})
+		actionners := actionners.GetDefaultActionners()
+		valid := true
+		if rules != nil {
+			for _, i := range *rules {
+				actionner := actionners.GetActionner(i.GetActionCategory(), i.GetActionName())
+				if actionner.CheckParameters != nil {
+					if err := actionner.CheckParameters(i); err != nil {
+						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Message: "rules"})
+						valid = false
 					}
 				}
+			}
+			if !valid {
+				utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
 			}
 		}
 		utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: "rules file valid", Message: "rules"})

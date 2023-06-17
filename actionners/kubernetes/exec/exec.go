@@ -3,6 +3,7 @@ package exec
 import (
 	"bytes"
 	"context"
+	"errors"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/remotecommand"
@@ -91,11 +92,14 @@ var Exec = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
 var CheckParameters = func(rule *rules.Rule) error {
 	parameters := rule.GetParameters()
 	var err error
-	err = utils.CheckParameters(parameters, "shell", utils.StringStr)
+	err = utils.CheckParameters(parameters, "shell", utils.StringStr, false)
 	if err != nil {
 		return err
 	}
-	err = utils.CheckParameters(parameters, "command", utils.StringStr)
+	if parameters["command"] == nil {
+		return errors.New("missing parameter 'command'")
+	}
+	err = utils.CheckParameters(parameters, "command", utils.StringStr, true)
 	if err != nil {
 		return err
 	}

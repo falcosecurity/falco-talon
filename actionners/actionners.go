@@ -27,20 +27,13 @@ type Actionner struct {
 
 type checkActionner func(event *events.Event) error
 
-type category struct {
-	initialized bool
-	withsuccess bool
-}
-
 type Actionners []*Actionner
 
 var actionners *Actionners
 
-func Init() {
-	config := configuration.GetConfiguration()
-	actionners = new(Actionners)
-	a := new(Actionners)
-	a.Add(
+func GetDefaultActionners() *Actionners {
+	defaultActionners := new(Actionners)
+	defaultActionners.Add(
 		&Actionner{
 			Name:            "terminate",
 			Category:        "kubernetes",
@@ -84,39 +77,60 @@ func Init() {
 			Checks: []checkActionner{
 				kubernetes.CheckPodExist,
 			},
-			CheckParameters: nil,
+			CheckParameters: exec.CheckParameters,
 			Action:          exec.Exec,
 		})
-	categories := map[string]*category{}
-	for _, i := range *a {
-		categories[i.Category] = new(category)
+	// &Actionner{
+	// 	Name:     "script",
+	// 	Category: "kubernetes",
+	// 	Continue: true,
+	// 	Before:   true,
+	// 	Init:     kubernetes.Init,
+	// 	Checks: []checkActionner{
+	// 		kubernetes.CheckPodExist,
+	// 	},
+	// 	CheckParameters: script.CheckParameters,
+	// 	Action:          script.Script,
+	// })
+	return defaultActionners
+}
+
+func Init() error {
+	config := configuration.GetConfiguration()
+	actionners = new(Actionners)
+
+	defaultActionners := GetDefaultActionners()
+
+	type action struct {
+		category string
+		name     string
 	}
+
+	categories := map[string]bool{}
+	actions := map[string]action{}
 	rules := rules.GetRules()
-	for _, i := range *a {
-		for _, j := range *rules {
-			if i.CheckParameters != nil {
-				if err := i.CheckParameters(j); err != nil {
-					utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: j.GetName(), Message: "rules"})
-				}
-			}
-			if i.Category == j.GetActionCategory() {
-				if !categories[i.Category].initialized {
-					categories[i.Category].initialized = true
-					if i.Init != nil {
-						utils.PrintLog("info", config.LogFormat, utils.LogLine{Message: "init", ActionCategory: i.Category})
-						if err := i.Init(); err != nil {
-							utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), ActionCategory: i.Category})
-							continue
-						}
+	for _, i := range *rules {
+		categories[i.GetActionCategory()] = true
+		actions[i.GetAction()] = action{i.GetActionCategory(), i.GetActionName()}
+	}
+	for category := range categories {
+		for _, actionner := range *defaultActionners {
+			if category == actionner.Category {
+				if actionner.Init != nil {
+					utils.PrintLog("info", config.LogFormat, utils.LogLine{Message: "init", ActionCategory: actionner.Category})
+					if err := actionner.Init(); err != nil {
+						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), ActionCategory: actionner.Category})
+						return err
 					}
-					categories[i.Category].withsuccess = true
 				}
-				if categories[i.Category].withsuccess {
-					actionners.Add(i)
-				}
+				break
 			}
 		}
 	}
+	for _, i := range actions {
+		actionners.Add(defaultActionners.GetActionner(i.category, i.name))
+	}
+	return nil
 }
 
 func GetActionners() *Actionners {

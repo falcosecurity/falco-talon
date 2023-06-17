@@ -46,5 +46,5 @@ var Terminate = func(rule *rules.Rule, event *events.Event) (utils.LogLine, erro
 
 var CheckParameters = func(rule *rules.Rule) error {
 	parameters := rule.GetParameters()
-	return utils.CheckParameters(parameters, "gracePeriodSeconds", utils.IntStr)
+	return utils.CheckParameters(parameters, "gracePeriodSeconds", utils.IntStr, false)
 }

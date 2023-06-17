@@ -32,7 +32,28 @@ var serverCmd = &cobra.Command{
 		if rules == nil {
 			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
 		}
-		actionners.Init()
+		defaultActionners := actionners.GetDefaultActionners()
+		if rules != nil {
+			valid := true
+			for _, i := range *rules {
+				actionner := defaultActionners.GetActionner(i.GetActionCategory(), i.GetActionName())
+				if actionner != nil {
+					if actionner.CheckParameters != nil {
+						if err := actionner.CheckParameters(i); err != nil {
+							utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Message: "rules"})
+							valid = false
+						}
+					}
+				}
+			}
+			if !valid {
+				utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
+			}
+		}
+
+		if err := actionners.Init(); err != nil {
+			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "actionners"})
+		}
 		notifiers.Init()
 		if rules != nil {
 			utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*rules)), Message: "init"})
@@ -73,7 +94,7 @@ var serverCmd = &cobra.Command{
 						if event.Has(fsnotify.Write) && !ignore {
 							ignore = true
 							go func() {
-								time.Sleep(500 * time.Millisecond)
+								time.Sleep(1 * time.Second)
 								ignore = false
 							}()
 							utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: "changes detected", Message: "rules"})
@@ -82,23 +103,29 @@ var serverCmd = &cobra.Command{
 								utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
 								break
 							}
-							actions := actionners.GetActionners()
-							parametersOk := true
-							for _, i := range *actions {
-								for _, j := range *newRules {
-									if i.CheckParameters != nil {
-										if err := i.CheckParameters(j); err != nil {
-											utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: j.GetName(), Message: "rules"})
-											parametersOk = false
+							defaultActionners := actionners.GetDefaultActionners()
+							if newRules != nil {
+								valid := true
+								for _, i := range *newRules {
+									actionner := defaultActionners.GetActionner(i.GetActionCategory(), i.GetActionName())
+									if actionner.CheckParameters != nil {
+										if err := actionner.CheckParameters(i); err != nil {
+											utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Message: "rules"})
+											valid = false
 										}
 									}
 								}
-							}
-							if parametersOk {
+								if !valid {
+									utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
+									break
+								}
 								utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*rules)), Message: "rules"})
 								rules = newRules
+								if err := actionners.Init(); err != nil {
+									utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "actionners"})
+									break
+								}
 							}
-
 						}
 					case err := <-watcher.Errors:
 						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "rules"})

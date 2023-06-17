@@ -175,8 +175,17 @@ func SetFields(structure interface{}, fields map[string]interface{}) interface{}
 	return structure
 }
 
-func CheckParameters(parameters map[string]interface{}, name, typ string) error {
+func CheckParameters(parameters map[string]interface{}, name, typ string, mandatory bool) error {
+	if parameters == nil {
+		if mandatory {
+			return errors.New("missing parameters")
+		}
+		return nil
+	}
 	if parameters[name] == nil {
+		if mandatory {
+			return errors.New("missing parameters")
+		}
 		return nil
 	}
 	if reflect.TypeOf(parameters[name]).String() != typ {

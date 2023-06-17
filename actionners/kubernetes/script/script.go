@@ -3,6 +3,7 @@ package script
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/remotecommand"
@@ -31,9 +32,13 @@ var Script = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) 
 	if *shell == "" {
 		*shell = "/bin/sh"
 	}
-	command := new(string)
-	if parameters["command"] != nil {
-		*command = parameters["command"].(string)
+	script := new(string)
+	if parameters["script"] != nil {
+		*script = parameters["script"].(string)
+	}
+
+	if *script != "" {
+		*script = base64.StdEncoding.EncodeToString([]byte(*script))
 	}
 
 	client := kubernetes.GetClient()
@@ -47,11 +52,24 @@ var Script = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) 
 		Name(pod).
 		SubResource("exec").
 		VersionedParams(&v1.PodExecOptions{
-			Command: []string{*shell, "-c", *command},
-			Stdin:   false,
-			Stdout:  true,
-			Stderr:  true,
-			TTY:     true,
+			Command: []string{
+				*shell,
+				"-c",
+				"echo",
+				"'" + *script + "'",
+				// ">",
+				// "/tmp/falco-talon.b64.sh",
+				// "'",
+				// "cat /tmp/falco-talon.b64.sh | base64 -d > /tmp/falco-talon.sh;",
+				// "chmod +x /tmp/falco-talon.b64.sh;",
+				// "/tmp/falco-talon.sh",
+				// *shell,
+				// "-c",
+			},
+			Stdin:  false,
+			Stdout: true,
+			Stderr: true,
+			TTY:    true,
 		}, scheme.ParameterCodec)
 	exec, err := remotecommand.NewSPDYExecutor(client.RestConfig, "POST", request.URL())
 	if err != nil {
@@ -91,11 +109,11 @@ var Script = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) 
 var CheckParameters = func(rule *rules.Rule) error {
 	parameters := rule.GetParameters()
 	var err error
-	err = utils.CheckParameters(parameters, "shell", utils.StringStr)
+	err = utils.CheckParameters(parameters, "shell", utils.StringStr, false)
 	if err != nil {
 		return err
 	}
-	err = utils.CheckParameters(parameters, "script", utils.StringStr)
+	err = utils.CheckParameters(parameters, "script", utils.StringStr, true)
 	if err != nil {
 		return err
 	}

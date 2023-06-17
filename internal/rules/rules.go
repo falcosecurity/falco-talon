@@ -13,10 +13,6 @@ import (
 	"github.com/Issif/falco-talon/utils"
 )
 
-// TODO
-// allow to set rule by file or CRD
-// watch CRD and update rules
-
 type Rule struct {
 	Notifiers []string `yaml:"notifiers"`
 	Action    Action   `yaml:"action"`
