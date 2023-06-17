@@ -108,6 +108,9 @@ var serverCmd = &cobra.Command{
 								valid := true
 								for _, i := range *newRules {
 									actionner := defaultActionners.GetActionner(i.GetActionCategory(), i.GetActionName())
+									if actionner == nil {
+										break
+									}
 									if actionner.CheckParameters != nil {
 										if err := actionner.CheckParameters(i); err != nil {
 											utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Message: "rules"})

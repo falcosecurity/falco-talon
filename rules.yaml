@@ -14,6 +14,7 @@
       labels: 
         keyA: "valueA"
         keyB: "valueB"
+        keyC: "valueC"
         run: ""
   # continue: false
 - name: Rule Test Terminate
@@ -32,17 +33,17 @@
     name: kubernetes:exec
     parameters:
       command: "top -n 1"
-- name: Rule Test Script
-  match:
-    rules:
-      - Test Script
-    output_fields:
-      - k8s.pod.name=test
-  action:
-    name: kubernetes:script
-    parameters:
-      shell: "sh"
-      script: |
-        apk add curl
-        curl https://httpbin.org/ip
-        top -n 1 -b
+# - name: Rule Test Script
+#   match:
+#     rules:
+#       - Test Script
+#     output_fields:
+#       - k8s.pod.name=test
+#   action:
+#     name: kubernetes:script
+#     parameters:
+#       shell: "sh"
+#       script: |
+#         apk add curl
+#         curl https://httpbin.org/ip
+#         top -n 1 -b
