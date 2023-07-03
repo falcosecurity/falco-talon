@@ -33,7 +33,7 @@ func Test() error {
 }
 
 func Run() error {
-	return sh.RunV("go", "run", "./...")
+	return sh.RunV("go", "run", "./...", "server", "-c", "config.yaml", "-r", "rules.yaml")
 }
 
 func BuildLocal() error {
@@ -43,8 +43,8 @@ func BuildLocal() error {
 	return sh.RunV("go", "build", "-trimpath", "-ldflags", ldFlags, "-o", "falco-talon", ".")
 }
 
-// BuildImage build image locally and not push
-func BuildImage() error {
+// BuildImages build images locally and not push
+func BuildImages() error {
 	exportLDFlags()
 	os.Setenv("KO_DOCKER_REPO", "ko.local/falco-talon")
 
@@ -61,7 +61,7 @@ func Release() error {
 	mg.Deps(Test)
 
 	exportLDFlags()
-	return sh.RunV("goreleaser", "release", "--rm-dist")
+	return sh.RunV("goreleaser", "release", "--clean")
 }
 
 func Clean() {

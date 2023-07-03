@@ -80,6 +80,7 @@ func GetDefaultActionners() *Actionners {
 			CheckParameters: exec.CheckParameters,
 			Action:          exec.Exec,
 		})
+	// },
 	// &Actionner{
 	// 	Name:     "script",
 	// 	Category: "kubernetes",
@@ -142,6 +143,9 @@ func (actionners *Actionners) GetActionner(category, name string) *Actionner {
 		return nil
 	}
 	for _, i := range *actionners {
+		if i == nil {
+			continue
+		}
 		if i.Category == category && i.Name == name {
 			return i
 		}

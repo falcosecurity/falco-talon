@@ -1,49 +1,27 @@
----
-- name: Rule Test NetworkPolicy
+- name: Rule Terminate
   match:
     rules:
-      - Test NetworkPolicy
-  action:
-    name: kubernetes:networkpolicy
-- name: Rule Test Label
-  match:
-    priority: "Critical"
-  action:
-    name: kubernetes:labelize
-    parameters:
-      labels: 
-        keyA: "valueA"
-        keyB: "valueB"
-        keyC: "valueC"
-        run: ""
-  # continue: false
-- name: Rule Test Terminate
-  match:
-    rules:
-      - Test Terminate
+      - Terminal Shell in a Container
+      - Create files below dev
+      - Detect crypto miners using the Stratum protocol
+      - Launch Suspicious Network Tool in Container
+      - Detect outbound connections to common miner pool
+      - Malicious process detected
+      - Malicious IPs or domains detected on command line
+      - Malicious C2 IPs or domains exploiting log4j (Copy)
+      - Malicious binary detected
+      - Modify ld.so.preload
+      - Linux Kernel Module Injection Detected
+      - Launch Remote File Copy Tools in Container
+      - Unexpected K8s NodePort Connection
+      - Container Drift Detected (chmod)
+      - Packet socket created in container
+      - Redirect STDOUT/STDIN to Network Connection in Container
+      - Contact K8S API Server From Container
+      - The docker client is executed in a container
+      - Netcat Remote Code Execution in Container
+      - Container Drift Detected (open+create)
   action:
     name: kubernetes:terminate
     parameters:
-      # gracePeriodSeconds: 0
-- name: Rule Test Exec
-  match:
-    rules:
-      - Test Exec
-  action:
-    name: kubernetes:exec
-    parameters:
-      command: "top -n 1"
-# - name: Rule Test Script
-#   match:
-#     rules:
-#       - Test Script
-#     output_fields:
-#       - k8s.pod.name=test
-#   action:
-#     name: kubernetes:script
-#     parameters:
-#       shell: "sh"
-#       script: |
-#         apk add curl
-#         curl https://httpbin.org/ip
-#         top -n 1 -b
+      gracePeriodSeconds: 3

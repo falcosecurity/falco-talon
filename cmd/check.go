@@ -29,10 +29,16 @@ var checkCmd = &cobra.Command{
 		if rules != nil {
 			for _, i := range *rules {
 				actionner := actionners.GetActionner(i.GetActionCategory(), i.GetActionName())
-				if actionner.CheckParameters != nil {
-					if err := actionner.CheckParameters(i); err != nil {
-						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Message: "rules"})
-						valid = false
+				if actionner == nil {
+					utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "unknown actionner", Rule: i.GetName(), Message: "rules"})
+					valid = false
+				}
+				if actionner != nil {
+					if actionner.CheckParameters != nil {
+						if err := actionner.CheckParameters(i); err != nil {
+							utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Message: "rules"})
+							valid = false
+						}
 					}
 				}
 			}

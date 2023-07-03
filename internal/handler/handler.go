@@ -52,6 +52,9 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 	a := actionners.GetActionners()
 	// we trigger rules with before=true
 	for i, j := range triggeredRules {
+		if a.GetActionner(j.GetActionCategory(), j.GetActionName()) == nil {
+			continue
+		}
 		if j.Before == trueStr || j.Before != falseStr && a.GetActionner(j.GetActionCategory(), j.GetActionName()).RunBefore() {
 			actionners.Trigger(j, &event)
 			triggeredRules = removeAlreadyTriggeredRule(triggeredRules, i)
@@ -59,6 +62,9 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// we trigger then rules with continue=false
 	for _, i := range triggeredRules {
+		if a.GetActionner(i.GetActionCategory(), i.GetActionName()) == nil {
+			continue
+		}
 		if i.Continue == falseStr || i.Continue != trueStr && !a.GetActionner(i.GetActionCategory(), i.GetActionName()).MustContinue() {
 			actionners.Trigger(i, &event)
 			return
@@ -66,6 +72,9 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// we trigger after rules with continue=true and before=false
 	for _, i := range triggeredRules {
+		if a.GetActionner(i.GetActionCategory(), i.GetActionName()) == nil {
+			continue
+		}
 		actionners.Trigger(i, &event)
 	}
 }
