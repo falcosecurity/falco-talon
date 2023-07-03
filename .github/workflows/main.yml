@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  main:
     strategy:
       matrix:
         go-version: [1.19.x]
