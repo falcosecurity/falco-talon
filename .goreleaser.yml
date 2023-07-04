@@ -2,52 +2,95 @@ project_name: falco-talon
 
 env:
   - GO111MODULE=on
-  - CGO_ENABLED=1
   - DOCKER_CLI_EXPERIMENTAL=enabled
-  - COSIGN_EXPERIMENTAL=true
+  - DOCKER_BUILDKIT=1
+  - BUILDX_PLATFORMS=linux/amd64,linux/arm64
+  - COSIGN_YES=true
+
+snapshot:
+  name_template: 'latest'
+
+checksum:
+  name_template: 'checksums.txt'
 
 # Prevents parallel builds from stepping on each others toes downloading modules
 before:
   hooks:
-  - go mod tidy
+    - go mod tidy
+    - /bin/bash -c 'if [ -n "$(git --no-pager diff --exit-code go.mod go.sum)" ]; then exit 1; fi'
 
-gomod:
-  proxy: true
+# gomod:
+#   proxy: true
+
+sboms:
+  - artifacts: archive
 
 builds:
-- id: falco-talon
-  main: .
-  flags:
-    - -trimpath
-  mod_timestamp: '{{ .CommitTimestamp }}'
-  goos:
-    - linux
-  goarch:
-    - amd64
-    - arm64
-    - arm
-    - s390x
-    - ppc64le
-  goarm:
-    - '7'
-  env:
-    - CGO_ENABLED=0
-  ldflags:
-    - "{{ .Env.LDFLAGS }}"
+  - id: "falco-talon"
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    asmflags:
+      - all=-trimpath={{.Env.GOPATH}}
+    gcflags:
+      - all=-trimpath={{.Env.GOPATH}}
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - "{{ .Env.LDFLAGS }}"
+    binary: falco-talon
 
-archives:
-- format: binary
-  name_template: "{{ .Binary }}"
-  allow_different_binary_count: true
+dockers:
+  - goos: linux
+    goarch: amd64
+    dockerfile: Dockerfile
+    use: buildx
+    image_templates:
+      - "issif/falco-talon:stable-amd64"
+      - "issif/falco-talon:{{ .Version }}-amd64"
+    build_flag_templates:
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.name={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--platform=linux/amd64"
+    extra_files:
+      - LICENSE
 
-checksum:
-  name_template: "{{ .ProjectName }}_checksums.txt"
+  - goos: linux
+    goarch: arm64
+    dockerfile: Dockerfile
+    use: buildx
+    image_templates:
+      - "issif/falco-talon:stable-arm64"
+      - "issif/falco-talon:{{ .Version }}-arm64"
+    build_flag_templates:
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.name={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--platform=linux/arm64"
+    extra_files:
+      - LICENSE
 
-snapshot:
-  name_template: latest
+docker_manifests:
+  - name_template: 'issif/falco-talon:stable'
+    image_templates:
+      - 'issif/falco-talon:stable-amd64'
+      - 'issif/falco-talon:stable-arm64'
+  - name_template: 'issif/falco-talon:{{ .Version }}'
+    image_templates:
+      - 'issif/falco-talon:{{ .Version }}-amd64'
+      - 'issif/falco-talon:{{ .Version }}-arm64'
 
 release:
-  prerelease: allow # remove this when we start publishing non-prerelease or set to auto
-  draft: true # allow for manual edits
-  footer: |
-    ### Thanks for all contributors!
+  github:
+    owner: issif
+    name: falco-talon
+  prerelease: auto
