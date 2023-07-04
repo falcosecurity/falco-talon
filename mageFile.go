@@ -54,14 +54,14 @@ func BuildImages() error {
 
 func Build() error {
 	exportLDFlags()
-	return sh.RunV("goreleaser", "release", "--clean", "--snapshot", "--skip-sign", "--skip-publish")
+	return sh.RunV("goreleaser", "release", "--clean", "--snapshot", "--skip-sbom", "--skip-publish")
 }
 
 func Release() error {
 	mg.Deps(Test)
 
 	exportLDFlags()
-	return sh.RunV("goreleaser", "release", "--clean", "--skip-sign")
+	return sh.RunV("goreleaser", "release", "--clean", "--skip-sign", "--skip-sbom")
 }
 
 func Clean() {

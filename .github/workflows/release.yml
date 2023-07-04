@@ -26,9 +26,6 @@ jobs:
       with:
         go-version: ${{ matrix.go-version }}
 
-    - name: install syft
-      run: go install github.com/anchore/syft/cmd/syft@latest
-
     - name: Install GoReleaser
       uses: goreleaser/goreleaser-action@v4
       with:
