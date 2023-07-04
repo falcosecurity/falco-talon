@@ -32,10 +32,6 @@ builds:
     goarch:
       - amd64
       - arm64
-    asmflags:
-      - all=-trimpath={{.Env.GOPATH}}
-    gcflags:
-      - all=-trimpath={{.Env.GOPATH}}
     env:
       - CGO_ENABLED=0
     flags:
