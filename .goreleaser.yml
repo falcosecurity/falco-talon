@@ -19,12 +19,6 @@ before:
     - go mod tidy
     - /bin/bash -c 'if [ -n "$(git --no-pager diff --exit-code go.mod go.sum)" ]; then exit 1; fi'
 
-# gomod:
-#   proxy: true
-
-sboms:
-  - artifacts: archive
-
 builds:
   - id: "falco-talon"
     goos:
@@ -40,50 +34,17 @@ builds:
       - "{{ .Env.LDFLAGS }}"
     binary: falco-talon
 
-dockers:
-  - goos: linux
-    goarch: amd64
-    dockerfile: Dockerfile
-    use: buildx
-    image_templates:
-      - "issif/falco-talon:stable-amd64"
-      - "issif/falco-talon:{{ .Version }}-amd64"
-    build_flag_templates:
-      - "--pull"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.name={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--platform=linux/amd64"
-    extra_files:
-      - LICENSE
-
-  - goos: linux
-    goarch: arm64
-    dockerfile: Dockerfile
-    use: buildx
-    image_templates:
-      - "issif/falco-talon:stable-arm64"
-      - "issif/falco-talon:{{ .Version }}-arm64"
-    build_flag_templates:
-      - "--pull"
-      - "--label=org.opencontainers.image.created={{.Date}}"
-      - "--label=org.opencontainers.image.name={{.ProjectName}}"
-      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-      - "--label=org.opencontainers.image.version={{.Version}}"
-      - "--platform=linux/arm64"
-    extra_files:
-      - LICENSE
-
-docker_manifests:
-  - name_template: 'issif/falco-talon:stable'
-    image_templates:
-      - 'issif/falco-talon:stable-amd64'
-      - 'issif/falco-talon:stable-arm64'
-  - name_template: 'issif/falco-talon:{{ .Version }}'
-    image_templates:
-      - 'issif/falco-talon:{{ .Version }}-amd64'
-      - 'issif/falco-talon:{{ .Version }}-arm64'
+kos:
+  - id: falco-talon
+    repository: issif/falco-talon
+    tags:
+    - '{{.Version}}'
+    - latest
+    bare: true
+    preserve_import_paths: false
+    platforms:
+    - linux/amd64
+    - linux/arm64
 
 release:
   github:
