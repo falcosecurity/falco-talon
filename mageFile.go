@@ -61,7 +61,7 @@ func Release() error {
 	mg.Deps(Test)
 
 	exportLDFlags()
-	return sh.RunV("goreleaser", "release", "--clean")
+	return sh.RunV("goreleaser", "release", "--clean", "--skip-sign")
 }
 
 func Clean() {
