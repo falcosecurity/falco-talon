@@ -100,7 +100,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 					fmt.Errorf("can't find the owner and/or labels for the pod %v in namespace %v", podName, namespace)
 			}
 		case "ReplicaSet":
-			u, errG := client.GetStatefulsetFromPod(pod)
+			u, errG := client.GetReplicasetFromPod(pod)
 			if errG != nil {
 				return utils.LogLine{
 						Objects: objects,

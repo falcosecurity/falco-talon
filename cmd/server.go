@@ -66,7 +66,7 @@ var serverCmd = &cobra.Command{
 			utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: "watch of rules enabled", Message: "init"})
 		}
 
-		utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("Falco Talon is up and listening on '%s:%d'", config.ListenAddress, config.ListenPort), Message: "init"})
+		utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("Falco Talon is up and listening on %s:%d", config.ListenAddress, config.ListenPort), Message: "init"})
 
 		srv := http.Server{
 			Addr:         fmt.Sprintf("%s:%d", config.ListenAddress, config.ListenPort),

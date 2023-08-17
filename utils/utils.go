@@ -175,7 +175,7 @@ func SetFields(structure interface{}, fields map[string]interface{}) interface{}
 	return structure
 }
 
-func CheckParameters(parameters map[string]interface{}, name, typ string, mandatory bool) error {
+func CheckParameters(parameters map[string]interface{}, name, typ string, reg *regexp.Regexp, mandatory bool) error {
 	if parameters == nil {
 		if mandatory {
 			return errors.New("missing parameters")
@@ -190,6 +190,11 @@ func CheckParameters(parameters map[string]interface{}, name, typ string, mandat
 	}
 	if reflect.TypeOf(parameters[name]).String() != typ {
 		return fmt.Errorf("wrong type for parameter '%v'", name)
+	}
+	if reg != nil {
+		if !reg.Match([]byte(fmt.Sprintf("%v", parameters[name]))) {
+			return fmt.Errorf("wrong value for parameter '%v'", name)
+		}
 	}
 	return nil
 }

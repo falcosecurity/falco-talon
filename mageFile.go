@@ -109,11 +109,11 @@ func getBuildDateTime() string {
 	result, _ := sh.Output("git", "log", "-1", "--pretty=%ct")
 	if result != "" {
 		sourceDateEpoch := fmt.Sprintf("@%s", result)
-		date, _ := sh.Output("date", "-u", "-d", sourceDateEpoch, "+'%Y-%m-%dT%H:%M:%SZ'")
+		date, _ := sh.Output("date", "-u", "-d", sourceDateEpoch, "+%Y-%m-%dT%H:%M:%SZ")
 		return date
 	}
 
-	date, _ := sh.Output("date", "+'%Y-%m-%dT%H:%M:%SZ'")
+	date, _ := sh.Output("date", "+%Y-%m-%dT%H:%M:%SZ")
 	return date
 }
 

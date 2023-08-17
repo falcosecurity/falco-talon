@@ -3,9 +3,9 @@ package script
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
+	"io"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/kubectl/pkg/scheme"
 
@@ -37,42 +37,38 @@ var Script = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) 
 		*script = parameters["script"].(string)
 	}
 
-	if *script != "" {
-		*script = base64.StdEncoding.EncodeToString([]byte(*script))
-	}
+	reader, writer := io.Pipe()
+	defer writer.Close()
+
+	go func() {
+		writer.Write([]byte(*script))
+	}()
 
 	client := kubernetes.GetClient()
 
 	buf := &bytes.Buffer{}
 	errBuf := &bytes.Buffer{}
-	request := client.CoreV1().RESTClient().
+	req := client.CoreV1().RESTClient().
 		Post().
 		Namespace(namespace).
 		Resource("pods").
 		Name(pod).
 		SubResource("exec").
-		VersionedParams(&v1.PodExecOptions{
+		VersionedParams(&corev1.PodExecOptions{
 			Command: []string{
-				*shell,
-				"-c",
 				"echo",
-				"'YXBrIGFkZCBjdXJsCmN1cmwgaHR0cHM6Ly9odHRwYmluLm9yZy9pcAp0b3AgLW4gMSAtYgo='",
-				// *script,
-				">",
-				"/tmp/falco-talon.b64.sh'",
-				// "'",
-				// "cat /tmp/falco-talon.b64.sh | base64 -d > /tmp/falco-talon.sh;",
-				// "chmod +x /tmp/falco-talon.b64.sh;",
-				// "/tmp/falco-talon.sh",
-				// *shell,
-				// "-c",
+				*script,
+				"|",
+				*shell,
+				"-",
 			},
 			Stdin:  true,
 			Stdout: true,
 			Stderr: true,
-			TTY:    true,
+			TTY:    false,
 		}, scheme.ParameterCodec)
-	exec, err := remotecommand.NewSPDYExecutor(client.RestConfig, "POST", request.URL())
+
+	exec, err := remotecommand.NewSPDYExecutor(client.RestConfig, "POST", req.URL())
 	if err != nil {
 		return utils.LogLine{
 				Objects: objects,
@@ -82,8 +78,10 @@ var Script = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) 
 			err
 	}
 	err = exec.StreamWithContext(context.Background(), remotecommand.StreamOptions{
+		Stdin:  reader,
 		Stdout: buf,
 		Stderr: errBuf,
+		Tty:    false,
 	})
 	if err != nil {
 		return utils.LogLine{
@@ -110,11 +108,11 @@ var Script = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) 
 var CheckParameters = func(rule *rules.Rule) error {
 	parameters := rule.GetParameters()
 	var err error
-	err = utils.CheckParameters(parameters, "shell", utils.StringStr, false)
+	err = utils.CheckParameters(parameters, "shell", utils.StringStr, nil, false)
 	if err != nil {
 		return err
 	}
-	err = utils.CheckParameters(parameters, "script", utils.StringStr, true)
+	err = utils.CheckParameters(parameters, "script", utils.StringStr, nil, true)
 	if err != nil {
 		return err
 	}

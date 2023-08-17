@@ -69,6 +69,14 @@ func (client Client) GetPod(pod, namespace string) (*corev1.Pod, error) {
 	return p, nil
 }
 
+func GetContainers(pod *corev1.Pod) []string {
+	c := make([]string, 0)
+	for _, i := range pod.Spec.Containers {
+		c = append(c, i.Name)
+	}
+	return c
+}
+
 func (client Client) GetDaemonsetFromPod(pod *corev1.Pod) (*v1.DaemonSet, error) {
 	d, err := client.Clientset.AppsV1().DaemonSets(pod.ObjectMeta.Namespace).Get(context.Background(), pod.OwnerReferences[0].Name, metav1.GetOptions{})
 	if err != nil {

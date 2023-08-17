@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	textTemplate "text/template"
 
@@ -20,6 +21,8 @@ const (
 	Green string = "#23ba47"
 	Blue  string = "#206cff"
 	Text  string = "text"
+
+	rfc2822 string = "Mon Jan 02 15:04:05 -0700 2006"
 )
 
 type Configuration struct {
@@ -29,14 +32,17 @@ type Configuration struct {
 	From     string `field:"from"`
 	To       string `field:"to"`
 	Format   string `field:"format" default:"html"`
-	TLS      bool   `field:"tls" default:"true"`
+	TLS      bool   `field:"tls" default:"false"`
 }
 
 // Payload
 type Payload struct {
+	From    string
 	To      string
 	Subject string
 	Body    string
+	Mime    string
+	Date    string
 }
 
 var smtpconfig *Configuration
@@ -70,16 +76,18 @@ func NewPayload(log utils.LogLine) (Payload, error) {
 	}
 
 	payload := Payload{
+		From:    fmt.Sprintf("From: %v", smtpconfig.From),
 		To:      fmt.Sprintf("To: %v", smtpconfig.To),
 		Subject: fmt.Sprintf("Subject: [falco] Action `%v` from rule `%v` has been %vsuccessfully triggered", log.Action, log.Rule, statusPrefix),
-		Body:    "MIME-version: 1.0;\n",
+		Mime:    "MIME-version: 1.0;",
+		Date:    "Date: " + time.Now().Format(rfc2822),
 	}
 
 	if smtpconfig.Format != Text {
-		payload.Body += "Content-Type: multipart/alternative; boundary=4t74weu9byeSdJTM\n\n\n--4t74weu9byeSdJTM\n"
+		payload.Mime += "\nContent-Type: multipart/alternative; boundary=4t74weu9byeSdJTM\n\n\n--4t74weu9byeSdJTM"
 	}
 
-	payload.Body += "Content-Type: text/plain; charset=\"UTF-8\";\n\n"
+	payload.Mime += "\nContent-Type: text/plain; charset=\"UTF-8\";\n\n"
 
 	var err error
 
@@ -93,13 +101,10 @@ func NewPayload(log utils.LogLine) (Payload, error) {
 	if err != nil {
 		return Payload{}, err
 	}
-	payload.Body += outtext.String()
 
 	if smtpconfig.Format == Text {
 		return payload, nil
 	}
-
-	payload.Body += "--4t74weu9byeSdJTM\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
 
 	htmpl := textTemplate.New("html")
 	htmpl, err = htmpl.Parse(htmlTmpl)
@@ -112,7 +117,16 @@ func NewPayload(log utils.LogLine) (Payload, error) {
 	if err != nil {
 		return Payload{}, err
 	}
-	payload.Body += outhtml.String()
+
+	payload.Body = fmt.Sprintf("%v\n%v\n%v\n%v\n%v\n%v\n\n%v",
+		payload.From,
+		payload.To,
+		payload.Date,
+		payload.Mime,
+		outtext.String(),
+		"--4t74weu9byeSdJTM\nContent-Type: text/html; charset=\"UTF-8\";",
+		outhtml.String(),
+	)
 
 	return payload, nil
 }
@@ -120,7 +134,6 @@ func NewPayload(log utils.LogLine) (Payload, error) {
 func Send(payload Payload) error {
 	to := strings.Split(strings.ReplaceAll(smtpconfig.To, " ", ""), ",")
 	auth := sasl.NewPlainClient("", smtpconfig.User, smtpconfig.Password)
-	body := payload.To + "\n" + payload.Subject + "\n" + payload.Body
 
 	smtpClient, err := smtp.Dial(smtpconfig.HostPort)
 	if err != nil {
@@ -140,7 +153,7 @@ func Send(payload Payload) error {
 	if err != nil {
 		return err
 	}
-	err = smtpClient.SendMail(smtpconfig.From, to, strings.NewReader(body))
+	err = smtpClient.SendMail(smtpconfig.From, to, strings.NewReader(payload.Body))
 	if err != nil {
 		return err
 	}

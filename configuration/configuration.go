@@ -76,8 +76,6 @@ func CreateConfiguration(configFile string) *Configuration {
 		utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: fmt.Sprintf("error unmarshalling config file: '%v'", err.Error())})
 	}
 
-	// fmt.Printf("%#v\n", config)
-
 	return config
 }
 

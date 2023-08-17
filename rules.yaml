@@ -1,27 +1,27 @@
+- name: Rule Script
+  match:
+    rules:
+      - Test Script
+  action:
+    name: kubernetes:script
+    parameters:
+      script: |-
+        date
+        curl https://httpbin.org/ip
+- name: Rule Label
+  match:
+    rules:
+      - Test Label
+  action:
+    name: kubernetes:labelize
+    parameters:
+      labels:
+        suspicious: "true"
 - name: Rule Terminate
   match:
     rules:
-      - Terminal Shell in a Container
-      - Create files below dev
-      - Detect crypto miners using the Stratum protocol
-      - Launch Suspicious Network Tool in Container
-      - Detect outbound connections to common miner pool
-      - Malicious process detected
-      - Malicious IPs or domains detected on command line
-      - Malicious C2 IPs or domains exploiting log4j (Copy)
-      - Malicious binary detected
-      - Modify ld.so.preload
-      - Linux Kernel Module Injection Detected
-      - Launch Remote File Copy Tools in Container
-      - Unexpected K8s NodePort Connection
-      - Container Drift Detected (chmod)
-      - Packet socket created in container
-      - Redirect STDOUT/STDIN to Network Connection in Container
-      - Contact K8S API Server From Container
-      - The docker client is executed in a container
-      - Netcat Remote Code Execution in Container
-      - Container Drift Detected (open+create)
+      - Test Terminate
   action:
     name: kubernetes:terminate
     parameters:
-      gracePeriodSeconds: 3
+      minHealthyReplicas: "50%"

@@ -7,3 +7,5 @@ curl -XPOST "http://localhost:2803/" -d'{"output":"Test","priority":"Warning","R
 curl -XPOST "http://localhost:2803/" -d'{"output":"Test","priority":"Critical","Rule":"Test NetworkPolicy","time":"2019-05-17T15:31:56.746609046Z", "output_fields": {"k8s.pod.name":"static-web", "k8s.ns.name":"default", "fd.rip":"8.8.8.8", "fd.rport":"8888"}}'
 
 curl -XPOST "http://localhost:2803/" -d'{"output":"Test","priority":"Warning","Rule":"Test Exec","time":"2019-05-17T15:31:56.746609046Z", "output_fields": {"k8s.pod.name":"static-web", "k8s.ns.name":"default"}}'
+
+curl -XPOST "http://localhost:2803/" -d'{"output":"Test script","priority":"Warning","Rule":"Test Script","time":"2019-05-17T15:31:56.746609046Z", "output_fields": {"k8s.pod.name":"alpine", "k8s.ns.name":"default"}}'

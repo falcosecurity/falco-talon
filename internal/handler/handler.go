@@ -29,6 +29,7 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	event, err := events.DecodeEvent(r.Body)
 	if err != nil {
+		http.Error(w, "Please send a valid request body", http.StatusBadRequest)
 		return
 	}
 
@@ -41,42 +42,46 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 		TraceID:  event.TraceID,
 	})
 
-	enabledRules := rules.GetRules()
-	triggeredRules := make([]*rules.Rule, 0)
-	for _, i := range *enabledRules {
-		if i.CompareRule(&event) {
-			triggeredRules = append(triggeredRules, i)
-		}
-	}
+	go func() {
 
-	a := actionners.GetActionners()
-	// we trigger rules with before=true
-	for i, j := range triggeredRules {
-		if a.GetActionner(j.GetActionCategory(), j.GetActionName()) == nil {
-			continue
+		enabledRules := rules.GetRules()
+		triggeredRules := make([]*rules.Rule, 0)
+		for _, i := range *enabledRules {
+			if i.CompareRule(&event) {
+				triggeredRules = append(triggeredRules, i)
+			}
 		}
-		if j.Before == trueStr || j.Before != falseStr && a.GetActionner(j.GetActionCategory(), j.GetActionName()).RunBefore() {
-			actionners.Trigger(j, &event)
-			triggeredRules = removeAlreadyTriggeredRule(triggeredRules, i)
+
+		a := actionners.GetActionners()
+		// we trigger rules with before=true
+		for i, j := range triggeredRules {
+			if a.GetActionner(j.GetActionCategory(), j.GetActionName()) == nil {
+				continue
+			}
+			if j.Before == trueStr || j.Before != falseStr && a.GetActionner(j.GetActionCategory(), j.GetActionName()).RunBefore() {
+				actionners.Trigger(j, &event)
+				triggeredRules = removeAlreadyTriggeredRule(triggeredRules, i)
+			}
 		}
-	}
-	// we trigger then rules with continue=false
-	for _, i := range triggeredRules {
-		if a.GetActionner(i.GetActionCategory(), i.GetActionName()) == nil {
-			continue
+		// we trigger then rules with continue=false
+		for _, i := range triggeredRules {
+			if a.GetActionner(i.GetActionCategory(), i.GetActionName()) == nil {
+				continue
+			}
+			if i.Continue == falseStr || i.Continue != trueStr && !a.GetActionner(i.GetActionCategory(), i.GetActionName()).MustContinue() {
+				actionners.Trigger(i, &event)
+				return
+			}
 		}
-		if i.Continue == falseStr || i.Continue != trueStr && !a.GetActionner(i.GetActionCategory(), i.GetActionName()).MustContinue() {
+		// we trigger after rules with continue=true and before=false
+		for _, i := range triggeredRules {
+			if a.GetActionner(i.GetActionCategory(), i.GetActionName()) == nil {
+				continue
+			}
 			actionners.Trigger(i, &event)
-			return
 		}
-	}
-	// we trigger after rules with continue=true and before=false
-	for _, i := range triggeredRules {
-		if a.GetActionner(i.GetActionCategory(), i.GetActionName()) == nil {
-			continue
-		}
-		actionners.Trigger(i, &event)
-	}
+	}()
+
 }
 
 // HealthHandler is a simple handler to test if daemon is UP.

@@ -89,7 +89,7 @@ var Labelize = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error
 
 var CheckParameters = func(rule *rules.Rule) error {
 	parameters := rule.GetParameters()
-	if err := utils.CheckParameters(parameters, "labels", utils.MapInterfaceStr, true); err != nil {
+	if err := utils.CheckParameters(parameters, "labels", utils.MapInterfaceStr, nil, true); err != nil {
 		return err
 	}
 	if len(parameters["labels"].(map[string]interface{})) == 0 {
