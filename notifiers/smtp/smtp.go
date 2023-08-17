@@ -23,6 +23,10 @@ const (
 	Text  string = "text"
 
 	rfc2822 string = "Mon Jan 02 15:04:05 -0700 2006"
+
+	successStr string = "success"
+	failureStr string = "failure"
+	ignoredStr string = "ignored"
 )
 
 type Configuration struct {
@@ -72,12 +76,12 @@ var Notify = func(log utils.LogLine) error {
 func NewPayload(log utils.LogLine) (Payload, error) {
 	var status string
 	switch log.Status {
-	case "failure":
+	case failureStr:
 		status = "unsuccessfully triggered"
-	case "success":
+	case successStr:
 		status = "successfully triggered"
-	case "ignored":
-		status = "ignored"
+	case ignoredStr:
+		status = ignoredStr
 	}
 
 	payload := Payload{

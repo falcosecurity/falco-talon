@@ -12,6 +12,12 @@ const (
 	Red   string = "#e20b0b"
 	Green string = "#23ba47"
 	Grey  string = "#a4a8b1"
+
+	successStr string = "success"
+	failureStr string = "failure"
+	ignoredStr string = "ignored"
+
+	resultStr string = "result"
 )
 
 type Configuration struct {
@@ -75,18 +81,18 @@ func NewPayload(log utils.LogLine) Payload {
 
 	var color, status, resultOrError string
 	switch log.Status {
-	case "failure":
+	case failureStr:
 		color = Red
 		status = "unsuccessfully triggered"
 		resultOrError = "error"
-	case "success":
+	case successStr:
 		color = Green
 		status = "successfully triggered"
-		resultOrError = "result"
-	case "ignored":
+		resultOrError = resultStr
+	case ignoredStr:
 		color = Grey
-		status = "ignored"
-		resultOrError = "result"
+		status = ignoredStr
+		resultOrError = resultStr
 	}
 	attachment.Color = color
 
