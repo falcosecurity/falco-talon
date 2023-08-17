@@ -3,6 +3,7 @@ package script
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 
 	corev1 "k8s.io/api/core/v1"
@@ -41,7 +42,10 @@ var Script = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) 
 	defer writer.Close()
 
 	go func() {
-		writer.Write([]byte(*script))
+		_, err := writer.Write([]byte(*script))
+		if err != nil {
+			fmt.Println(err)
+		}
 	}()
 
 	client := kubernetes.GetClient()

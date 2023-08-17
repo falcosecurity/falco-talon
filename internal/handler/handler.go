@@ -43,7 +43,6 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	go func() {
-
 		enabledRules := rules.GetRules()
 		triggeredRules := make([]*rules.Rule, 0)
 		for _, i := range *enabledRules {
@@ -81,7 +80,6 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 			actionners.Trigger(i, &event)
 		}
 	}()
-
 }
 
 // HealthHandler is a simple handler to test if daemon is UP.
