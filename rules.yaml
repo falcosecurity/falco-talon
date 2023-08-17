@@ -24,4 +24,6 @@
   action:
     name: kubernetes:terminate
     parameters:
-      minHealthyReplicas: "50%"
+      minHealthyReplicas: "1"
+      ignoreDaemonsets: true
+      ignoreStatefulsets: true

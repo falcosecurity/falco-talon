@@ -11,7 +11,7 @@ import (
 const (
 	Red   string = "#e20b0b"
 	Green string = "#23ba47"
-	Blue  string = "#206cff"
+	Grey  string = "#a4a8b1"
 )
 
 type Configuration struct {
@@ -73,22 +73,27 @@ func NewPayload(log utils.LogLine) Payload {
 	var attachments []Attachment
 	var attachment Attachment
 
-	var color, statusPrefix, resultError string
+	var color, status, resultOrError string
 	switch log.Status {
 	case "failure":
 		color = Red
-		statusPrefix = "un"
-		resultError = "error"
+		status = "unsuccessfully triggered"
+		resultOrError = "error"
 	case "success":
 		color = Green
-		resultError = "result"
+		status = "successfully triggered"
+		resultOrError = "result"
+	case "ignored":
+		color = Grey
+		status = "ignored"
+		resultOrError = "result"
 	}
 	attachment.Color = color
 
-	text := fmt.Sprintf("Action `%v` from rule `%v` has been %vsuccessfully triggered", log.Action, log.Rule, statusPrefix)
+	text := fmt.Sprintf("Action `%v` from rule `%v` has been %v", log.Action, log.Rule, status)
 
 	if slackconfig.Format == "short" {
-		attachment.Text = text + fmt.Sprintf(", with %v: `%v`", resultError, log.Message)
+		attachment.Text = text + fmt.Sprintf(", with %v: `%v`", resultOrError, log.Message)
 		text = ""
 	} else {
 		var fields []Field

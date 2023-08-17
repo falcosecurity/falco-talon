@@ -168,12 +168,18 @@ func (actionners *Actionners) Add(actionner ...*Actionner) {
 func Trigger(rule *rules.Rule, event *events.Event) {
 	config := configuration.GetConfiguration()
 	actionners := GetActionners()
+	if actionners == nil {
+		return
+	}
 	action := rule.GetAction()
 	actionName := rule.GetActionName()
 	category := rule.GetActionCategory()
 	ruleName := rule.GetName()
 	utils.PrintLog("info", config.LogFormat, utils.LogLine{Rule: ruleName, Action: action, TraceID: event.TraceID, Message: "match"})
 	for _, i := range *actionners {
+		if i == nil {
+			continue
+		}
 		if i.Category == category && i.Name == actionName {
 			if len(i.Checks) != 0 {
 				for _, j := range i.Checks {

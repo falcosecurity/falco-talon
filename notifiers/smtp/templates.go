@@ -25,6 +25,7 @@ var htmlTmpl = `
 {{ $prio := printf "%v" .Status }}
 {{ if eq $prio "success" }}{{ $color = "#23ba47" }}{{ end }}
 {{ if eq $prio "failure" }}{{ $color = "#e20b0b" }}{{ end }}
+{{ if eq $prio "ignored" }}{{ $color = "#a4a8b1" }}{{ end }}
 
 <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
 <style type="text/css">

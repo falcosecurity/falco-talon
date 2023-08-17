@@ -1,13 +1,10 @@
 package terminate
 
 import (
-	"context"
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/Issif/falco-talon/internal/events"
 	kubernetes "github.com/Issif/falco-talon/internal/kubernetes/client"
@@ -32,7 +29,7 @@ var Terminate = func(rule *rules.Rule, event *events.Event) (utils.LogLine, erro
 
 	client := kubernetes.GetClient()
 
-	if parameters["ignoreDaemonsets"] != nil || parameters["ignorStafulsets"] != nil || parameters["minHealthyReplicas"] != nil {
+	if parameters["ignoreDaemonsets"] != nil || parameters["ignoreStatefulsets"] != nil || parameters["minHealthyReplicas"] != nil {
 		pod, err := client.GetPod(podName, namespace)
 		if err != nil {
 			return utils.LogLine{
@@ -49,7 +46,7 @@ var Terminate = func(rule *rules.Rule, event *events.Event) (utils.LogLine, erro
 				if parameters["ignoreDaemonsets"].(bool) {
 					return utils.LogLine{
 							Objects: objects,
-							Message: "the pod belongs to a Daemonset and ignoreDaemonsets is true",
+							Result:  fmt.Sprintf("the pod %v in the namespace %v belongs to a Daemonset and ignoreDaemonsets is true", podName, namespace),
 							Status:  "ignored",
 						},
 						nil
@@ -58,13 +55,13 @@ var Terminate = func(rule *rules.Rule, event *events.Event) (utils.LogLine, erro
 				if parameters["ignoreStatefulsets"].(bool) {
 					return utils.LogLine{
 							Objects: objects,
-							Message: "the pod belongs to a Statefulset and ignoreStatefulsets is true",
+							Result:  fmt.Sprintf("the pod %v in the namespace %v belongs to a Statefulset and ignoreStatefulsets is true", podName, namespace),
 							Status:  "ignored",
 						},
 						nil
 				}
 			case "ReplicaSet":
-				if parameters["minHealthyReplicast"] != nil {
+				if parameters["minHealthyReplicas"] != nil {
 					u, errG := client.GetReplicasetFromPod(pod)
 					if errG != nil {
 						return utils.LogLine{
@@ -82,39 +79,41 @@ var Terminate = func(rule *rules.Rule, event *events.Event) (utils.LogLine, erro
 							},
 							fmt.Errorf("can't find the replicaset for the pod %v in namespace %v", podName, namespace)
 					}
-					if strings.Contains(fmt.Sprintf("%v", parameters["minHealthyReplicast"]), "%") {
-						v, _ := strconv.ParseInt(strings.Split(parameters["minHealthyReplicast"].(string), "%")[0], 10, 64)
-						if v > int64(u.Status.ReadyReplicas/u.Status.FullyLabeledReplicas) {
+					if strings.Contains(fmt.Sprintf("%v", parameters["minHealthyReplicas"]), "%") {
+						v, _ := strconv.ParseInt(strings.Split(parameters["minHealthyReplicas"].(string), "%")[0], 10, 64)
+						if v > int64(100*u.Status.ReadyReplicas/u.Status.Replicas) {
 							return utils.LogLine{
 									Objects: objects,
-									Error:   fmt.Sprintf("not enough healthy pods in the replicaset of pod %v in namespace %v", podName, namespace),
-									Status:  "failure",
+									Result:  fmt.Sprintf("not enough healthy pods in the replicaset of the pod %v in namespace %v", podName, namespace),
+									Status:  "ignored",
 								},
-								fmt.Errorf("not enough healthy pods in the replicaset of pod %v in namespace %v", podName, namespace)
+								fmt.Errorf("not enough healthy pods in the replicaset of the pod %v in namespace %v", podName, namespace)
 						}
-					}
-					if parameters["minHealthyReplicast"].(int32) > u.Status.ReadyReplicas {
-						return utils.LogLine{
-								Objects: objects,
-								Error:   fmt.Sprintf("not enough healthy pods in the replicaset of pod %v in namespace %v", podName, namespace),
-								Status:  "failure",
-							},
-							fmt.Errorf("not enough healthy pods in the replicaset of pod %v in namespace %v", podName, namespace)
+					} else {
+						v, _ := strconv.ParseInt(parameters["minHealthyReplicas"].(string), 10, 64)
+						if v > int64(u.Status.ReadyReplicas) {
+							return utils.LogLine{
+									Objects: objects,
+									Result:  fmt.Sprintf("not enough healthy pods in the replicaset of the pod %v in namespace %v", podName, namespace),
+									Status:  "ignored",
+								},
+								fmt.Errorf("not enough healthy pods in the replicaset of the pod %v in namespace %v", podName, namespace)
+						}
 					}
 				}
 			}
 		}
 	}
 
-	err := client.Clientset.CoreV1().Pods(namespace).Delete(context.Background(), podName, metav1.DeleteOptions{GracePeriodSeconds: gracePeriodSeconds})
-	if err != nil {
-		return utils.LogLine{
-				Objects: objects,
-				Status:  "failure",
-				Error:   err.Error(),
-			},
-			err
-	}
+	// err := client.Clientset.CoreV1().Pods(namespace).Delete(context.Background(), podName, metav1.DeleteOptions{GracePeriodSeconds: gracePeriodSeconds})
+	// if err != nil {
+	// 	return utils.LogLine{
+	// 			Objects: objects,
+	// 			Status:  "failure",
+	// 			Error:   err.Error(),
+	// 		},
+	// 		err
+	// }
 	return utils.LogLine{
 			Objects: objects,
 			Status:  "success",

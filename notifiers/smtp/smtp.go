@@ -11,7 +11,7 @@ import (
 	textTemplate "text/template"
 
 	sasl "github.com/emersion/go-sasl"
-	smtp "github.com/emersion/go-smtp"
+	gosmtp "github.com/emersion/go-smtp"
 
 	"github.com/Issif/falco-talon/utils"
 )
@@ -19,7 +19,7 @@ import (
 const (
 	Red   string = "#e20b0b"
 	Green string = "#23ba47"
-	Blue  string = "#206cff"
+	Grey  string = "#a4a8b1"
 	Text  string = "text"
 
 	rfc2822 string = "Mon Jan 02 15:04:05 -0700 2006"
@@ -70,15 +70,20 @@ var Notify = func(log utils.LogLine) error {
 }
 
 func NewPayload(log utils.LogLine) (Payload, error) {
-	var statusPrefix string
-	if log.Status == "failure" {
-		statusPrefix = "un"
+	var status string
+	switch log.Status {
+	case "failure":
+		status = "unsuccessfully triggered"
+	case "success":
+		status = "successfully triggered"
+	case "ignored":
+		status = "ignored"
 	}
 
 	payload := Payload{
 		From:    fmt.Sprintf("From: %v", smtpconfig.From),
 		To:      fmt.Sprintf("To: %v", smtpconfig.To),
-		Subject: fmt.Sprintf("Subject: [falco] Action `%v` from rule `%v` has been %vsuccessfully triggered", log.Action, log.Rule, statusPrefix),
+		Subject: fmt.Sprintf("Subject: [falco] Action `%v` from rule `%v` has been %v", log.Action, log.Rule, status),
 		Mime:    "MIME-version: 1.0;",
 		Date:    "Date: " + time.Now().Format(rfc2822),
 	}
@@ -135,7 +140,7 @@ func Send(payload Payload) error {
 	to := strings.Split(strings.ReplaceAll(smtpconfig.To, " ", ""), ",")
 	auth := sasl.NewPlainClient("", smtpconfig.User, smtpconfig.Password)
 
-	smtpClient, err := smtp.Dial(smtpconfig.HostPort)
+	smtpClient, err := gosmtp.Dial(smtpconfig.HostPort)
 	if err != nil {
 		return err
 	}
