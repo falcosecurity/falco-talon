@@ -44,7 +44,6 @@ rules:
       - list
       - update
       - patch
-      - delete
   - apiGroups:
       - networking.k8s.io
     resources:
