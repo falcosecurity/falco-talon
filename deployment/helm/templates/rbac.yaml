@@ -45,6 +45,16 @@ rules:
       - update
       - patch
   - apiGroups:
+      - apps
+    resources:
+      - daemonsets
+      - deployments
+      - replicasets
+      - statefulsets
+    verbs:
+      - get
+      - list
+  - apiGroups:
       - networking.k8s.io
     resources:
       - networkpolicies
