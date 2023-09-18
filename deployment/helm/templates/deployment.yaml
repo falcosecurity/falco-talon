@@ -36,7 +36,7 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args: ["server", "-c", "/etc/config/config.yaml"]
+          args: ["server", "-c", "/etc/config/config.yaml", "-r", "/etc/rules/rules.yaml"]
           ports:
             - name: http
               containerPort: 2803
@@ -62,6 +62,7 @@ spec:
           volumeMounts:
             - name: "rules"
               mountPath: "/etc/rules/"
+              readOnly: true
             - name: "config"
               mountPath: "/etc/config/"
               readOnly: true
