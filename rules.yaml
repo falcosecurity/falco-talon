@@ -1,29 +1,11 @@
-- name: Rule Script
-  match:
-    rules:
-      - Test Script
-  action:
-    name: kubernetes:script
-    parameters:
-      script: |-
-        date
-        curl https://httpbin.org/ip
-- name: Rule Label
-  match:
-    rules:
-      - Test Label
-  action:
-    name: kubernetes:labelize
-    parameters:
-      labels:
-        suspicious: "true"
-- name: Rule Terminate
-  match:
-    rules:
-      - Test Terminate
-  action:
-    name: kubernetes:terminate
-    parameters:
-      minHealthyReplicas: "1"
-      ignoreDaemonsets: true
-      ignoreStatefulsets: true
+- name: Rule Test NetworkPolicy                                                                                                                                                                                    
+  match:                                                                                                                                                                                                           
+    rules:                                                                                                                                                                                                         
+      - DANGER UNWANTED outbound connection destination                                                                                                                                                            
+    priority: "Critical"                                                                                                                                                                                           
+  action:                                                                                                                                                                                                          
+    name: kubernetes:networkpolicy                                                                                                                                                                                 
+    parameters:                                                                                                                                                                                                    
+  continue: true                                                                                                                                                                                                   
+  notifiers:                                                                                                                                                                                                       
+    - slack  

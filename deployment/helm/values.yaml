@@ -7,7 +7,7 @@ replicaCount: 2
 image:
   registry: docker.io
   repository: issif/falco-talon
-  tag: v0.1.0-rc2
+  tag: latest
   pullPolicy: Always
 
 podSecurityPolicy:
