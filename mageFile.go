@@ -44,7 +44,7 @@ func BuildLocal() error {
 }
 
 // BuildImages build images locally and not push
-func BuildImages() error {
+func BuildLocaleImages() error {
 	exportLDFlags()
 	os.Setenv("KO_DOCKER_REPO", "ko.local/falco-talon")
 
@@ -52,11 +52,25 @@ func BuildImages() error {
 		"github.com/Issif/falco-talon")
 }
 
-func Build() error {
-	mg.Deps(Test)
-
+func BuildImages() error {
 	exportLDFlags()
-	return sh.RunV("goreleaser", "release", "--clean", "--skip-sign", "--skip-sbom", "--skip-publish")
+	os.Setenv("KO_DOCKER_REPO", "issif/falco-talon")
+
+	return sh.RunV("ko", "build", "--bare", "--sbom=none", "--tags", getVersion(), "--tags", getCommit(), "--tags", "latest",
+		"github.com/Issif/falco-talon")
+}
+
+func PushImages() error {
+	mg.Deps(BuildImages)
+	os.Setenv("KO_DOCKER_REPO", "issif/falco-talon")
+
+	return sh.RunV("ko", "build", "--bare", "--sbom=none", "--tags", getVersion(), "--tags", getCommit(), "--tags", "latest",
+		"github.com/Issif/falco-talon")
+}
+
+func Build() error {
+	exportLDFlags()
+	return sh.RunV("goreleaser", "release", "--clean", "--snapshot", "--skip-sbom", "--skip-publish")
 }
 
 func Release() error {
@@ -86,8 +100,10 @@ func getVersion() string {
 		return version
 	}
 
+	gitBranch, _ := sh.Output("git", "branch", "--show-current")
+
 	// repo without any tags in it
-	return "v0.0.0"
+	return gitBranch
 }
 
 // getCommit gets the hash of the current commit
