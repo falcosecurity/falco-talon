@@ -45,6 +45,12 @@ rules:
       - update
       - patch
   - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+  - apiGroups:
       - apps
     resources:
       - daemonsets
