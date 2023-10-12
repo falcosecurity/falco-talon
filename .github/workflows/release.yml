@@ -51,7 +51,6 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-
     - name: Push images to Dockerhub
       run: |
         docker manifest push --purge issif/falco-talon:latest
