@@ -10,9 +10,9 @@ permissions:
 
 jobs:
   lint:
-    uses: ./lint.yaml@main
+    uses: ./.github/workflows/lint.yml
   test:
-    uses: ./test.yaml@main
+    uses: ./.github/workflows/test.yml
   main:
     strategy:
       matrix:
