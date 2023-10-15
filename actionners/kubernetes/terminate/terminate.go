@@ -1,6 +1,7 @@
 package terminate
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	kubernetes "github.com/Issif/falco-talon/internal/kubernetes/client"
 	"github.com/Issif/falco-talon/internal/rules"
 	"github.com/Issif/falco-talon/utils"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var Terminate = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
@@ -105,15 +107,15 @@ var Terminate = func(rule *rules.Rule, event *events.Event) (utils.LogLine, erro
 		}
 	}
 
-	// err := client.Clientset.CoreV1().Pods(namespace).Delete(context.Background(), podName, metav1.DeleteOptions{GracePeriodSeconds: gracePeriodSeconds})
-	// if err != nil {
-	// 	return utils.LogLine{
-	// 			Objects: objects,
-	// 			Status:  "failure",
-	// 			Error:   err.Error(),
-	// 		},
-	// 		err
-	// }
+	err := client.Clientset.CoreV1().Pods(namespace).Delete(context.Background(), podName, metav1.DeleteOptions{GracePeriodSeconds: gracePeriodSeconds})
+	if err != nil {
+		return utils.LogLine{
+				Objects: objects,
+				Status:  "failure",
+				Error:   err.Error(),
+			},
+			err
+	}
 	return utils.LogLine{
 			Objects: objects,
 			Status:  "success",

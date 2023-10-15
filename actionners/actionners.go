@@ -189,7 +189,13 @@ func Trigger(rule *rules.Rule, event *events.Event) {
 					}
 				}
 			}
-			result, err := i.Action(rule, event)
+			result := utils.LogLine{
+				Output: "no action, dry-run is enabled",
+			}
+			var err error
+			if !rule.DryRun {
+				result, err = i.Action(rule, event)
+			}
 			result.Rule = ruleName
 			result.Action = action
 			result.TraceID = event.TraceID

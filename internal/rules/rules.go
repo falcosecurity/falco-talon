@@ -20,6 +20,7 @@ type Rule struct {
 	Continue  string   `yaml:"continue"`
 	Before    string   `yaml:"before"`
 	Match     Match    `yaml:"match"`
+	DryRun    bool     `yaml:"dry_run"`
 }
 
 type Action struct {

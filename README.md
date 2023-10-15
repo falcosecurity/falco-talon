@@ -201,6 +201,7 @@ Actions to trigger for events are set with rules with this syntax:
         <string>: <string>
   continue: <bool>
   before: <bool>
+  dry_run: <bool>
   notifiers:
     - <string>
     - <string>
@@ -219,6 +220,8 @@ With:
   * `parameters`: key:value map of parameters for the action. value can be a string, an int or a map.
 * `continue`: if `true`, no more action are applied after the rule has been triggerd (default is `true`).
 * `before`: if `true`, no more action are applied after the rule has been triggerd (default is `true`).
+* `dry_run`: if `true`; the action is not applied (default: `false`).
+* `notifiers`: list of notifiers to enabled for the action, in addition with the defaults.
 
 Examples:
 
