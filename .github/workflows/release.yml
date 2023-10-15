@@ -11,9 +11,9 @@ permissions:
 
 jobs:
   lint:
-    uses: ./lint.yaml
+    uses: ./lint.yaml@main
   test:
-    uses: ./test.yaml
+    uses: ./test.yaml@main
   release:
     strategy:
       matrix:
