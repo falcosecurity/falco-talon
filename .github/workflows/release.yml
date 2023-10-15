@@ -10,6 +10,10 @@ permissions:
   id-token: write # needed for keyless signing
 
 jobs:
+  lint:
+    uses: ./.github/workflows/lint.yaml
+  test:
+    uses: ./.github/workflows/test.yaml
   release:
     strategy:
       matrix:

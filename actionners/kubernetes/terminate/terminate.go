@@ -7,11 +7,12 @@ import (
 	"strconv"
 	"strings"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/Issif/falco-talon/internal/events"
 	kubernetes "github.com/Issif/falco-talon/internal/kubernetes/client"
 	"github.com/Issif/falco-talon/internal/rules"
 	"github.com/Issif/falco-talon/utils"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var Terminate = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
