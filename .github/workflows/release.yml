@@ -13,8 +13,10 @@ jobs:
   lint:
     uses: ./.github/workflows/lint.yml
   test:
+    needs: lint
     uses: ./.github/workflows/test.yml
   release:
+    needs: [lint, test]
     strategy:
       matrix:
         go-version: [1.21.x]
