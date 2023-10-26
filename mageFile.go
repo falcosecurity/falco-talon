@@ -12,6 +12,9 @@ import (
 )
 
 func Lint() error {
+	if err := sh.RunV("golangci-lint", "--version"); err != nil {
+		return err
+	}
 	if err := sh.RunV("golangci-lint", "run", "--timeout", "3m"); err != nil {
 		return err
 	}

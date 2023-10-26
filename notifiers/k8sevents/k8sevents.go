@@ -14,6 +14,10 @@ import (
 	"github.com/Issif/falco-talon/utils"
 )
 
+const (
+	falcoTalon = "falco-talon"
+)
+
 var plaintextTmpl = `Status: {{ .Status }}
 Action: {{ .Action }}
 Rule: {{ .Rule }}
@@ -60,23 +64,23 @@ var Notify = func(log utils.LogLine) error {
 			APIVersion: "v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "falco-talon.",
+			GenerateName: falcoTalon + ".",
 		},
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "Pod",
 			Namespace: log.Objects["Namespace"],
 			Name:      log.Objects["Pod"],
 		},
-		Reason:  "falco-talon:" + log.Action + ":" + log.Status,
+		Reason:  falcoTalon + ":" + log.Action + ":" + log.Status,
 		Message: strings.ReplaceAll(message, `'`, `"`),
 		Source: corev1.EventSource{
-			Component: "falco-talon",
+			Component: falcoTalon,
 		},
 		Type:                corev1.EventTypeNormal,
 		EventTime:           metav1.NowMicro(),
-		ReportingController: "falcosecurity.org/falco-talon",
-		ReportingInstance:   "falco-talon",
-		Action:              "falco-talon:" + log.Action,
+		ReportingController: "falcosecurity.org/" + falcoTalon,
+		ReportingInstance:   falcoTalon,
+		Action:              falcoTalon + ":" + log.Action,
 	}
 	k8sclient := kubernetes.GetClient()
 	_, err = k8sclient.CoreV1().Events(log.Objects["Namespace"]).Create(context.TODO(), k8sevent, metav1.CreateOptions{})

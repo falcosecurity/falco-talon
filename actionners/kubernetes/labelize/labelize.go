@@ -21,6 +21,10 @@ type patch struct {
 	Value string `json:"value,omitempty"`
 }
 
+const (
+	metadataLabels = "/metadata/labels/"
+)
+
 var Labelize = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
 	pod := event.GetPodName()
 	namespace := event.GetNamespaceName()
@@ -38,7 +42,7 @@ var Labelize = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error
 		}
 		payload = append(payload, patch{
 			Op:    "replace",
-			Path:  "/metadata/labels/" + i,
+			Path:  metadataLabels + i,
 			Value: fmt.Sprintf("%v", j),
 		})
 	}
@@ -64,7 +68,7 @@ var Labelize = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error
 		}
 		payload = append(payload, patch{
 			Op:   "remove",
-			Path: "/metadata/labels/" + i,
+			Path: metadataLabels + i,
 		})
 	}
 
