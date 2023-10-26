@@ -6,7 +6,7 @@ require (
 	github.com/emersion/go-sasl v0.0.0-20220912192320-0145f2c60ead
 	github.com/emersion/go-smtp v0.18.1
 	github.com/fsnotify/fsnotify v1.7.0
-	github.com/google/uuid v1.3.1
+	github.com/google/uuid v1.4.0
 	github.com/magefile/mage v1.15.0
 	github.com/rs/zerolog v1.31.0
 	github.com/spf13/cobra v1.7.0
