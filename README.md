@@ -291,7 +291,7 @@ Global Flags:
 
 ## Images
 
-The images for `falco-talon` is built using [ko](https://github.com/google/ko)
+The images for `falco-talon` are built using [ko](https://github.com/google/ko)
 
 To generate the images to test locally you can run `mage buildImagesLocal`
 
