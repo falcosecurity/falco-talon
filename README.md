@@ -307,6 +307,17 @@ cd deployment/helm/
 helm install falco-talon . -n falco --create-namespace
 ```
 
+#### Configure Falcosidekick
+
+Once you have installed `Falco Talon` with Helm, you need to connect `Falcosidekick` by adding the flag `--set falcosidekick.config.webhook.address=http://falco-talon:2803`
+```shell
+helm install falco falcosecurity/falco --namespace falco \
+  --create-namespace \
+  --set tty=true \
+  --set falcosidekick.enabled=true \
+  --set falcosidekick.config.webhook.address=http://falco-talon:2803
+```
+
 ## License
 
 MIT
