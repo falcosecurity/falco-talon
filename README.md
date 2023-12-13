@@ -11,7 +11,7 @@
     - [`kubernetes:networkpolicy`](#kubernetesnetworkpolicy)
     - [`kubernetes:exec`](#kubernetesexec)
   - [Notifiers](#notifiers)
-    - [K8SEvents](#k8sevents)
+    - [K8s Events](#k8s-events)
     - [Slack](#slack)
     - [SMTP](#smtp)
     - [Webhook](#webhook)
@@ -21,6 +21,7 @@
   - [Images](#images)
   - [Deployment](#deployment)
     - [Helm](#helm)
+      - [Configure Falcosidekick](#configure-falcosidekick)
   - [License](#license)
   - [Author](#author)
 
@@ -44,7 +45,6 @@ or
 * `rule`: defines criterias for linking events and actions
 * `actionner`: defines what to do when the event matches the rule
 * `notifier`: defines what outputs to notify with the result of the action
-
 
 ## Actionners
 
@@ -95,7 +95,7 @@ Several rules can match same event, so several action can be triggered, except f
 
 `Notifiers` define which outputs to notify with result of actions.
 
-### K8SEvents
+### K8s Events
 
 This notifiers creates a [k8s event](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#event-v1-events-k8s-io) in the target resource namespace. No configuration is requested.
 
@@ -146,12 +146,13 @@ Results:
 
 The configuration of `Falco Talon` is set with a `.yaml` file (default: `./config.yaml`) or with environment variables.
 
-| Setting            | Env var            |  Default  | Description                                                     |
+|      Setting       |      Env var       |  Default  |                           Description                           |
 | ------------------ | ------------------ | :-------: | --------------------------------------------------------------- |
 | `listenAddress`    | `LISTENADDRESS`    | `0.0.0.0` | Listten Address                                                 |
 | `listenPort`       | `LISTENPORT`       |  `2803`   | Listten Port                                                    |
 | `rulesFile`        | `RULESFILE`        |    n/a    | File with rules                                                 |
-| `watchRules`       | `WATCHRULES`       |  `true`   | reload rules if they change                                     |
+| `watchRules`       | `WATCHRULES`       |  `true`   | Reload rules if they change                                     |
+| `printAllEvents`   | `PRINTALLEVENTS`   |  `true`   | Print in logs all received events, not only those which match   |
 | `kubeConfig`       | `KUBECONFIG`       |    n/a    | Kube config file, only if `Falco Talon` runs outside Kubernetes |
 | `logFormat`        | `LOGFORMAT`        |  `color`  | Log Format: text, color, json                                   |
 | `defaultNotifiers` | `DEFAULTNOTIFIERS` |    n/a    | List of `notifiers` which are enabled for all rules             |

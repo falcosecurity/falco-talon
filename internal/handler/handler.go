@@ -33,14 +33,16 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.PrintLog("info", config.LogFormat, utils.LogLine{
-		Rule:     event.Rule,
-		Priority: event.Priority,
-		Output:   event.Output,
-		Source:   event.Source,
-		Message:  "event",
-		TraceID:  event.TraceID,
-	})
+	if config.PrintAllEvents {
+		utils.PrintLog("info", config.LogFormat, utils.LogLine{
+			Rule:     event.Rule,
+			Priority: event.Priority,
+			Output:   event.Output,
+			Source:   event.Source,
+			Message:  "event",
+			TraceID:  event.TraceID,
+		})
+	}
 
 	go func() {
 		enabledRules := rules.GetRules()
@@ -49,6 +51,21 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 			if i.CompareRule(&event) {
 				triggeredRules = append(triggeredRules, i)
 			}
+		}
+
+		if len(triggeredRules) == 0 {
+			return
+		}
+
+		if !config.PrintAllEvents {
+			utils.PrintLog("info", config.LogFormat, utils.LogLine{
+				Rule:     event.Rule,
+				Priority: event.Priority,
+				Output:   event.Output,
+				Source:   event.Source,
+				Message:  "event",
+				TraceID:  event.TraceID,
+			})
 		}
 
 		a := actionners.GetActionners()

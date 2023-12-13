@@ -12,10 +12,11 @@ import (
 )
 
 const (
-	defaultListenAddress string = "0.0.0.0"
-	defaultListPort      int    = 2803
-	DefaultRulesFile     string = "/etc/falco-talon/rules.yaml"
-	defaultWatchRules    bool   = true
+	defaultListenAddress  string = "0.0.0.0"
+	defaultListPort       int    = 2803
+	DefaultRulesFile      string = "/etc/falco-talon/rules.yaml"
+	defaultWatchRules     bool   = true
+	defaultPrintAllEvents bool   = true
 )
 
 // type Actionner interface {
@@ -38,6 +39,7 @@ type Configuration struct {
 	DefaultNotifiers []string
 	ListenPort       int
 	WatchRules       bool
+	PrintAllEvents   bool
 }
 
 var config *Configuration
@@ -55,6 +57,7 @@ func CreateConfiguration(configFile string) *Configuration {
 	v.SetDefault("Logformat", "color")
 	v.SetDefault("DefaultNotifiers", []string{})
 	v.SetDefault("WatchRules", defaultWatchRules)
+	v.SetDefault("PrintAllEvents", defaultPrintAllEvents)
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
