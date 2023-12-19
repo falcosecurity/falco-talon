@@ -1,4 +1,4 @@
-# Falco Talon
+ # Falco Talon
 
 `Falco Talon` is a Response Engine for managing threats in your Kubernetes. It enhances the solutions proposed by Falco community with a no-code dedicated solution. With easy rules, you can react to `events` from [`Falco`](https://falco.org) in milliseconds.
 
@@ -66,6 +66,9 @@ Several rules can match same event, so several action can be triggered, except f
   * `ignoreDaemonsets`: If true, the pods which belong to a Daemonset are not terminated.
   * `ignoreStatefulsets`: If true, the pods which belong to a Statefulset are not terminated.
   * `minHealthyReplicas`: Minimum number of healthy pods to allow the termination, can be an absolute or % value (the value must be a quoted string).
+* Required fields:
+  * `k8s.pod.name`
+  * `k8s.ns.name`
 
 ### `kubernetes:labelize`
 
@@ -74,6 +77,9 @@ Several rules can match same event, so several action can be triggered, except f
 * Before: `false`
 * Parameters: 
   * `labels`: key:value map of labels to add/modify/delete (empty value means label deletion)
+* Required fields:
+  * `k8s.pod.name`
+  * `k8s.ns.name`
 
 ### `kubernetes:networkpolicy`
 
@@ -81,6 +87,11 @@ Several rules can match same event, so several action can be triggered, except f
 * Continue: `true`
 * Before: `true`
 * Parameters: N/A
+* Required fields:
+  * `k8s.pod.name`
+  * `k8s.ns.name`
+  * `fd.sip` or `fd.rip`
+  * `fd.sport` or `fd.rport`
 
 ### `kubernetes:exec`
 
@@ -90,6 +101,9 @@ Several rules can match same event, so several action can be triggered, except f
 * Parameters:
   * `shell`: SHELL used to run the command (default; `/bin/sh`)
   * `command` Command to run
+* Required fields:
+  * `k8s.pod.name`
+  * `k8s.ns.name`
 
 ## Notifiers
 
