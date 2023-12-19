@@ -1,11 +1,22 @@
-- name: Rule Test NetworkPolicy                                                                                                                                                                                    
-  match:                                                                                                                                                                                                           
-    rules:                                                                                                                                                                                                         
-      - DANGER UNWANTED outbound connection destination                                                                                                                                                            
-    priority: "Critical"                                                                                                                                                                                           
-  action:                                                                                                                                                                                                          
-    name: kubernetes:networkpolicy                                                                                                                                                                                 
-    parameters:                                                                                                                                                                                                    
-  continue: true                                                                                                                                                                                                   
-  notifiers:                                                                                                                                                                                                       
-    - slack  
+- name: Rule Test Script
+  match:
+    rules:
+      - Test Script
+  action:
+    name: kubernetes:script
+    parameters:
+      shell: sh
+      script: |
+        #!/bin/sh
+        uname
+        uname -r
+        uname -a
+        echo "hello world"
+- name: Rule Test NetworkPolicy
+  match:
+    rules:
+      - DANGER UNWANTED outbound connection destination
+  action:
+    name: kubernetes:networkpolicy
+    parameters:
+  continue: true

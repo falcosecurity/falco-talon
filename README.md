@@ -10,6 +10,7 @@
     - [`kubernetes:labelize`](#kuberneteslabelize)
     - [`kubernetes:networkpolicy`](#kubernetesnetworkpolicy)
     - [`kubernetes:exec`](#kubernetesexec)
+    - [`kubernetes:script`](#kubernetesscript)
   - [Notifiers](#notifiers)
     - [K8s Events](#k8s-events)
     - [Slack](#slack)
@@ -95,12 +96,24 @@ Several rules can match same event, so several action can be triggered, except f
 
 ### `kubernetes:exec`
 
-* Description: **Create, update a network policy to block the egress**
+* Description: **Exec a command in a pod**
 * Continue: `true`
 * Before: `true`
 * Parameters:
   * `shell`: SHELL used to run the command (default; `/bin/sh`)
   * `command` Command to run
+* Required fields:
+  * `k8s.pod.name`
+  * `k8s.ns.name`
+
+### `kubernetes:script`
+
+* Description: **Run a script in a pod**
+* Continue: `true`
+* Before: `true`
+* Parameters:
+  * `shell`: SHELL used to run the script (default; `/bin/sh`)
+  * `script` Script to run (use `|` to use multiline)
 * Required fields:
   * `k8s.pod.name`
   * `k8s.ns.name`

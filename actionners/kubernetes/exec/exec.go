@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/remotecommand"
@@ -41,14 +42,21 @@ var Exec = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
 
 	p, _ := client.GetPod(pod, namespace)
 	containers := kubernetes.GetContainers(p)
+	if len(containers) == 0 {
+		err := fmt.Errorf("no container found")
+		return utils.LogLine{
+				Objects: objects,
+				Error:   err.Error(),
+				Status:  "failure",
+			},
+			err
+	}
 
 	var err error
-	var container string
 	buf := &bytes.Buffer{}
 	errBuf := &bytes.Buffer{}
 	var exec remotecommand.Executor
-	for i, j := range containers {
-		container = j
+	for i, container := range containers {
 		request := client.CoreV1().RESTClient().
 			Post().
 			Namespace(namespace).
@@ -56,16 +64,16 @@ var Exec = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
 			Name(pod).
 			SubResource("exec").
 			VersionedParams(&corev1.PodExecOptions{
-				Container: j,
+				Container: container,
 				Command:   []string{*shell, "-c", *command},
 				Stdin:     false,
 				Stdout:    true,
 				Stderr:    true,
-				TTY:       true,
+				TTY:       false,
 			}, scheme.ParameterCodec)
 		exec, err = remotecommand.NewSPDYExecutor(client.RestConfig, "POST", request.URL())
 		if err != nil {
-			if i == len(container)-1 {
+			if i == len(containers)-1 {
 				return utils.LogLine{
 					Objects: objects,
 					Error:   err.Error(),
@@ -76,13 +84,15 @@ var Exec = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
 		}
 	}
 	err = exec.StreamWithContext(context.Background(), remotecommand.StreamOptions{
+		Stdin:  nil,
 		Stdout: buf,
 		Stderr: errBuf,
+		Tty:    false,
 	})
 	if err != nil {
 		return utils.LogLine{
 				Objects: objects,
-				Error:   err.Error(),
+				Error:   errBuf.String(),
 				Status:  "failure",
 			},
 			err
