@@ -3,13 +3,12 @@ package networkpolicy
 import (
 	"context"
 	"fmt"
-	"strconv"
+	"net"
 
 	v1 "k8s.io/api/apps/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	errorsv1 "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/Issif/falco-talon/internal/events"
 	kubernetes "github.com/Issif/falco-talon/internal/kubernetes/client"
@@ -161,7 +160,21 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 
 	delete(labels, "pod-template-hash")
 
-	np, err := createEgressRule(event)
+	payload := networkingv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      owner,
+			Namespace: namespace,
+			Labels:    labels,
+		},
+		Spec: networkingv1.NetworkPolicySpec{
+			PolicyTypes: []networkingv1.PolicyType{"Egress"},
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: labels,
+			},
+		},
+	}
+
+	np, err := createEgressRule(rule)
 	if err != nil {
 		return utils.LogLine{
 				Objects: objects,
@@ -171,45 +184,26 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 			err
 	}
 
+	if np != nil {
+		payload.Spec.Egress = []networkingv1.NetworkPolicyEgressRule{*np}
+	}
+
 	var status string
-	n, err := client.NetworkingV1().NetworkPolicies(namespace).Get(context.Background(), owner, metav1.GetOptions{})
+	_, err = client.NetworkingV1().NetworkPolicies(namespace).Get(context.Background(), owner, metav1.GetOptions{})
 	if errorsv1.IsNotFound(err) {
-		payload := networkingv1.NetworkPolicy{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      owner,
-				Namespace: namespace,
-				Labels:    labels,
-			},
-			Spec: networkingv1.NetworkPolicySpec{
-				PolicyTypes: []networkingv1.PolicyType{"Egress"},
-				PodSelector: metav1.LabelSelector{
-					MatchLabels: labels,
-				},
-				Egress: []networkingv1.NetworkPolicyEgressRule{np},
-			},
-		}
 		_, err = client.NetworkingV1().NetworkPolicies(namespace).Create(context.Background(), &payload, metav1.CreateOptions{})
-		if err != nil {
-			return utils.LogLine{
-					Objects: objects,
-					Error:   err.Error(),
-					Status:  "failure",
-				},
-				err
-		}
 		status = "created"
 	} else {
-		n.Spec.Egress = append(n.Spec.Egress, np)
-		_, err = client.NetworkingV1().NetworkPolicies(namespace).Update(context.Background(), n, metav1.UpdateOptions{})
-		if err != nil {
-			return utils.LogLine{
-					Objects: objects,
-					Error:   err.Error(),
-					Status:  "failure",
-				},
-				err
-		}
+		_, err = client.NetworkingV1().NetworkPolicies(namespace).Update(context.Background(), &payload, metav1.UpdateOptions{})
 		status = "updated"
+	}
+	if err != nil {
+		return utils.LogLine{
+				Objects: objects,
+				Error:   err.Error(),
+				Status:  "failure",
+			},
+			err
 	}
 	objects["NetworkPolicy"] = owner
 	return utils.LogLine{
@@ -220,52 +214,40 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 		nil
 }
 
-func createEgressRule(event *events.Event) (networkingv1.NetworkPolicyEgressRule, error) {
-	ips, ports := extractIPsPorts(event)
-	er := networkingv1.NetworkPolicyEgressRule{
-		To:    []networkingv1.NetworkPolicyPeer{},
-		Ports: []networkingv1.NetworkPolicyPort{},
+func createEgressRule(rule *rules.Rule) (*networkingv1.NetworkPolicyEgressRule, error) {
+	if rule.Action.Parameters["allow"] == nil {
+		return nil, nil
 	}
-	for _, i := range ips {
-		er.To = append(er.To, networkingv1.NetworkPolicyPeer{
-			IPBlock: &networkingv1.IPBlock{
-				CIDR: fmt.Sprintf("%v/32", i),
-			},
-		})
+	np := make([]networkingv1.NetworkPolicyPeer, 0)
+	ex := rule.Action.Parameters["allow"].([]interface{})
+	if len(ex) != 0 {
+		for _, i := range ex {
+			np = append(np,
+				networkingv1.NetworkPolicyPeer{
+					IPBlock: &networkingv1.IPBlock{
+						CIDR: i.(string),
+					},
+				},
+			)
+		}
 	}
-	for _, i := range ports {
-		er.Ports = append(er.Ports, networkingv1.NetworkPolicyPort{
-			Port: &intstr.IntOrString{
-				IntVal: i,
-			},
-		})
-	}
-	return er, nil
+	return &networkingv1.NetworkPolicyEgressRule{To: np}, nil
 }
 
-func extractIPsPorts(event *events.Event) ([]string, []int32) {
-	ips, ports := []string{}, []int32{}
-	for i, j := range event.OutputFields {
-		if i == "fd.sip" {
-			ips = append(ips, j.(string))
-		}
-		if i == "fd.rip" {
-			ips = append(ips, j.(string))
-		}
-		if i == "fd.sport" {
-			p := fmt.Sprintf("%v", j)
-			k, err := strconv.ParseInt(p, 10, 64)
-			if err == nil {
-				ports = append(ports, int32(k))
-			}
-		}
-		if i == "fd.rport" {
-			p := fmt.Sprintf("%v", j)
-			k, err := strconv.ParseInt(p, 10, 64)
-			if err == nil {
-				ports = append(ports, int32(k))
+var CheckParameters = func(rule *rules.Rule) error {
+	parameters := rule.GetParameters()
+	if err := utils.CheckParameters(parameters, "allow", utils.SliceInterfaceStr, nil, false); err != nil {
+		return err
+	}
+	if parameters["allow"] == nil {
+		return nil
+	}
+	if p := parameters["allow"].([]interface{}); len(p) != 0 {
+		for _, i := range p {
+			if _, _, err := net.ParseCIDR(i.(string)); err != nil {
+				return fmt.Errorf("wrong CIDR '%v'", i)
 			}
 		}
 	}
-	return ips, ports
+	return nil
 }

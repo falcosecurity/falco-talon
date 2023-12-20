@@ -14,15 +14,16 @@ import (
 )
 
 const (
-	BoolStr         string = "bool"
-	FloatStr        string = "float"
-	Float64Str      string = "float64"
-	StringStr       string = "string"
-	IntStr          string = "int"
-	Int64Str        string = "int64"
-	MapStringStr    string = "map[string]string"
-	MapIntStr       string = "map[string]int"
-	MapInterfaceStr string = "map[string]interface {}"
+	BoolStr           string = "bool"
+	FloatStr          string = "float"
+	Float64Str        string = "float64"
+	StringStr         string = "string"
+	IntStr            string = "int"
+	Int64Str          string = "int64"
+	SliceInterfaceStr string = "[]interface {}"
+	MapStringStr      string = "map[string]string"
+	MapIntStr         string = "map[string]int"
+	MapInterfaceStr   string = "map[string]interface {}"
 
 	errorStr   string = "error"
 	warningStr string = "warning"
