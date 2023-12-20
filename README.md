@@ -84,15 +84,14 @@ Several rules can match same event, so several action can be triggered, except f
 
 ### `kubernetes:networkpolicy`
 
-* Description: **Create, update a network policy to block the egress**
+* Description: **Create, update a network policy to block all egress traffic for pod**
 * Continue: `true`
 * Before: `true`
-* Parameters: N/A
+* Parameters:
+  * `allow`: list of CIDR to allow anyway (eg: private subnets)
 * Required fields:
   * `k8s.pod.name`
   * `k8s.ns.name`
-  * `fd.sip` or `fd.rip`
-  * `fd.sport` or `fd.rport`
 
 ### `kubernetes:exec`
 

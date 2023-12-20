@@ -1,22 +1,12 @@
-- name: Rule Test Script
-  match:
-    rules:
-      - Test Script
-  action:
-    name: kubernetes:script
-    parameters:
-      shell: sh
-      script: |
-        #!/bin/sh
-        uname
-        uname -r
-        uname -a
-        echo "hello world"
 - name: Rule Test NetworkPolicy
   match:
     rules:
-      - DANGER UNWANTED outbound connection destination
+      - Test NetPol
   action:
     name: kubernetes:networkpolicy
     parameters:
+      allow: 
+       - "192.168.1.0/24"
+       - "172.17.0.0/16"
+       - "10.0.0.0/32"
   continue: true

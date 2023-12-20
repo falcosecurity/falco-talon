@@ -1,7 +1,6 @@
 package actionners
 
 import (
-	"github.com/Issif/falco-talon/actionners/checks"
 	"github.com/Issif/falco-talon/actionners/kubernetes/exec"
 	labelize "github.com/Issif/falco-talon/actionners/kubernetes/labelize"
 	networkpolicy "github.com/Issif/falco-talon/actionners/kubernetes/networkpolicy"
@@ -63,10 +62,8 @@ func GetDefaultActionners() *Actionners {
 			Init:     kubernetes.Init,
 			Checks: []checkActionner{
 				kubernetes.CheckPodExist,
-				checks.CheckRemoteIP,
-				checks.CheckRemotePort,
 			},
-			CheckParameters: nil,
+			CheckParameters: networkpolicy.CheckParameters,
 			Action:          networkpolicy.NetworkPolicy,
 		},
 		&Actionner{
