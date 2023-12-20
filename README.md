@@ -99,7 +99,7 @@ Several rules can match same event, so several action can be triggered, except f
 * Continue: `true`
 * Before: `true`
 * Parameters:
-  * `shell`: SHELL used to run the command (default; `/bin/sh`)
+  * `shell`: SHELL used to run the command (default: `/bin/sh`)
   * `command` Command to run
 * Required fields:
   * `k8s.pod.name`
