@@ -106,6 +106,9 @@ func ParseRules(rulesFile string) *[]*Rule {
 	}
 
 	invalid := false
+	if !uniqueNames(rules) {
+		invalid = true
+	}
 	for _, i := range *rules {
 		if !i.isRuleValid() {
 			invalid = true
@@ -116,6 +119,22 @@ func ParseRules(rulesFile string) *[]*Rule {
 	}
 
 	return rules
+}
+
+func uniqueNames(rules *[]*Rule) bool {
+	config := configuration.GetConfiguration()
+	r := make(map[string]bool)
+	result := true
+	for _, i := range *rules {
+		if r[i.Name] {
+			utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: fmt.Sprintf("multiple rules with the name '%v'", i.Name), Message: "rules"})
+			result = false
+		} else {
+			r[i.Name] = true
+		}
+	}
+
+	return result
 }
 
 func (rule *Rule) isRuleValid() bool {
