@@ -112,7 +112,8 @@ Several rules can match same event, so several action can be triggered, except f
 * Before: `true`
 * Parameters:
   * `shell`: SHELL used to run the script (default; `/bin/sh`)
-  * `script` Script to run (use `|` to use multiline)
+  * `script`: Script to run (use `|` to use multiline) (can't be used at the same time than `file`)
+  * `file`: Shell script file (can't be used at the same time than `script`)
 * Required fields:
   * `k8s.pod.name`
   * `k8s.ns.name`

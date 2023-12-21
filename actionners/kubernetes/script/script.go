@@ -3,7 +3,9 @@ package script
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -36,6 +38,18 @@ var Script = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) 
 	script := new(string)
 	if parameters["script"] != nil {
 		*script = parameters["script"].(string)
+	}
+	if parameters["file"] != nil {
+		fileContent, err := os.ReadFile(parameters["file"].(string))
+		if err != nil {
+			return utils.LogLine{
+					Objects: objects,
+					Error:   err.Error(),
+					Status:  "failure",
+				},
+				err
+		}
+		*script = string(fileContent)
 	}
 
 	reader := strings.NewReader(*script)
@@ -158,9 +172,26 @@ var CheckParameters = func(rule *rules.Rule) error {
 	if err != nil {
 		return err
 	}
-	err = utils.CheckParameters(parameters, "script", utils.StringStr, nil, true)
+	if parameters["script"] == nil && parameters["file"] == nil {
+		return errors.New("missing parameter 'script' or 'file'")
+	}
+	if parameters["script"] != nil && parameters["file"] != nil {
+		return errors.New("'script' and 'file' parameters can't be set at the same time")
+	}
+	err = utils.CheckParameters(parameters, "script", utils.StringStr, nil, false)
 	if err != nil {
 		return err
 	}
+	err = utils.CheckParameters(parameters, "file", utils.StringStr, nil, false)
+	if err != nil {
+		return err
+	}
+	if parameters["file"] != nil {
+		_, err = os.Stat(parameters["file"].(string))
+		if os.IsNotExist(err) {
+			return err
+		}
+	}
+
 	return nil
 }
