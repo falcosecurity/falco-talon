@@ -25,7 +25,7 @@ const (
 	metadataLabels = "/metadata/labels/"
 )
 
-var Labelize = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
+var Labelize = func(rule *rules.Rule, action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	pod := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
@@ -35,7 +35,7 @@ var Labelize = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error
 	}
 
 	payload := make([]patch, 0)
-	parameters := rule.GetParameters()
+	parameters := action.GetParameters()
 	for i, j := range parameters["labels"].(map[string]interface{}) {
 		if j.(string) == "" {
 			continue
@@ -61,7 +61,7 @@ var Labelize = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error
 	}
 
 	payload = make([]patch, 0)
-	rule.GetParameters()
+	action.GetParameters()
 	for i, j := range parameters["labels"].(map[string]interface{}) {
 		if j.(string) != "" {
 			continue
@@ -91,8 +91,8 @@ var Labelize = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error
 		nil
 }
 
-var CheckParameters = func(rule *rules.Rule) error {
-	parameters := rule.GetParameters()
+var CheckParameters = func(action *rules.Action) error {
+	parameters := action.GetParameters()
 	if err := utils.CheckParameters(parameters, "labels", utils.MapInterfaceStr, nil, true); err != nil {
 		return err
 	}

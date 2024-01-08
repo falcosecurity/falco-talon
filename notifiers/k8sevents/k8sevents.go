@@ -20,11 +20,15 @@ const (
 
 var plaintextTmpl = `Status: {{ .Status }}
 Action: {{ .Action }}
+Actionner: {{ .Actionner }}
 Rule: {{ .Rule }}
 Event: {{ .Event }}
 Message: {{ .Message }}
 {{- range $key, $value := .Objects }}
 {{ $key }}: {{ $value }}
+{{- end }}
+{{- if .TraceID }}
+Trace ID: {{ .TraceID }}
 {{- end }}
 {{- if .Error }}
 Error: {{ .Error }}

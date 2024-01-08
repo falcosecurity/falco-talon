@@ -36,7 +36,7 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          args: ["server", "-c", "/etc/config/config.yaml", "-r", "/etc/rules/rules.yaml"]
+          args: ["server", "-c", "/etc/config/config.yaml", "-r", "/etc/falco-talon/rules/rules.yaml"]
           ports:
             - name: http
               containerPort: 2803
@@ -61,10 +61,10 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: "rules"
-              mountPath: "/etc/rules/"
+              mountPath: "/etc/falco-talon/rules/"
               readOnly: true
             - name: "config"
-              mountPath: "/etc/config/"
+              mountPath: "/etc/falco-talon/config/"
               readOnly: true
       {{- with .Values.nodeSelector }}
       nodeSelector:

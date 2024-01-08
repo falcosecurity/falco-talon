@@ -19,27 +19,16 @@ const (
 	defaultPrintAllEvents bool   = true
 )
 
-// type Actionner interface {
-// 	Run(event *events.Event, rule *rules.Rule)
-// }
-
-// type Notifier interface {
-// 	Notifiy(event *events.Event, rule *rules.Rule)
-// }
-
-// TODO
-// manage configuration with file and env vars
-
 type Configuration struct {
-	Notifiers        map[string]map[string]interface{}
-	LogFormat        string
-	KubeConfig       string
-	ListenAddress    string
-	RulesFile        string
-	DefaultNotifiers []string
-	ListenPort       int
-	WatchRules       bool
-	PrintAllEvents   bool
+	Notifiers        map[string]map[string]interface{} `mapstructure:"notifiers"`
+	LogFormat        string                            `mapstructure:"log_format"`
+	KubeConfig       string                            `mapstructure:"kubeconfig"`
+	ListenAddress    string                            `mapstructure:"listen_address"`
+	ListenPort       int                               `mapstructure:"listen_port"`
+	RulesFiles       []string                          `mapstructure:"rules_files"`
+	DefaultNotifiers []string                          `mapstructure:"default_notifiers"`
+	WatchRules       bool                              `mapstructure:"watch_rules"`
+	PrintAllEvents   bool                              `mapstructure:"print_all_events"`
 }
 
 var config *Configuration
@@ -52,7 +41,7 @@ func CreateConfiguration(configFile string) *Configuration {
 	v := viper.New()
 	v.SetDefault("ListenAddress", defaultListenAddress)
 	v.SetDefault("ListenPort", defaultListPort)
-	v.SetDefault("RulesFile", DefaultRulesFile)
+	v.SetDefault("RulesFiles", []string{DefaultRulesFile})
 	v.SetDefault("KubeConfig", "")
 	v.SetDefault("Logformat", "color")
 	v.SetDefault("DefaultNotifiers", []string{})

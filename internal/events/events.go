@@ -19,7 +19,7 @@ type Event struct {
 	Tags         []interface{}          `json:"tags"`
 }
 
-func DecodeEvent(payload io.Reader) (Event, error) {
+func DecodeEvent(payload io.Reader) (*Event, error) {
 	var event Event
 
 	d := json.NewDecoder(payload)
@@ -27,7 +27,7 @@ func DecodeEvent(payload io.Reader) (Event, error) {
 
 	err := d.Decode(&event)
 	if err != nil {
-		return Event{}, err
+		return &Event{}, err
 	}
 
 	if event.Source == "" {
@@ -38,7 +38,7 @@ func DecodeEvent(payload io.Reader) (Event, error) {
 		event.TraceID = uuid.New().String()
 	}
 
-	return event, nil
+	return &event, nil
 }
 
 func (event *Event) GetPodName() string {

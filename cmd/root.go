@@ -25,5 +25,5 @@ func Execute() {
 
 func init() {
 	RootCmd.PersistentFlags().StringP("config", "c", "/etc/falco-talon/config.yaml", "Falco Talon Config File")
-	RootCmd.PersistentFlags().StringP("rules", "r", "/etc/falco-talon/rules.yaml", "Falco Talon Rules File")
+	RootCmd.PersistentFlags().StringArrayP("rules", "r", []string{"/etc/falco-talon/rules.yaml"}, "Falco Talon Rules File")
 }

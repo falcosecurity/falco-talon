@@ -2,12 +2,14 @@ package smtp
 
 var plaintextTmpl = `Status: {{ .Status }}
 Action: {{ .Action }}
+Actionner: {{ .Actionner }}
 Rule: {{ .Rule }}
 Event: {{ .Event }}
 Message: {{ .Message }}
 {{- range $key, $value := .Objects }}
 {{ $key }}: {{ $value }}
 {{- end }}
+Trace ID: {{ .TraceID }}
 {{- if .Error }}
 Error: {{ .Error }}
 {{- end }}
@@ -55,6 +57,10 @@ var htmlTmpl = `
             <td style="background-color:#d1d6da">{{ .Action }}</td>
         </tr>
         <tr>
+            <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Actionner</strong></span></td>
+            <td style="background-color:#d1d6da">{{ .Actionner }}</td>
+        </tr>
+        <tr>
             <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Rule</strong></span></td>
             <td style="background-color:#d1d6da">{{ .Rule }}</td>
         </tr>
@@ -71,6 +77,10 @@ var htmlTmpl = `
         <tr>
             <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Message</strong></span></td>
             <td style="background-color:#d1d6da">{{ .Message }}</td>
+        </tr>
+        <tr>
+            <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Trace ID</strong></span></td>
+            <td style="background-color:#d1d6da">{{ .TraceID }}</td>
         </tr>
         {{ if .Error }}
             <tr>
