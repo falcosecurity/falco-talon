@@ -1,7 +1,6 @@
 package notifiers
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/Issif/falco-talon/configuration"
@@ -100,8 +99,6 @@ func Notify(rule *rules.Rule, action *rules.Action, event *events.Event, log uti
 	if len(rule.Notifiers) == 0 && len(config.DefaultNotifiers) == 0 {
 		return
 	}
-
-	fmt.Println("aaaa")
 
 	enabledNotifiers := map[string]bool{}
 
