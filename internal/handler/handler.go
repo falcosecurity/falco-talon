@@ -8,6 +8,7 @@ import (
 	"github.com/Issif/falco-talon/internal/events"
 	"github.com/Issif/falco-talon/internal/rules"
 	"github.com/Issif/falco-talon/utils"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -35,11 +36,11 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	if config.PrintAllEvents {
 		utils.PrintLog("info", config.LogFormat, utils.LogLine{
-			Rule:     event.Rule,
+			Message:  "event",
+			Event:    event.Rule,
 			Priority: event.Priority,
 			Output:   event.Output,
 			Source:   event.Source,
-			Message:  "event",
 			TraceID:  event.TraceID,
 		})
 	}
@@ -48,7 +49,7 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 		enabledRules := rules.GetRules()
 		triggeredRules := make([]*rules.Rule, 0)
 		for _, i := range *enabledRules {
-			if i.CompareRule(&event) {
+			if i.CompareRule(event) {
 				triggeredRules = append(triggeredRules, i)
 			}
 		}
@@ -59,42 +60,37 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 
 		if !config.PrintAllEvents {
 			utils.PrintLog("info", config.LogFormat, utils.LogLine{
-				Rule:     event.Rule,
+				Message:  "event",
+				Event:    event.Rule,
 				Priority: event.Priority,
 				Output:   event.Output,
 				Source:   event.Source,
-				Message:  "event",
 				TraceID:  event.TraceID,
 			})
 		}
 
-		a := actionners.GetActionners()
-		// we trigger rules with before=true
-		for i, j := range triggeredRules {
-			if a.GetActionner(j.GetActionCategory(), j.GetActionName()) == nil {
-				continue
-			}
-			if j.Before == trueStr || j.Before != falseStr && a.GetActionner(j.GetActionCategory(), j.GetActionName()).RunBefore() {
-				actionners.Trigger(j, &event)
-				triggeredRules = removeAlreadyTriggeredRule(triggeredRules, i)
-			}
-		}
-		// we trigger then rules with continue=false
 		for _, i := range triggeredRules {
-			if a.GetActionner(i.GetActionCategory(), i.GetActionName()) == nil {
-				continue
+			utils.PrintLog("info", config.LogFormat, utils.LogLine{
+				Message:  "match",
+				Rule:     i.GetName(),
+				Event:    event.Rule,
+				Priority: event.Priority,
+				Source:   event.Source,
+				TraceID:  event.TraceID,
+			})
+
+			for _, a := range i.GetActions() {
+				if err := actionners.RunAction(i, a, event); err != nil && !a.IgnoreErrors {
+					break
+				}
+				if a.Continue == falseStr || a.Continue != trueStr && !actionners.GetDefaultActionners().FindActionner(a.GetActionner()).MustDefaultContinue() {
+					break
+				}
 			}
-			if i.Continue == falseStr || i.Continue != trueStr && !a.GetActionner(i.GetActionCategory(), i.GetActionName()).MustContinue() {
-				actionners.Trigger(i, &event)
-				return
+
+			if i.Continue == falseStr {
+				break
 			}
-		}
-		// we trigger after rules with continue=true and before=false
-		for _, i := range triggeredRules {
-			if a.GetActionner(i.GetActionCategory(), i.GetActionName()) == nil {
-				continue
-			}
-			actionners.Trigger(i, &event)
 		}
 	}()
 }
@@ -105,10 +101,10 @@ func HealthHandler(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write([]byte(`{"status": "ok"}`))
 }
 
-func removeAlreadyTriggeredRule(rules []*rules.Rule, index int) []*rules.Rule {
-	if index < 0 || index >= len(rules) {
-		return rules
-	}
-	copy(rules[index:], rules[index+1:])
-	return rules[:len(rules)-1]
+// Download the rule files
+func RulesHandler(w http.ResponseWriter, _ *http.Request) {
+	r := rules.GetRules()
+	w.Header().Add("Content-Type", "text/yaml")
+	b, _ := yaml.Marshal(r)
+	_, _ = w.Write(b)
 }

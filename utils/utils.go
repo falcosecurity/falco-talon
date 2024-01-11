@@ -36,21 +36,21 @@ const (
 )
 
 type LogLine struct {
-	Objects        map[string]string `json:"objects,omitempty"`
-	TraceID        string            `json:"trace_id,omitempty"`
-	Rule           string            `json:"rule,omitempty"`
-	Event          string            `json:"event,omitempty"`
-	Message        string            `json:"message,omitempty"`
-	Priority       string            `json:"priority,omitempty"`
-	Source         string            `json:"source,omitempty"`
-	Result         string            `json:"result,omitempty"`
-	Notifier       string            `json:"notifier,omitempty"`
-	Output         string            `json:"output,omitempty"`
-	Actionner      string            `json:"actionner,omitempty"`
-	Action         string            `json:"action,omitempty"`
-	ActionCategory string            `json:"action_category,omitempty"`
-	Error          string            `json:"error,omitempty"`
-	Status         string            `json:"status,omitempty"`
+	Objects           map[string]string `json:"objects,omitempty"`
+	TraceID           string            `json:"trace_id,omitempty"`
+	Rule              string            `json:"rule,omitempty"`
+	Event             string            `json:"event,omitempty"`
+	Message           string            `json:"message,omitempty"`
+	Priority          string            `json:"priority,omitempty"`
+	Source            string            `json:"source,omitempty"`
+	Result            string            `json:"result,omitempty"`
+	Notifier          string            `json:"notifier,omitempty"`
+	Output            string            `json:"output,omitempty"`
+	ActionnerCategory string            `json:"actionner_category,omitempty"`
+	Actionner         string            `json:"actionner,omitempty"`
+	Action            string            `json:"action,omitempty"`
+	Error             string            `json:"error,omitempty"`
+	Status            string            `json:"status,omitempty"`
 }
 
 func PrintLog(level, format string, line LogLine) {
@@ -104,11 +104,11 @@ func PrintLog(level, format string, line LogLine) {
 	if line.Actionner != "" {
 		l.Str("actionner", line.Actionner)
 	}
+	if line.ActionnerCategory != "" {
+		l.Str("actionner_category", line.ActionnerCategory)
+	}
 	if line.Action != "" {
 		l.Str("action", line.Action)
-	}
-	if line.ActionCategory != "" {
-		l.Str("action_category", line.ActionCategory)
 	}
 	if line.Status != "" {
 		l.Str("status", line.Status)

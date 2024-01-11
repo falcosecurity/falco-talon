@@ -1,27 +1,35 @@
-- name: Rule Labelize                                                                                                                                                                     
-  match:                                                                                                                                                                                  
-    rules:                                                                                                                                                                                
-      - Terminal shell in container                                                                                                                                                       
-    output_fields:                                                                                                                                                                        
-      - k8s.ns.name!=kube-system                                                                                                                                                          
-  action:                                                                                                                                                                                 
-    name: kubernetes:labelize                                                                                                                                                             
-    parameters:                                                                                                                                                                           
-      labels:                                                                                                                                                                             
-        suspicious: "true"                                                                                                                                                                
-- name: Rule NetworkPolicy                                                                                                                                                                
-  match:                                                                                                                                                                                  
-    rules:                                                                                                                                                                                
-      - "Outbound Connection to C2 Servers"                                                                                                                                               
-  action:                                                                                                                                                                                 
-    name: kubernetes:networkpolicy                                                                                                                                                        
-  before: true                                                                                                                                                                            
-- name: Rule Terminate                                                                                                                                                                    
-  match:                                                                                                                                                                                  
-    rules:                                                                                                                                                                                
-      - "Outbound Connection to C2 Servers"                                                                                                                                               
-  action:                                                                                                                                                                                 
-    name: kubernetes:terminate                                                                                                                                                            
-    parameters:                                                                                                                                                                           
-      ignoreDaemonsets: true                                                                                                                                                              
-      ignoreStatefulsets: true 
+- action: Terminate Pod
+  actionner: kubernetes:terminate
+
+- action: Disable outbound connections
+  actionner: kubernetes:networkpolicy
+  parameters:
+    allow:
+      - "192.168.1.0/24"
+      - "172.17.0.0/16"
+      - "10.0.0.0/32"
+
+- action: Labelize Pod as Suspicious
+  actionner: kubernetes:labelize
+  parameters:
+    labels:
+      suspicious: true
+
+- rule: Suspicious outbound connection
+  match:
+    rules:
+      - Unexpected outbound connection destination
+  actions:
+    - action: Disable outbound connections
+    - action: Terminate Pod
+      parameters:
+        grace_period_seconds: 0
+
+- rule: Terminal shell in container 
+  match:
+    rules:
+      - Terminal shell in container
+    output_fields:
+      - k8s.ns.name!=kube-system, k8s.ns.name!=falco
+  actions:
+    - action: Labelize Pod as Suspicious

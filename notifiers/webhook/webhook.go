@@ -11,6 +11,8 @@ type Configuration struct {
 	URL string `field:"url"`
 }
 
+// TODO: allow to set http methods/headers/compression
+
 var webhookConfig *Configuration
 
 var Init = func(fields map[string]interface{}) error {

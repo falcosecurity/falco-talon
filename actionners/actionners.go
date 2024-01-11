@@ -1,6 +1,8 @@
 package actionners
 
 import (
+	"fmt"
+
 	"github.com/Issif/falco-talon/actionners/kubernetes/exec"
 	labelize "github.com/Issif/falco-talon/actionners/kubernetes/labelize"
 	networkpolicy "github.com/Issif/falco-talon/actionners/kubernetes/networkpolicy"
@@ -17,194 +19,222 @@ import (
 type Actionner struct {
 	Name            string
 	Category        string
-	Action          func(rule *rules.Rule, event *events.Event) (utils.LogLine, error)
-	CheckParameters func(rule *rules.Rule) error
+	Action          func(rule *rules.Rule, action *rules.Action, event *events.Event) (utils.LogLine, error)
+	CheckParameters func(action *rules.Action) error
 	Init            func() error
 	Checks          []checkActionner
-	Continue        bool
-	Before          bool
+	DefaultContinue bool
 }
 
 type checkActionner func(event *events.Event) error
 
 type Actionners []*Actionner
 
-var actionners *Actionners
+var defaultActionners *Actionners
+var enabledActionners *Actionners
+
+func init() {
+	defaultActionners = new(Actionners)
+	defaultActionners = GetDefaultActionners()
+	enabledActionners = new(Actionners)
+}
 
 func GetDefaultActionners() *Actionners {
-	defaultActionners := new(Actionners)
-	defaultActionners.Add(
-		&Actionner{
-			Name:            "terminate",
-			Category:        "kubernetes",
-			Continue:        false,
-			Before:          false,
-			Init:            kubernetes.Init,
-			Checks:          []checkActionner{kubernetes.CheckPodExist},
-			CheckParameters: terminate.CheckParameters,
-			Action:          terminate.Terminate,
-		},
-		&Actionner{
-			Name:            "labelize",
-			Category:        "kubernetes",
-			Continue:        true,
-			Before:          false,
-			Init:            kubernetes.Init,
-			Checks:          []checkActionner{kubernetes.CheckPodExist},
-			CheckParameters: labelize.CheckParameters,
-			Action:          labelize.Labelize,
-		},
-		&Actionner{
-			Name:     "networkpolicy",
-			Category: "kubernetes",
-			Continue: true,
-			Before:   true,
-			Init:     kubernetes.Init,
-			Checks: []checkActionner{
-				kubernetes.CheckPodExist,
+	if len(*defaultActionners) == 0 {
+		defaultActionners.Add(
+			&Actionner{
+				Category:        "kubernetes",
+				Name:            "terminate",
+				DefaultContinue: false,
+				Init:            kubernetes.Init,
+				Checks:          []checkActionner{kubernetes.CheckPodExist},
+				CheckParameters: terminate.CheckParameters,
+				Action:          terminate.Terminate,
 			},
-			CheckParameters: networkpolicy.CheckParameters,
-			Action:          networkpolicy.NetworkPolicy,
-		},
-		&Actionner{
-			Name:     "exec",
-			Category: "kubernetes",
-			Continue: true,
-			Before:   true,
-			Init:     kubernetes.Init,
-			Checks: []checkActionner{
-				kubernetes.CheckPodExist,
+			&Actionner{
+				Category:        "kubernetes",
+				Name:            "labelize",
+				DefaultContinue: true,
+				Init:            kubernetes.Init,
+				Checks:          []checkActionner{kubernetes.CheckPodExist},
+				CheckParameters: labelize.CheckParameters,
+				Action:          labelize.Labelize,
 			},
-			CheckParameters: exec.CheckParameters,
-			Action:          exec.Exec,
-		},
-		&Actionner{
-			Name:     "script",
-			Category: "kubernetes",
-			Continue: true,
-			Before:   true,
-			Init:     kubernetes.Init,
-			Checks: []checkActionner{
-				kubernetes.CheckPodExist,
+			&Actionner{
+				Category:        "kubernetes",
+				Name:            "networkpolicy",
+				DefaultContinue: true,
+				Init:            kubernetes.Init,
+				Checks: []checkActionner{
+					kubernetes.CheckPodExist,
+				},
+				CheckParameters: networkpolicy.CheckParameters,
+				Action:          networkpolicy.NetworkPolicy,
 			},
-			CheckParameters: script.CheckParameters,
-			Action:          script.Script,
-		})
+			&Actionner{
+				Category:        "kubernetes",
+				Name:            "exec",
+				DefaultContinue: true,
+				Init:            kubernetes.Init,
+				Checks: []checkActionner{
+					kubernetes.CheckPodExist,
+				},
+				CheckParameters: exec.CheckParameters,
+				Action:          exec.Exec,
+			},
+			&Actionner{
+				Category:        "kubernetes",
+				Name:            "script",
+				DefaultContinue: true,
+				Init:            kubernetes.Init,
+				Checks: []checkActionner{
+					kubernetes.CheckPodExist,
+				},
+				CheckParameters: script.CheckParameters,
+				Action:          script.Script,
+			})
+	}
+
 	return defaultActionners
 }
 
 func Init() error {
 	config := configuration.GetConfiguration()
-	actionners = new(Actionners)
-
-	defaultActionners := GetDefaultActionners()
-
-	type action struct {
-		category string
-		name     string
-	}
+	rules := rules.GetRules()
 
 	categories := map[string]bool{}
-	actions := map[string]action{}
-	rules := rules.GetRules()
+	enabledCategories := map[string]bool{}
+
+	// list actionner categories to init
 	for _, i := range *rules {
-		categories[i.GetActionCategory()] = true
-		actions[i.GetAction()] = action{i.GetActionCategory(), i.GetActionName()}
+		for _, j := range i.Actions {
+			categories[j.GetActionnerCategory()] = true
+		}
 	}
+
 	for category := range categories {
 		for _, actionner := range *defaultActionners {
 			if category == actionner.Category {
 				if actionner.Init != nil {
-					utils.PrintLog("info", config.LogFormat, utils.LogLine{Message: "init", ActionCategory: actionner.Category})
+					utils.PrintLog("info", config.LogFormat, utils.LogLine{Message: "init", ActionnerCategory: actionner.Category})
 					if err := actionner.Init(); err != nil {
-						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), ActionCategory: actionner.Category})
+						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), ActionnerCategory: actionner.Category})
 						return err
 					}
+					enabledCategories[category] = true
 				}
-				break
+				break // we break to avoid to repeat the same init() several times
 			}
 		}
 	}
-	for _, i := range actions {
-		actionners.Add(defaultActionners.GetActionner(i.category, i.name))
-	}
-	return nil
-}
 
-func GetActionners() *Actionners {
-	return actionners
-}
-
-func (actionners *Actionners) GetActionner(category, name string) *Actionner {
-	if actionners == nil {
-		return nil
-	}
-	for _, i := range *actionners {
-		if i == nil {
-			continue
-		}
-		if i.Category == category && i.Name == name {
-			return i
+	for i := range enabledCategories {
+		for _, j := range *defaultActionners {
+			if i == j.Category {
+				enabledActionners.Add(j)
+			}
 		}
 	}
+
 	return nil
-}
-
-func (actionner *Actionner) MustContinue() bool {
-	return actionner.Continue
-}
-
-func (actionner *Actionner) RunBefore() bool {
-	return actionner.Before
 }
 
 func (actionners *Actionners) Add(actionner ...*Actionner) {
 	*actionners = append(*actionners, actionner...)
 }
 
-func Trigger(rule *rules.Rule, event *events.Event) {
-	config := configuration.GetConfiguration()
-	actionners := GetActionners()
+func GetActionners() *Actionners {
+	return enabledActionners
+}
+
+func (actionners *Actionners) FindActionner(fullname string) *Actionner {
 	if actionners == nil {
-		return
+		return nil
 	}
-	action := rule.GetAction()
-	actionName := rule.GetActionName()
-	category := rule.GetActionCategory()
-	ruleName := rule.GetName()
-	utils.PrintLog("info", config.LogFormat, utils.LogLine{Rule: ruleName, Action: action, TraceID: event.TraceID, Message: "match"})
+
 	for _, i := range *actionners {
 		if i == nil {
 			continue
 		}
-		if i.Category == category && i.Name == actionName {
-			if len(i.Checks) != 0 {
-				for _, j := range i.Checks {
-					if err := j(event); err != nil {
-						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: ruleName, Action: action, TraceID: event.TraceID, Message: "action"})
-						return
-					}
-				}
-			}
-			result := utils.LogLine{
-				Output: "no action, dry-run is enabled",
-			}
-			var err error
-			if !rule.DryRun {
-				result, err = i.Action(rule, event)
-			}
-			result.Rule = ruleName
-			result.Action = action
-			result.TraceID = event.TraceID
-			result.Message = "action"
-			result.Event = event.Output
-			if err != nil {
-				utils.PrintLog("error", config.LogFormat, result)
-			} else {
-				utils.PrintLog("info", config.LogFormat, result)
-			}
-			notifiers.Notify(rule, event, result)
-			return
+		if fullname == fmt.Sprintf("%v:%v", i.Category, i.Name) {
+			return i
 		}
 	}
+	return nil
+}
+
+func (actionner *Actionner) GetFullName() string {
+	return actionner.Category + ":" + actionner.Name
+}
+
+func (actionner *Actionner) GetName() string {
+	return actionner.Name
+}
+
+func (actionner *Actionner) GetCategory() string {
+	return actionner.Category
+}
+
+func (actionner *Actionner) MustDefaultContinue() bool {
+	return actionner.DefaultContinue
+}
+
+func RunAction(rule *rules.Rule, action *rules.Action, event *events.Event) error {
+	config := configuration.GetConfiguration()
+	actionners := GetActionners()
+	if actionners == nil {
+		return nil
+	}
+
+	log := utils.LogLine{
+		Message:   "action",
+		Rule:      rule.GetName(),
+		Event:     event.Output,
+		Action:    action.GetName(),
+		Actionner: action.GetActionner(),
+		TraceID:   event.TraceID,
+	}
+
+	if rule.DryRun {
+		log.Output = "no action, dry-run is enabled"
+		utils.PrintLog("info", config.LogFormat, log)
+		return nil
+	}
+
+	actionner := actionners.FindActionner(action.GetActionner())
+	if actionner == nil {
+		log.Error = fmt.Sprintf("unknown actionner '%v'", action.GetActionner())
+		utils.PrintLog("error", config.LogFormat, log)
+		return fmt.Errorf("unknown actionner '%v'", action.GetActionner())
+	}
+
+	if checks := actionner.Checks; len(checks) != 0 {
+		for _, i := range checks {
+			if err := i(event); err != nil {
+				log.Error = err.Error()
+				utils.PrintLog("error", config.LogFormat, log)
+				return err
+			}
+		}
+	}
+
+	result, err := actionner.Action(rule, action, event)
+	log.Status = result.Status
+	if len(result.Objects) != 0 {
+		log.Objects = result.Objects
+	}
+	if result.Output != "" {
+		log.Output = result.Output
+	}
+	if result.Error != "" {
+		log.Error = result.Error
+	}
+	if err != nil {
+		utils.PrintLog("error", config.LogFormat, log)
+		notifiers.Notify(rule, action, event, log)
+		return err
+	}
+	utils.PrintLog("info", config.LogFormat, log)
+	notifiers.Notify(rule, action, event, log)
+	return nil
 }

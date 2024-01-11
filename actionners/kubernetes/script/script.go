@@ -18,7 +18,7 @@ import (
 	"github.com/Issif/falco-talon/utils"
 )
 
-var Script = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
+var Script = func(rule *rules.Rule, action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	pod := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
@@ -27,7 +27,7 @@ var Script = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) 
 		"Namespace": namespace,
 	}
 
-	parameters := rule.GetParameters()
+	parameters := action.GetParameters()
 	shell := new(string)
 	if parameters["shell"] != nil {
 		*shell = parameters["shell"].(string)
@@ -165,8 +165,8 @@ var Script = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) 
 		nil
 }
 
-var CheckParameters = func(rule *rules.Rule) error {
-	parameters := rule.GetParameters()
+var CheckParameters = func(action *rules.Action) error {
+	parameters := action.GetParameters()
 	var err error
 	err = utils.CheckParameters(parameters, "shell", utils.StringStr, nil, false)
 	if err != nil {

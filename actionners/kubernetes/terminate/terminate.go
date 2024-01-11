@@ -15,7 +15,7 @@ import (
 	"github.com/Issif/falco-talon/utils"
 )
 
-var Terminate = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
+var Terminate = func(rule *rules.Rule, action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
@@ -24,15 +24,15 @@ var Terminate = func(rule *rules.Rule, event *events.Event) (utils.LogLine, erro
 		"Namespace": namespace,
 	}
 
-	parameters := rule.GetParameters()
+	parameters := action.GetParameters()
 	gracePeriodSeconds := new(int64)
-	if parameters["gracePeriodSeconds"] != nil {
-		*gracePeriodSeconds = int64(parameters["gracePeriodSeconds"].(int))
+	if parameters["grace_period_seconds"] != nil {
+		*gracePeriodSeconds = int64(parameters["grace_period_seconds"].(int))
 	}
 
 	client := kubernetes.GetClient()
 
-	if parameters["ignoreDaemonsets"] != nil || parameters["ignoreStatefulsets"] != nil || parameters["minHealthyReplicas"] != nil {
+	if parameters["ignore_daemonsets"] != nil || parameters["ignore_statefulsets"] != nil || parameters["min_healthy_replicas"] != nil {
 		pod, err := client.GetPod(podName, namespace)
 		if err != nil {
 			return utils.LogLine{
@@ -46,25 +46,25 @@ var Terminate = func(rule *rules.Rule, event *events.Event) (utils.LogLine, erro
 		if len(pod.OwnerReferences) != 0 {
 			switch pod.OwnerReferences[0].Kind {
 			case "DaemonSet":
-				if parameters["ignoreDaemonsets"].(bool) {
+				if parameters["ignore_daemonsets"].(bool) {
 					return utils.LogLine{
 							Objects: objects,
-							Result:  fmt.Sprintf("the pod %v in the namespace %v belongs to a Daemonset and ignoreDaemonsets is true", podName, namespace),
+							Result:  fmt.Sprintf("the pod %v in the namespace %v belongs to a Daemonset and ignore_daemonsets is true", podName, namespace),
 							Status:  "ignored",
 						},
 						nil
 				}
 			case "StatefulSet":
-				if parameters["ignoreStatefulsets"].(bool) {
+				if parameters["ignore_statefulsets"].(bool) {
 					return utils.LogLine{
 							Objects: objects,
-							Result:  fmt.Sprintf("the pod %v in the namespace %v belongs to a Statefulset and ignoreStatefulsets is true", podName, namespace),
+							Result:  fmt.Sprintf("the pod %v in the namespace %v belongs to a Statefulset and ignore_statefulsets is true", podName, namespace),
 							Status:  "ignored",
 						},
 						nil
 				}
 			case "ReplicaSet":
-				if parameters["minHealthyReplicas"] != nil {
+				if parameters["min_healthy_replicas"] != nil {
 					u, errG := client.GetReplicasetFromPod(pod)
 					if errG != nil {
 						return utils.LogLine{
@@ -82,8 +82,8 @@ var Terminate = func(rule *rules.Rule, event *events.Event) (utils.LogLine, erro
 							},
 							fmt.Errorf("can't find the replicaset for the pod %v in namespace %v", podName, namespace)
 					}
-					if strings.Contains(fmt.Sprintf("%v", parameters["minHealthyReplicas"]), "%") {
-						v, _ := strconv.ParseInt(strings.Split(parameters["minHealthyReplicas"].(string), "%")[0], 10, 64)
+					if strings.Contains(fmt.Sprintf("%v", parameters["min_healthy_replicas"]), "%") {
+						v, _ := strconv.ParseInt(strings.Split(parameters["min_healthy_replicas"].(string), "%")[0], 10, 64)
 						if v > int64(100*u.Status.ReadyReplicas/u.Status.Replicas) {
 							return utils.LogLine{
 									Objects: objects,
@@ -93,7 +93,7 @@ var Terminate = func(rule *rules.Rule, event *events.Event) (utils.LogLine, erro
 								fmt.Errorf("not enough healthy pods in the replicaset of the pod %v in namespace %v", podName, namespace)
 						}
 					} else {
-						v, _ := strconv.ParseInt(parameters["minHealthyReplicas"].(string), 10, 64)
+						v, _ := strconv.ParseInt(parameters["min_healthy_replicas"].(string), 10, 64)
 						if v > int64(u.Status.ReadyReplicas) {
 							return utils.LogLine{
 									Objects: objects,
@@ -124,22 +124,22 @@ var Terminate = func(rule *rules.Rule, event *events.Event) (utils.LogLine, erro
 		nil
 }
 
-var CheckParameters = func(rule *rules.Rule) error {
-	parameters := rule.GetParameters()
-	err := utils.CheckParameters(parameters, "gracePeriodSeconds", utils.IntStr, nil, false)
+var CheckParameters = func(action *rules.Action) error {
+	parameters := action.GetParameters()
+	err := utils.CheckParameters(parameters, "grace_period_seconds", utils.IntStr, nil, false)
 	if err != nil {
 		return err
 	}
-	err = utils.CheckParameters(parameters, "ignoreDaemonsets", utils.BoolStr, nil, false)
+	err = utils.CheckParameters(parameters, "ignore_daemonsets", utils.BoolStr, nil, false)
 	if err != nil {
 		return err
 	}
-	err = utils.CheckParameters(parameters, "ignoreStatefulsets", utils.BoolStr, nil, false)
+	err = utils.CheckParameters(parameters, "ignore_statefulsets", utils.BoolStr, nil, false)
 	if err != nil {
 		return err
 	}
 	reg := regexp.MustCompile(`\d+(%)?`)
-	err = utils.CheckParameters(parameters, "minHealthyReplicas", utils.StringStr, reg, false)
+	err = utils.CheckParameters(parameters, "min_healthy_replicas", utils.StringStr, reg, false)
 	if err != nil {
 		return err
 	}

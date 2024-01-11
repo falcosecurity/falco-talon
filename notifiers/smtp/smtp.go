@@ -30,7 +30,7 @@ const (
 )
 
 type Configuration struct {
-	HostPort string `field:"hostport"`
+	HostPort string `field:"host_port"`
 	User     string `field:"user"`
 	Password string `field:"password"`
 	From     string `field:"from"`

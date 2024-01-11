@@ -16,7 +16,7 @@ import (
 	"github.com/Issif/falco-talon/utils"
 )
 
-var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, error) {
+var NetworkPolicy = func(rule *rules.Rule, action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
@@ -24,7 +24,6 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 		"Pod":       podName,
 		"Namespace": namespace,
 	}
-
 	client := kubernetes.GetClient()
 
 	pod, err := client.GetPod(podName, namespace)
@@ -174,7 +173,7 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 		},
 	}
 
-	np, err := createEgressRule(rule)
+	np, err := createEgressRule(action)
 	if err != nil {
 		return utils.LogLine{
 				Objects: objects,
@@ -214,14 +213,13 @@ var NetworkPolicy = func(rule *rules.Rule, event *events.Event) (utils.LogLine, 
 		nil
 }
 
-func createEgressRule(rule *rules.Rule) (*networkingv1.NetworkPolicyEgressRule, error) {
-	if rule.Action.Parameters["allow"] == nil {
+func createEgressRule(action *rules.Action) (*networkingv1.NetworkPolicyEgressRule, error) {
+	if action.GetParameters()["allow"] == nil {
 		return nil, nil
 	}
 	np := make([]networkingv1.NetworkPolicyPeer, 0)
-	ex := rule.Action.Parameters["allow"].([]interface{})
-	if len(ex) != 0 {
-		for _, i := range ex {
+	if allowedCidr := action.GetParameters()["allow"].([]interface{}); len(allowedCidr) != 0 {
+		for _, i := range allowedCidr {
 			np = append(np,
 				networkingv1.NetworkPolicyPeer{
 					IPBlock: &networkingv1.IPBlock{
@@ -234,8 +232,8 @@ func createEgressRule(rule *rules.Rule) (*networkingv1.NetworkPolicyEgressRule, 
 	return &networkingv1.NetworkPolicyEgressRule{To: np}, nil
 }
 
-var CheckParameters = func(rule *rules.Rule) error {
-	parameters := rule.GetParameters()
+var CheckParameters = func(action *rules.Action) error {
+	parameters := action.GetParameters()
 	if err := utils.CheckParameters(parameters, "allow", utils.SliceInterfaceStr, nil, false); err != nil {
 		return err
 	}

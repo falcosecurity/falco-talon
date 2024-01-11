@@ -21,7 +21,7 @@ const (
 )
 
 type Configuration struct {
-	WebhookURL string `field:"webhookurl"`
+	WebhookURL string `field:"webhook_url"`
 	Icon       string `field:"icon" default:"https://upload.wikimedia.org/wikipedia/commons/2/26/Circaetus_gallicus_claw.jpg"`
 	Username   string `field:"username" default:"Falco Talon"`
 	Footer     string `field:"footer" default:"http://github.com/Issif/falco-talon"`
@@ -111,6 +111,10 @@ func NewPayload(log utils.LogLine) Payload {
 		fields = append(fields, field)
 		field.Title = "Action"
 		field.Value = "`" + log.Action + "`"
+		field.Short = false
+		fields = append(fields, field)
+		field.Title = "Actionner"
+		field.Value = "`" + log.Actionner + "`"
 		field.Short = true
 		fields = append(fields, field)
 		field.Title = "Status"
@@ -136,6 +140,12 @@ func NewPayload(log utils.LogLine) Payload {
 		if log.Error != "" {
 			field.Title = "Error"
 			field.Value = "`" + log.Error + "`"
+			field.Short = false
+			fields = append(fields, field)
+		}
+		if log.TraceID != "" {
+			field.Title = "Trace ID"
+			field.Value = "`" + log.TraceID + "`"
 			field.Short = false
 			fields = append(fields, field)
 		}

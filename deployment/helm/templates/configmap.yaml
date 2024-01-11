@@ -3,5 +3,8 @@ kind: ConfigMap
 metadata:
   name: {{ include "falco-talon.name" . }}-rules
 data:
-  rules.yaml: |-
-{{ .Files.Get "rules.yaml" | indent 4 }}
+  "rules.yaml": |-
+{{- range $file := .Values.rulesFiles -}}
+{{ $fileContent := $.Files.Get . }}
+{{- $fileContent | nindent 4 -}}
+{{- end -}}

@@ -1,6 +1,7 @@
 package notifiers
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/Issif/falco-talon/configuration"
@@ -17,67 +18,73 @@ type Notifier struct {
 	Init         func(fields map[string]interface{}) error
 	Notification func(log utils.LogLine) error
 	Name         string
-	initialized  bool
 }
 
 type Notifiers []*Notifier
 
 var notifiers *Notifiers
+var defaultNotifiers *Notifiers
+
+func init() {
+	defaultNotifiers = new(Notifiers)
+	defaultNotifiers = GetDefaultNotifiers()
+	notifiers = new(Notifiers)
+}
+
+func GetDefaultNotifiers() *Notifiers {
+	if len(*defaultNotifiers) == 0 {
+		defaultNotifiers.Add(
+			&Notifier{
+				Name:         "k8sevents",
+				Init:         nil,
+				Notification: k8sevents.Notify,
+			},
+			&Notifier{
+				Name:         "slack",
+				Init:         slack.Init,
+				Notification: slack.Notify,
+			},
+			&Notifier{
+				Name:         "smtp",
+				Init:         smtp.Init,
+				Notification: smtp.Notify,
+			},
+			&Notifier{
+				Name:         "webhook",
+				Init:         webhook.Init,
+				Notification: webhook.Notify,
+			},
+		)
+	}
+	return defaultNotifiers
+}
 
 func Init() {
-	notifiers = new(Notifiers)
-	n := new(Notifiers)
-	n.Add(
-		&Notifier{
-			Name:         "k8sevents",
-			Init:         nil,
-			Notification: k8sevents.Notify,
-		},
-		&Notifier{
-			Name:         "slack",
-			Init:         slack.Init,
-			Notification: slack.Notify,
-		},
-		&Notifier{
-			Name:         "smtp",
-			Init:         smtp.Init,
-			Notification: smtp.Notify,
-		},
-		&Notifier{
-			Name:         "webhook",
-			Init:         webhook.Init,
-			Notification: webhook.Notify,
-		},
-	)
 	config := configuration.GetConfiguration()
-	for _, i := range *n {
-		for _, j := range config.GetDefaultNotifiers() {
-			if i.Name == strings.ToLower(j) && !i.initialized {
-				i.initialized = true
-				utils.PrintLog("info", config.LogFormat, utils.LogLine{Notifier: i.Name, Message: "init"})
-				if i.Init != nil {
-					if err := i.Init(config.Notifiers[i.Name]); err != nil {
-						utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i.Name, Error: err.Error()})
+
+	specifiedNotifiers := map[string]bool{}
+
+	for _, i := range config.GetDefaultNotifiers() {
+		specifiedNotifiers[i] = true
+	}
+	rules := rules.GetRules()
+	for _, i := range *rules {
+		for _, j := range i.GetNotifiers() {
+			specifiedNotifiers[j] = true
+		}
+	}
+
+	for i := range specifiedNotifiers {
+		for _, j := range *defaultNotifiers {
+			if strings.ToLower(i) == j.Name {
+				if j.Init != nil {
+					if err := j.Init(config.Notifiers[i]); err != nil {
+						utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i, Message: "init", Error: err.Error(), Status: "failure"})
 						continue
 					}
+					utils.PrintLog("info", config.LogFormat, utils.LogLine{Notifier: i, Message: "init", Status: "success"})
 				}
-				notifiers.Add(i)
-			}
-		}
-		rules := rules.GetRules()
-		for _, j := range *rules {
-			for _, k := range j.GetNotifiers() {
-				if i.Name == strings.ToLower(k) && !i.initialized {
-					i.initialized = true
-					if i.Init != nil {
-						utils.PrintLog("info", config.LogFormat, utils.LogLine{Notifier: i.Name, Message: "init"})
-						if err := i.Init(config.Notifiers[i.Name]); err != nil {
-							utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i.Name, Message: "init", Error: err.Error()})
-							continue
-						}
-						notifiers.Add(i)
-					}
-				}
+				notifiers.Add(j)
 			}
 		}
 	}
@@ -87,12 +94,14 @@ func GetNotifiers() *Notifiers {
 	return notifiers
 }
 
-func Notify(rule *rules.Rule, event *events.Event, log utils.LogLine) {
+func Notify(rule *rules.Rule, action *rules.Action, event *events.Event, log utils.LogLine) {
 	config := configuration.GetConfiguration()
 
 	if len(rule.Notifiers) == 0 && len(config.DefaultNotifiers) == 0 {
 		return
 	}
+
+	fmt.Println("aaaa")
 
 	enabledNotifiers := map[string]bool{}
 
@@ -103,18 +112,30 @@ func Notify(rule *rules.Rule, event *events.Event, log utils.LogLine) {
 		enabledNotifiers[i] = true
 	}
 
+	logN := utils.LogLine{
+		Message:   "notification",
+		Rule:      rule.GetName(),
+		Action:    action.GetName(),
+		Actionner: action.GetActionner(),
+		TraceID:   event.TraceID,
+	}
+
 	for i := range enabledNotifiers {
-		if n := GetNotifiers().GetNotifier(i); n != nil {
+		if n := GetNotifiers().FindNotifier(i); n != nil {
+			logN.Notifier = i
 			if err := n.Notification(log); err != nil {
-				utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i, Status: "failure", Error: err.Error(), Rule: rule.GetName(), Action: rule.GetAction(), TraceID: event.TraceID, Message: "notification"})
+				logN.Status = "failure"
+				logN.Error = err.Error()
+				utils.PrintLog("error", config.LogFormat, logN)
 			} else {
-				utils.PrintLog("info", config.LogFormat, utils.LogLine{Notifier: i, Status: "success", Rule: rule.GetName(), Action: rule.GetAction(), TraceID: event.TraceID, Message: "notification"})
+				logN.Status = "success"
+				utils.PrintLog("info", config.LogFormat, logN)
 			}
 		}
 	}
 }
 
-func (notifiers *Notifiers) GetNotifier(name string) *Notifier {
+func (notifiers *Notifiers) FindNotifier(name string) *Notifier {
 	for _, i := range *notifiers {
 		if i.Name == name {
 			return i

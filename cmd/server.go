@@ -24,43 +24,53 @@ var serverCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		configFile, _ := cmd.Flags().GetString("config")
 		config := configuration.CreateConfiguration(configFile)
-		rulesFile, _ := cmd.Flags().GetString("rules")
-		if rulesFile != "" && rulesFile != configuration.DefaultRulesFile {
-			config.RulesFile = rulesFile
+		rulesFiles, _ := cmd.Flags().GetStringArray("rules")
+		if len(rulesFiles) != 0 {
+			config.RulesFiles = rulesFiles
 		}
-		rules := ruleengine.ParseRules(config.RulesFile)
+		rules := ruleengine.ParseRules(config.RulesFiles)
 		if rules == nil {
 			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
 		}
+
 		defaultActionners := actionners.GetDefaultActionners()
-		if rules != nil {
-			valid := true
-			for _, i := range *rules {
-				actionner := defaultActionners.GetActionner(i.GetActionCategory(), i.GetActionName())
-				if actionner != nil {
+
+		valid := true
+		for _, i := range *rules {
+			for _, j := range i.GetActions() {
+				actionner := defaultActionners.FindActionner(j.GetActionner())
+				if actionner == nil {
+					utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "unknown actionner", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
+					valid = false
+				} else {
 					if actionner.CheckParameters != nil {
-						if err := actionner.CheckParameters(i); err != nil {
+						if err := actionner.CheckParameters(j); err != nil {
 							utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Message: "rules"})
 							valid = false
 						}
 					}
 				}
 			}
-			if !valid {
-				utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
-			}
+		}
+		if !valid {
+			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
 		}
 
+		// init actionners
 		if err := actionners.Init(); err != nil {
 			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "actionners"})
 		}
+
+		// init notifiers
 		notifiers.Init()
+
 		if rules != nil {
 			utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*rules)), Message: "init"})
 		}
 
 		http.HandleFunc("/", handler.MainHandler)
 		http.HandleFunc("/healthz", handler.HealthHandler)
+		http.HandleFunc("/rules", handler.RulesHandler)
 
 		if config.WatchRules {
 			utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: "watch of rules enabled", Message: "init"})
@@ -84,9 +94,11 @@ var serverCmd = &cobra.Command{
 					return
 				}
 				defer watcher.Close()
-				if err := watcher.Add(config.RulesFile); err != nil {
-					utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "rules"})
-					return
+				for _, i := range config.RulesFiles {
+					if err := watcher.Add(i); err != nil {
+						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "rules"})
+						return
+					}
 				}
 				for {
 					select {
@@ -98,7 +110,7 @@ var serverCmd = &cobra.Command{
 								ignore = false
 							}()
 							utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: "changes detected", Message: "rules"})
-							newRules := ruleengine.ParseRules(config.RulesFile)
+							newRules := ruleengine.ParseRules(config.RulesFiles)
 							if newRules == nil {
 								utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
 								break
@@ -107,26 +119,28 @@ var serverCmd = &cobra.Command{
 							if newRules != nil {
 								valid := true
 								for _, i := range *newRules {
-									actionner := defaultActionners.GetActionner(i.GetActionCategory(), i.GetActionName())
-									if actionner == nil {
-										break
-									}
-									if actionner.CheckParameters != nil {
-										if err := actionner.CheckParameters(i); err != nil {
-											utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Message: "rules"})
-											valid = false
+									for _, j := range i.GetActions() {
+										actionner := defaultActionners.FindActionner(j.GetActionner())
+										if actionner == nil {
+											break
+										}
+										if actionner.CheckParameters != nil {
+											if err := actionner.CheckParameters(j); err != nil {
+												utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Message: "rules"})
+												valid = false
+											}
 										}
 									}
-								}
-								if !valid {
-									utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
-									break
-								}
-								utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*rules)), Message: "rules"})
-								rules = newRules
-								if err := actionners.Init(); err != nil {
-									utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "actionners"})
-									break
+									if !valid {
+										utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
+										break
+									}
+									utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*rules)), Message: "rules"})
+									rules = newRules
+									if err := actionners.Init(); err != nil {
+										utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "actionners"})
+										break
+									}
 								}
 							}
 						}
