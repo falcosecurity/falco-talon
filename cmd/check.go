@@ -24,21 +24,22 @@ var checkCmd = &cobra.Command{
 		if rules == nil {
 			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
 		}
-
 		defaultActionners := actionners.GetDefaultActionners()
 
 		valid := true
-		for _, i := range *rules {
-			for _, j := range i.GetActions() {
-				actionner := defaultActionners.FindActionner(j.GetActionner())
-				if actionner == nil {
-					utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "unknown actionner", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
-					valid = false
-				} else {
-					if actionner.CheckParameters != nil {
-						if err := actionner.CheckParameters(j); err != nil {
-							utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Message: "rules"})
-							valid = false
+		if rules != nil {
+			for _, i := range *rules {
+				for _, j := range i.GetActions() {
+					actionner := defaultActionners.FindActionner(j.GetActionner())
+					if actionner == nil {
+						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "unknown actionner", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
+						valid = false
+					} else {
+						if actionner.CheckParameters != nil {
+							if err := actionner.CheckParameters(j); err != nil {
+								utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Message: "rules"})
+								valid = false
+							}
 						}
 					}
 				}

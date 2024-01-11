@@ -24,9 +24,9 @@ type Configuration struct {
 	LogFormat        string                            `mapstructure:"log_format"`
 	KubeConfig       string                            `mapstructure:"kubeconfig"`
 	ListenAddress    string                            `mapstructure:"listen_address"`
-	ListenPort       int                               `mapstructure:"listen_port"`
 	RulesFiles       []string                          `mapstructure:"rules_files"`
 	DefaultNotifiers []string                          `mapstructure:"default_notifiers"`
+	ListenPort       int                               `mapstructure:"listen_port"`
 	WatchRules       bool                              `mapstructure:"watch_rules"`
 	PrintAllEvents   bool                              `mapstructure:"print_all_events"`
 }

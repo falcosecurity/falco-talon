@@ -3,12 +3,13 @@ package handler
 import (
 	"net/http"
 
+	yaml "gopkg.in/yaml.v3"
+
 	"github.com/Issif/falco-talon/actionners"
 	"github.com/Issif/falco-talon/configuration"
 	"github.com/Issif/falco-talon/internal/events"
 	"github.com/Issif/falco-talon/internal/rules"
 	"github.com/Issif/falco-talon/utils"
-	"gopkg.in/yaml.v3"
 )
 
 const (

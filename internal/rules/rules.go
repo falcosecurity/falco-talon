@@ -25,10 +25,10 @@ type Action struct {
 
 type Rule struct {
 	Name      string    `yaml:"rule"`
-	Match     Match     `yaml:"match"`
-	Actions   []*Action `yaml:"actions"`
 	Continue  string    `yaml:"continue"` // can't be a bool because an omitted value == false by default
+	Actions   []*Action `yaml:"actions"`
 	Notifiers []string  `yaml:"notifiers"`
+	Match     Match     `yaml:"match"`
 	DryRun    bool      `yaml:"dry_run"`
 }
 
