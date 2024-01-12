@@ -128,7 +128,9 @@ func RulesHandler(w http.ResponseWriter, _ *http.Request) {
 	}
 
 	var q []yamlFile
-	copier.Copy(&q, &r)
+	if err := copier.Copy(&q, &r); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 
 	w.Header().Add("Content-Type", "text/yaml")
 	b, _ := yaml.Marshal(q)

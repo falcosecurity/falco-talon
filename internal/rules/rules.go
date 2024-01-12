@@ -25,11 +25,11 @@ type Action struct {
 
 type Rule struct {
 	Name      string    `yaml:"rule"`
-	Continue  string    `yaml:"continue"` // can't be a bool because an omitted value == false by default
+	Continue  string    `yaml:"continue"`          // can't be a bool because an omitted value == false by default
+	DryRun    string    `yaml:"dry_run,omitempty"` // can't be a bool because an omitted value == false by default
 	Actions   []*Action `yaml:"actions"`
 	Notifiers []string  `yaml:"notifiers"`
 	Match     Match     `yaml:"match"`
-	DryRun    string    `yaml:"dry_run,omitempty"` // can't be a bool because an omitted value == false by default
 }
 
 type Match struct {
