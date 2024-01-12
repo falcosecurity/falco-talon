@@ -16,6 +16,7 @@
       suspicious: true
 
 - rule: Suspicious outbound connection
+  continue: false
   match:
     rules:
       - Unexpected outbound connection destination
@@ -37,3 +38,4 @@
       - k8s.ns.name!=kube-system, k8s.ns.name!=falco
   actions:
     - action: Labelize Pod as Suspicious
+

@@ -46,7 +46,7 @@ var serverCmd = &cobra.Command{
 					} else {
 						if actionner.CheckParameters != nil {
 							if err := actionner.CheckParameters(j); err != nil {
-								utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Message: "rules"})
+								utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
 								valid = false
 							}
 						}

@@ -1,5 +1,4 @@
 - action: Terminate Pod
-  actionner: kubernetes:terminate
   parameters:
     ignore_daemonsets: true
     ignore_statefulsets: true

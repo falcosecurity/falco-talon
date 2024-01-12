@@ -3,7 +3,8 @@ package handler
 import (
 	"net/http"
 
-	yaml "gopkg.in/yaml.v3"
+	"github.com/jinzhu/copier"
+	"gopkg.in/yaml.v2"
 
 	"github.com/Issif/falco-talon/actionners"
 	"github.com/Issif/falco-talon/configuration"
@@ -81,7 +82,7 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 			})
 
 			for _, a := range i.GetActions() {
-				if err := actionners.RunAction(i, a, event); err != nil && !a.IgnoreErrors {
+				if err := actionners.RunAction(i, a, event); err != nil && a.IgnoreErrors == falseStr {
 					break
 				}
 				if a.Continue == falseStr || a.Continue != trueStr && !actionners.GetDefaultActionners().FindActionner(a.GetActionner()).MustDefaultContinue() {
@@ -105,7 +106,31 @@ func HealthHandler(w http.ResponseWriter, _ *http.Request) {
 // Download the rule files
 func RulesHandler(w http.ResponseWriter, _ *http.Request) {
 	r := rules.GetRules()
+	type yamlFile struct {
+		Name      string   `yaml:"rule,omitempty"`
+		Continue  string   `yaml:"continue,omitempty"`
+		DryRun    string   `yaml:"dry_run,omitempty"`
+		Notifiers []string `yaml:"notifiers"`
+		Actions   []struct {
+			Name         string                 `yaml:"action,omitempty"`
+			Actionner    string                 `yaml:"actionner,omitempty"`
+			Parameters   map[string]interface{} `yaml:"parameters,omitempty"`
+			Continue     string                 `yaml:"continue,omitempty"`
+			IgnoreErrors string                 `yaml:"ignore_errors,omitempty"`
+		} `yaml:"actions"`
+		Match struct {
+			OutputFields []string `yaml:"output_fields"`
+			Priority     string   `yaml:"priority,omitempty"`
+			Source       string   `yaml:"source,omitempty"`
+			Rules        []string `yaml:"rules"`
+			Tags         []string `yaml:"tags"`
+		} `yaml:"match"`
+	}
+
+	var q []yamlFile
+	copier.Copy(&q, &r)
+
 	w.Header().Add("Content-Type", "text/yaml")
-	b, _ := yaml.Marshal(r)
+	b, _ := yaml.Marshal(q)
 	_, _ = w.Write(b)
 }

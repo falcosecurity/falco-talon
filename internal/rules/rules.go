@@ -19,8 +19,8 @@ type Action struct {
 	Name         string                 `yaml:"action"`
 	Actionner    string                 `yaml:"actionner"`
 	Parameters   map[string]interface{} `yaml:"parameters,omitempty"`
-	Continue     string                 `yaml:"continue,omitempty"`
-	IgnoreErrors bool                   `yaml:"ignore_errors"`
+	Continue     string                 `yaml:"continue,omitempty"`      // can't be a bool because an omitted value == false by default
+	IgnoreErrors string                 `yaml:"ignore_errors,omitempty"` // can't be a bool because an omitted value == false by default
 }
 
 type Rule struct {
@@ -29,7 +29,7 @@ type Rule struct {
 	Actions   []*Action `yaml:"actions"`
 	Notifiers []string  `yaml:"notifiers"`
 	Match     Match     `yaml:"match"`
-	DryRun    bool      `yaml:"dry_run"`
+	DryRun    string    `yaml:"dry_run,omitempty"` // can't be a bool because an omitted value == false by default
 }
 
 type Match struct {
@@ -90,10 +90,10 @@ func ParseRules(files []string) *[]*Rule {
 			for _, action := range *a {
 				if actionRule.Name == action.Name {
 					rule.Actions[n] = action
-					if actionRule.IgnoreErrors != action.IgnoreErrors {
+					if actionRule.IgnoreErrors != "" {
 						rule.Actions[n].IgnoreErrors = actionRule.IgnoreErrors
 					}
-					if actionRule.Continue != action.Continue {
+					if actionRule.Continue != "" {
 						rule.Actions[n].Continue = actionRule.Continue
 					}
 					if rule.Actions[n].Parameters == nil {
@@ -131,8 +131,8 @@ func ParseRules(files []string) *[]*Rule {
 	}
 
 	valid := true // to check the validity of the rules
-	for _, i := range *rules {
-		if !i.isRuleValid() {
+	for _, i := range *r {
+		if !i.isValid() {
 			valid = false
 		}
 	}
@@ -182,11 +182,18 @@ func extractActionsRules(files []string) (*[]*Action, *[]*Rule, error) {
 		}
 		for _, l := range a[n+1:] {
 			if l.Name != "" && i.Name == l.Name {
-				i.Actionner = l.Actionner
+				if l.Actionner != "" {
+					i.Actionner = l.Actionner
+				}
 				if l.Continue != "" {
 					i.Continue = l.Continue
 				}
-				i.IgnoreErrors = l.IgnoreErrors
+				if l.IgnoreErrors != "" {
+					i.IgnoreErrors = l.IgnoreErrors
+				}
+				if i.Parameters == nil && len(l.Parameters) != 0 {
+					i.Parameters = make(map[string]interface{})
+				}
 				for k, v := range l.Parameters {
 					rt := reflect.TypeOf(v)
 					switch rt.Kind() {
@@ -217,7 +224,9 @@ func extractActionsRules(files []string) (*[]*Action, *[]*Rule, error) {
 				if l.Continue != "" {
 					i.Continue = l.Continue
 				}
-				i.DryRun = l.DryRun
+				if l.DryRun != "" {
+					i.DryRun = l.DryRun
+				}
 				i.Notifiers = append(i.Notifiers, l.Notifiers...)
 				i.Match.OutputFields = append(i.Match.OutputFields, l.Match.OutputFields...)
 				i.Match.Priority = l.Match.Priority
@@ -225,6 +234,7 @@ func extractActionsRules(files []string) (*[]*Action, *[]*Rule, error) {
 				i.Match.Rules = append(i.Match.Rules, l.Match.Rules...)
 				i.Match.Tags = append(i.Match.Tags, l.Match.Tags...)
 				i.Actions = append(i.Actions, l.Actions...)
+
 				l.Name = ""
 			}
 		}
@@ -247,7 +257,7 @@ func extractActionsRules(files []string) (*[]*Action, *[]*Rule, error) {
 	return &af, &rf, nil
 }
 
-func (rule *Rule) isRuleValid() bool {
+func (rule *Rule) isValid() bool {
 	config := configuration.GetConfiguration()
 	valid := true
 	if rule.Name == "" {
@@ -256,6 +266,10 @@ func (rule *Rule) isRuleValid() bool {
 	}
 	if rule.Continue != "" && rule.Continue != trueStr && rule.Continue != falseStr {
 		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "'continue' setting can be 'true' or 'false' only", Message: "rules", Rule: rule.Name})
+		valid = false
+	}
+	if rule.DryRun != "" && rule.DryRun != trueStr && rule.DryRun != falseStr {
+		utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "'dry_run' setting can be 'true' or 'false' only", Message: "rules", Rule: rule.Name})
 		valid = false
 	}
 	if len(rule.Actions) == 0 {
@@ -278,6 +292,10 @@ func (rule *Rule) isRuleValid() bool {
 			}
 			if i.Continue != "" && i.Continue != trueStr && i.Continue != falseStr {
 				utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "'continue' setting can be 'true' or 'false' only", Message: "rules", Action: i.Name, Actionner: i.Actionner, Rule: rule.Name})
+				valid = false
+			}
+			if i.IgnoreErrors != "" && i.IgnoreErrors != trueStr && i.IgnoreErrors != falseStr {
+				utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "'ignore_errors' setting can be 'true' or 'false' only", Message: "rules", Action: i.Name, Actionner: i.Actionner, Rule: rule.Name})
 				valid = false
 			}
 		}

@@ -33,6 +33,11 @@ type Actionners []*Actionner
 var defaultActionners *Actionners
 var enabledActionners *Actionners
 
+const (
+	trueStr  string = "true"
+	falseStr string = "false"
+)
+
 func init() {
 	defaultActionners = new(Actionners)
 	defaultActionners = GetDefaultActionners()
@@ -195,7 +200,7 @@ func RunAction(rule *rules.Rule, action *rules.Action, event *events.Event) erro
 		TraceID:   event.TraceID,
 	}
 
-	if rule.DryRun {
+	if rule.DryRun == trueStr {
 		log.Output = "no action, dry-run is enabled"
 		utils.PrintLog("info", config.LogFormat, log)
 		return nil

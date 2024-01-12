@@ -355,6 +355,22 @@ Global Flags:
   -r, --rules stringArray   Falco Talon Rules File (default [/etc/falco-talon/rules.yaml])
 ```
 
+```shell
+$ falco-talon check --help
+
+Check Falco Talon Rules file
+
+Usage:
+  falco-talon check [flags]
+
+Flags:
+  -h, --help   help for check
+
+Global Flags:
+  -c, --config string       Falco Talon Config File (default "/etc/falco-talon/config.yaml")
+  -r, --rules stringArray   Falco Talon Rules File (default [/etc/falco-talon/rules.yaml])
+```
+
 ## Docker images
 
 The docker images for `falco-talon` are built using [ko](https://github.com/google/ko)
