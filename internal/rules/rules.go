@@ -96,10 +96,11 @@ func ParseRules(files []string) *[]*Rule {
 					if actionRule.Continue != action.Continue {
 						rule.Actions[n].Continue = actionRule.Continue
 					}
+					if rule.Actions[n].Parameters == nil {
+						rule.Actions[n].Parameters = make(map[string]interface{})
+					}
 					for parameterKey := range actionRule.Parameters {
-						if actionRule.Parameters[parameterKey] != action.Parameters[parameterKey] {
-							rule.Actions[n].Parameters[parameterKey] = actionRule.Parameters[parameterKey]
-						}
+						rule.Actions[n].Parameters[parameterKey] = actionRule.Parameters[parameterKey]
 					}
 				}
 			}
