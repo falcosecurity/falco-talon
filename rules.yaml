@@ -7,7 +7,6 @@
     allow:
       - "192.168.1.0/24"
       - "172.17.0.0/16"
-      - "10.0.0.0/32"
 
 - action: Labelize Pod as Suspicious
   actionner: kubernetes:labelize
@@ -24,11 +23,8 @@
     - action: Disable outbound connections
       parameters:
         allow:
-          - "172.17.0.0/16"
           - "10.0.0.0/32"
     - action: Terminate Pod
-      parameters:
-        grace_period_seconds: 0
 
 - rule: Terminal shell in container 
   match:

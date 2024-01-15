@@ -36,8 +36,8 @@ type Match struct {
 	OutputFields       []string `yaml:"output_fields"`
 	OutputFieldsC      [][]outputfield
 	PriorityComparator string
-	Priority           string   `yaml:"priority"`
-	Source             string   `yaml:"source"`
+	Priority           string   `yaml:"priority,omitempty"`
+	Source             string   `yaml:"source,omitempty"`
 	Rules              []string `yaml:"rules"`
 	Tags               []string `yaml:"tags"`
 	TagsC              [][]string
@@ -85,22 +85,40 @@ func ParseRules(files []string) *[]*Rule {
 	}
 
 	for _, rule := range *r {
-		// merge the actions within the rules
-		for n, actionRule := range rule.Actions {
+		for n := range rule.Actions {
 			for _, action := range *a {
-				if actionRule.Name == action.Name {
-					rule.Actions[n] = action
-					if actionRule.IgnoreErrors != "" {
-						rule.Actions[n].IgnoreErrors = actionRule.IgnoreErrors
+				if rule.Actions[n].Name == action.Name {
+					if rule.Actions[n].Actionner == "" && action.Actionner != "" {
+						rule.Actions[n].Actionner = action.Actionner
 					}
-					if actionRule.Continue != "" {
-						rule.Actions[n].Continue = actionRule.Continue
+					if rule.Actions[n].IgnoreErrors == "" && action.IgnoreErrors != "" {
+						rule.Actions[n].IgnoreErrors = action.IgnoreErrors
 					}
-					if rule.Actions[n].Parameters == nil {
+					if rule.Actions[n].Continue == "" && action.Continue != "" {
+						rule.Actions[n].Continue = action.Continue
+					}
+					if rule.Actions[n].Parameters == nil && len(action.Parameters) != 0 {
 						rule.Actions[n].Parameters = make(map[string]interface{})
 					}
-					for parameterKey := range actionRule.Parameters {
-						rule.Actions[n].Parameters[parameterKey] = actionRule.Parameters[parameterKey]
+					for k, v := range action.Parameters {
+						rt := reflect.TypeOf(v)
+						switch rt.Kind() {
+						case reflect.Slice, reflect.Array:
+							w := v
+							w = append(w.([]interface{}), rule.Actions[n].Parameters[k].([]interface{})...)
+							rule.Actions[n].Parameters[k] = w
+						case reflect.Map:
+							for s, t := range v.(map[string]interface{}) {
+								if rule.Actions[n].Parameters[k] == nil {
+									rule.Actions[n].Parameters[k] = make(map[string]interface{})
+									rule.Actions[n].Parameters[k].(map[string]interface{})[s] = t
+								}
+							}
+						default:
+							if rule.Actions[n].Parameters[k] == nil {
+								rule.Actions[n].Parameters[k] = v
+							}
+						}
 					}
 				}
 			}
@@ -181,7 +199,7 @@ func extractActionsRules(files []string) (*[]*Action, *[]*Rule, error) {
 			continue
 		}
 		for _, l := range a[n+1:] {
-			if l.Name != "" && i.Name == l.Name {
+			if l.Name != "" && i.Name != "" && i.Name == l.Name {
 				if l.Actionner != "" {
 					i.Actionner = l.Actionner
 				}
@@ -201,6 +219,9 @@ func extractActionsRules(files []string) (*[]*Action, *[]*Rule, error) {
 						i.Parameters[k] = append(i.Parameters[k].([]interface{}), v.([]interface{})...)
 					case reflect.Map:
 						for s, t := range v.(map[string]interface{}) {
+							if i.Parameters[k] == nil {
+								i.Parameters[k] = make(map[string]interface{})
+							}
 							i.Parameters[k].(map[string]interface{})[s] = t
 						}
 					default:

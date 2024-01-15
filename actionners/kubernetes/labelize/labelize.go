@@ -37,7 +37,7 @@ var Labelize = func(rule *rules.Rule, action *rules.Action, event *events.Event)
 	payload := make([]patch, 0)
 	parameters := action.GetParameters()
 	for i, j := range parameters["labels"].(map[string]interface{}) {
-		if j.(string) == "" {
+		if fmt.Sprintf("%v", j) == "" {
 			continue
 		}
 		payload = append(payload, patch{
@@ -63,7 +63,7 @@ var Labelize = func(rule *rules.Rule, action *rules.Action, event *events.Event)
 	payload = make([]patch, 0)
 	action.GetParameters()
 	for i, j := range parameters["labels"].(map[string]interface{}) {
-		if j.(string) != "" {
+		if fmt.Sprintf("%v", j) != "" {
 			continue
 		}
 		payload = append(payload, patch{
