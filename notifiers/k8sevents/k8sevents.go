@@ -19,16 +19,13 @@ const (
 )
 
 var plaintextTmpl = `Status: {{ .Status }}
+Message: {{ .Message }}
+Rule: {{ .Rule }}
 Action: {{ .Action }}
 Actionner: {{ .Actionner }}
-Rule: {{ .Rule }}
 Event: {{ .Event }}
-Message: {{ .Message }}
 {{- range $key, $value := .Objects }}
 {{ $key }}: {{ $value }}
-{{- end }}
-{{- if .TraceID }}
-Trace ID: {{ .TraceID }}
 {{- end }}
 {{- if .Error }}
 Error: {{ .Error }}
@@ -40,6 +37,7 @@ Result: {{ .Result }}
 Output: 
 {{ .Output }}
 {{- end }}
+TraceID: {{ .TraceID }}
 `
 
 var Notify = func(log utils.LogLine) error {
@@ -68,14 +66,14 @@ var Notify = func(log utils.LogLine) error {
 			APIVersion: "v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: falcoTalon + ".",
+			GenerateName: falcoTalon + "-",
 		},
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "Pod",
 			Namespace: log.Objects["Namespace"],
 			Name:      log.Objects["Pod"],
 		},
-		Reason:  falcoTalon + ":" + log.Action + ":" + log.Status,
+		Reason:  falcoTalon + ":" + log.Actionner + ":" + log.Status,
 		Message: strings.ReplaceAll(message, `'`, `"`),
 		Source: corev1.EventSource{
 			Component: falcoTalon,
@@ -84,7 +82,7 @@ var Notify = func(log utils.LogLine) error {
 		EventTime:           metav1.NowMicro(),
 		ReportingController: "falcosecurity.org/" + falcoTalon,
 		ReportingInstance:   falcoTalon,
-		Action:              falcoTalon + ":" + log.Action,
+		Action:              log.Actionner,
 	}
 	k8sclient := kubernetes.GetClient()
 	_, err = k8sclient.CoreV1().Events(log.Objects["Namespace"]).Create(context.TODO(), k8sevent, metav1.CreateOptions{})
