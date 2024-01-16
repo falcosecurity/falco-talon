@@ -16,7 +16,7 @@ const (
 	defaultListPort       int    = 2803
 	DefaultRulesFile      string = "/etc/falco-talon/rules.yaml"
 	defaultWatchRules     bool   = true
-	defaultPrintAllEvents bool   = true
+	defaultPrintAllEvents bool   = false
 )
 
 type Configuration struct {
@@ -39,14 +39,14 @@ func init() {
 
 func CreateConfiguration(configFile string) *Configuration {
 	v := viper.New()
-	v.SetDefault("ListenAddress", defaultListenAddress)
-	v.SetDefault("ListenPort", defaultListPort)
-	v.SetDefault("RulesFiles", []string{DefaultRulesFile})
-	v.SetDefault("KubeConfig", "")
-	v.SetDefault("Logformat", "color")
-	v.SetDefault("DefaultNotifiers", []string{})
-	v.SetDefault("WatchRules", defaultWatchRules)
-	v.SetDefault("PrintAllEvents", defaultPrintAllEvents)
+	v.SetDefault("listen_address", defaultListenAddress)
+	v.SetDefault("listen_port", defaultListPort)
+	v.SetDefault("rules_files", []string{DefaultRulesFile})
+	v.SetDefault("kubeconfig", "")
+	v.SetDefault("log_format", "color")
+	v.SetDefault("default_notifiers", []string{})
+	v.SetDefault("watch_rules", defaultWatchRules)
+	v.SetDefault("print_all_events", defaultPrintAllEvents)
 
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()

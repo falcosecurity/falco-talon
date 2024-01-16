@@ -29,6 +29,9 @@ priorityClassName: ""
 
 podAnnotations: {}
 
+# listenAddress: 0.0.0.0
+# listenPort: 2803
+
 service:
   type: ClusterIP
   port: 2803
@@ -84,7 +87,7 @@ printAllEvents: false # print in stdout all received events, not only those whic
 
 notifiers:
   slack:
-    # webhookurl: "https://hooks.slack.com/services/XXXX"
+    # webhook_url: "https://hooks.slack.com/services/XXXX"
     # icon: "" # default: "https://upload.wikimedia.org/wikipedia/commons/2/26/Circaetus_gallicus_claw.jpg"
     # username: "" # default: "Falco Talon"
     footer: "" # default: "https://github.com/Issif/falco-talon"
