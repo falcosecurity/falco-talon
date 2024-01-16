@@ -102,10 +102,22 @@ func ParseRules(files []string) *[]*Rule {
 					}
 					for k, v := range action.Parameters {
 						rt := reflect.TypeOf(v)
+						ru := reflect.TypeOf(rule.Actions[n].Parameters[k])
+						if v == nil {
+							continue
+						}
+						if rule.Actions[n].Parameters[k] != nil && ru.Kind() != rt.Kind() {
+							utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "mismatch of type for a parameter", Message: "rules", Rule: rule.GetName(), Action: action.GetName()})
+							continue
+						}
 						switch rt.Kind() {
 						case reflect.Slice, reflect.Array:
 							w := v
-							w = append(w.([]interface{}), rule.Actions[n].Parameters[k].([]interface{})...)
+							if rule.Actions[n].Parameters[k] == nil {
+								rule.Actions[n].Parameters[k] = []interface{}{w}
+							} else {
+								w = append(w.([]interface{}), rule.Actions[n].Parameters[k].([]interface{})...)
+							}
 							rule.Actions[n].Parameters[k] = w
 						case reflect.Map:
 							for s, t := range v.(map[string]interface{}) {
@@ -214,9 +226,20 @@ func extractActionsRules(files []string) (*[]*Action, *[]*Rule, error) {
 				}
 				for k, v := range l.Parameters {
 					rt := reflect.TypeOf(v)
+					ru := reflect.TypeOf(i.Parameters[k])
+					if v != nil {
+						continue
+					}
+					if i.Parameters[k] != nil && ru.Kind() != rt.Kind() {
+						continue
+					}
 					switch rt.Kind() {
 					case reflect.Slice, reflect.Array:
-						i.Parameters[k] = append(i.Parameters[k].([]interface{}), v.([]interface{})...)
+						if i.Parameters[k] == nil {
+							i.Parameters[k] = v.([]interface{})
+						} else {
+							i.Parameters[k] = append(i.Parameters[k].([]interface{}), v.([]interface{})...)
+						}
 					case reflect.Map:
 						for s, t := range v.(map[string]interface{}) {
 							if i.Parameters[k] == nil {
