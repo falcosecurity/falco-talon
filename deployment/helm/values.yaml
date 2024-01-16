@@ -79,7 +79,7 @@ defaultNotifiers: # these notifiers will be enabled for all rules
 
 watchRules: true # reload if the rules file changes (default: true)
 
-rulesFiles: # list of rules files to use, they will be concatenate into a single config map
+rulesFiles: # list of locale rules files to use, they will be concatenated into a single config map
   - rules.yaml
   - rules_override.yaml
 
