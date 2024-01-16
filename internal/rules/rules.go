@@ -227,7 +227,7 @@ func extractActionsRules(files []string) (*[]*Action, *[]*Rule, error) {
 				for k, v := range l.Parameters {
 					rt := reflect.TypeOf(v)
 					ru := reflect.TypeOf(i.Parameters[k])
-					if v != nil {
+					if v == nil {
 						continue
 					}
 					if i.Parameters[k] != nil && ru.Kind() != rt.Kind() {
@@ -236,7 +236,7 @@ func extractActionsRules(files []string) (*[]*Action, *[]*Rule, error) {
 					switch rt.Kind() {
 					case reflect.Slice, reflect.Array:
 						if i.Parameters[k] == nil {
-							i.Parameters[k] = v.([]interface{})
+							i.Parameters[k] = []interface{}{v}
 						} else {
 							i.Parameters[k] = append(i.Parameters[k].([]interface{}), v.([]interface{})...)
 						}
