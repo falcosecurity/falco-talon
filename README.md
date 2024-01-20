@@ -157,9 +157,13 @@ Results:
 
 ### Webhook
 
-| Setting | Default | Description |
-| ------- | ------- | ----------- |
-| `url`   | n/a     | URL         |
+|     Setting      |              Default              |     Description     |
+| ---------------- | --------------------------------- | ------------------- |
+| `url`            | n/a                               | URL                 |
+| `http_method`    | `POST`                            | HTTP Method         |
+| `user_agent`     | `Falco-Talon`                     | User Agent          |
+| `content_type`   | `application/json; charset=utf-8` | Content Type        |
+| `custom_headers` | n/a                               | Custom HTTP Headers |
 
 Results:
 ```json

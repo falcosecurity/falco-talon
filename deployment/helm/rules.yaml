@@ -19,6 +19,7 @@
   match:
     rules:
       - Unexpected outbound connection destination
+      - Outbound Connection to Free.fr
   actions:
     - action: Disable outbound connections
     - action: Terminate Pod

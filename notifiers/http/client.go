@@ -20,32 +20,74 @@ var ErrUnprocessableEntityError = errors.New("wrong request")         // ErrUnpr
 var ErrTooManyRequest = errors.New("exceeding post rate limit")       // ErrTooManyRequest = 429
 
 const DefaultContentType = "application/json; charset=utf-8"
-const UserAgent = "Falco-Talon"
+const DefaultHTTPMethod = "POST"
+const DefaultUserAgent = "Falco-Talon"
 
 type Client struct {
-	URL         *url.URL
-	ContentType string
+	Headers    http.Header
+	HTTPMethod string
+	Compressed bool
 }
 
-func NewClient(u string) (*Client, error) {
+func CheckURL(u string) error {
 	reg := regexp.MustCompile(`(http)(s?)://.*`)
 	if !reg.MatchString(u) {
-		return nil, errors.New("invalid url")
+		return errors.New("invalid url")
 	}
 
 	if _, err := url.ParseRequestURI(u); err != nil {
-		return nil, errors.New("invalid url")
+		return errors.New("invalid url")
 	}
 
-	URL, err := url.Parse(u)
+	_, err := url.Parse(u)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &Client{URL: URL, ContentType: DefaultContentType}, nil
+	return nil
 }
 
-func (c *Client) Post(payload interface{}) error {
+func DefaultClient() *Client {
+	h := http.Header{}
+	h.Set("Content-Type", DefaultContentType)
+	return &Client{
+		HTTPMethod: "POST",
+		Headers:    h,
+	}
+}
+
+func NewClient(httpMethod, contentType, userAgent string, headers map[string]string) *Client {
+	h := http.Header{}
+	if len(headers) != 0 {
+		for i, j := range headers {
+			h.Add(i, j)
+		}
+	}
+
+	m := DefaultHTTPMethod
+	if httpMethod != "" {
+		m = httpMethod
+	}
+
+	a := DefaultUserAgent
+	if userAgent != "" {
+		a = userAgent
+	}
+	h.Set("User-Agent", a)
+
+	ct := DefaultContentType
+	if contentType != "" {
+		ct = contentType
+	}
+	h.Set("Content-Type", ct)
+
+	return &Client{
+		HTTPMethod: m,
+		Headers:    h,
+	}
+}
+
+func (c *Client) Post(u string, payload interface{}) error {
 	// defer + recover to catch panic if output doesn't respond
 	config := configuration.GetConfiguration()
 	defer func() {
@@ -63,13 +105,10 @@ func (c *Client) Post(payload interface{}) error {
 		Transport: http.DefaultTransport.(*http.Transport).Clone(),
 	}
 
-	req, err := http.NewRequest("POST", c.URL.String(), body)
+	req, err := http.NewRequest(c.HTTPMethod, u, body)
 	if err != nil {
 		return err
 	}
-
-	req.Header.Add("Content-Type", c.ContentType)
-	req.Header.Add("User-Agent", UserAgent)
 
 	resp, err := client.Do(req)
 	if err != nil {

@@ -8,10 +8,12 @@ import (
 )
 
 type Configuration struct {
-	URL string `field:"url"`
+	CustomHeaders map[string]string `field:"custom_headers"`
+	URL           string            `field:"url"`
+	HTTPMethod    string            `field:"http_method" default:"POST"`
+	ContentType   string            `field:"content_type" default:"application/json; charset=utf-8"`
+	UserAgent     string            `field:"user_agent" default:"Falco-Talon"`
 }
-
-// TODO: allow to set http methods/headers/compression
 
 var webhookConfig *Configuration
 
@@ -25,12 +27,18 @@ var Notify = func(log utils.LogLine) error {
 	if webhookConfig.URL == "" {
 		return errors.New("wrong config")
 	}
-
-	client, err := http.NewClient(webhookConfig.URL)
-	if err != nil {
+	if err := http.CheckURL(webhookConfig.URL); err != nil {
 		return err
 	}
-	err = client.Post(log)
+
+	client := http.NewClient(
+		webhookConfig.HTTPMethod,
+		webhookConfig.ContentType,
+		webhookConfig.UserAgent,
+		webhookConfig.CustomHeaders,
+	)
+
+	err := client.Post(webhookConfig.URL, log)
 	if err != nil {
 		return err
 	}

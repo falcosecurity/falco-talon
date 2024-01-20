@@ -64,11 +64,13 @@ var Notify = func(log utils.LogLine) error {
 		return errors.New("wrong config")
 	}
 
-	client, err := http.NewClient(slackconfig.WebhookURL)
-	if err != nil {
+	if err := http.CheckURL(slackconfig.WebhookURL); err != nil {
 		return err
 	}
-	err = client.Post(NewPayload(log))
+
+	client := http.DefaultClient()
+
+	err := client.Post(slackconfig.WebhookURL, NewPayload(log))
 	if err != nil {
 		return err
 	}
