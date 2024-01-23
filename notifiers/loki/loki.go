@@ -104,10 +104,6 @@ func NewPayload(log utils.LogLine) Payload {
 		t = log.Error
 	}
 
-	if t == "" {
-		t = fmt.Sprintf("Action '%v' with Actionner '%v' from Rule '%v' has been successfully triggered", log.Action, log.Actionner, log.Rule)
-	}
-
 	return Payload{Streams: []Stream{
 		{
 			Stream: s,

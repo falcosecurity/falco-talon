@@ -119,6 +119,7 @@ var Terminate = func(rule *rules.Rule, action *rules.Action, event *events.Event
 	}
 	return utils.LogLine{
 			Objects: objects,
+			Output:  fmt.Sprintf("The Pod '%v' in the Namespace '%v' has been terminated", podName, namespace),
 			Status:  "success",
 		},
 		nil

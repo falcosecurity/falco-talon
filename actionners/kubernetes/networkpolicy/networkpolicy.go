@@ -191,10 +191,10 @@ var NetworkPolicy = func(rule *rules.Rule, action *rules.Action, event *events.E
 	_, err = client.NetworkingV1().NetworkPolicies(namespace).Get(context.Background(), owner, metav1.GetOptions{})
 	if errorsv1.IsNotFound(err) {
 		_, err = client.NetworkingV1().NetworkPolicies(namespace).Create(context.Background(), &payload, metav1.CreateOptions{})
-		status = "created"
+		status = fmt.Sprintf("The NetworkPolicy '%v' in the namespace '%v' has been created", owner, namespace)
 	} else {
 		_, err = client.NetworkingV1().NetworkPolicies(namespace).Update(context.Background(), &payload, metav1.UpdateOptions{})
-		status = "updated"
+		status = fmt.Sprintf("The NetworkPolicy '%v' in the namespace '%v' has been updated", owner, namespace)
 	}
 	if err != nil {
 		return utils.LogLine{
