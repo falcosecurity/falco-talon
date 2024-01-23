@@ -24,11 +24,11 @@ import (
 //   #   key: value
 
 type Configuration struct {
+	CustomHeaders map[string]string `field:"custom_headers"`
 	HostPort      string            `field:"host_port"`
 	User          string            `field:"user"`
 	APIKey        string            `field:"api_key"`
 	Tenant        string            `field:"tenant"`
-	CustomHeaders map[string]string `field:"custom_headers"`
 }
 
 type Payload struct {
