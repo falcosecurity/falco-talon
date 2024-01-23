@@ -14,6 +14,7 @@
   - [Notifiers](#notifiers)
     - [K8s Events](#k8s-events)
     - [Slack](#slack)
+    - [Loki](#loki)
     - [SMTP](#smtp)
     - [Webhook](#webhook)
   - [Configuration](#configuration)
@@ -137,6 +138,16 @@ Results:
 
 ![./imgs/slack_short.png](./imgs/slack_short.png)
 ![./imgs/slack_long.png](./imgs/slack_long.png)
+
+### Loki
+
+|     Setting      | Default |         Description          |
+| ---------------- | ------- | ---------------------------- |
+| `host_port`      | n/a     | http://{domain or ip}:{port} |
+| `user`           | n/a     | User for Grafana Logs        |
+| `api_key`        | n/a     | API Key for Grafana Logs     |
+| `tenant`         | n/a     | Add the Tenant header        |
+| `custom_headers` | n/a     | Custom HTTP Headers          |
 
 ### SMTP
 

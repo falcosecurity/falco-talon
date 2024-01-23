@@ -2,8 +2,11 @@ package http
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -47,16 +50,32 @@ func CheckURL(u string) error {
 	return nil
 }
 
-func DefaultClient() *Client {
+func DefaultClient() Client {
 	h := http.Header{}
 	h.Set("Content-Type", DefaultContentType)
-	return &Client{
+	return Client{
 		HTTPMethod: "POST",
 		Headers:    h,
 	}
 }
 
-func NewClient(httpMethod, contentType, userAgent string, headers map[string]string) *Client {
+func (c *Client) SetContentType(ct string) {
+	c.Headers.Set("Content-Type", ct)
+}
+
+func (c *Client) SetBasicAuth(user, password string) {
+	c.Headers.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(user+":"+password)))
+}
+
+func (c *Client) SetHeader(key, value string) {
+	c.Headers.Set(key, value)
+}
+
+func (c *Client) DeleteHeader(key string) {
+	c.Headers.Del(key)
+}
+
+func NewClient(httpMethod, contentType, userAgent string, headers map[string]string) Client {
 	h := http.Header{}
 	if len(headers) != 0 {
 		for i, j := range headers {
@@ -81,7 +100,7 @@ func NewClient(httpMethod, contentType, userAgent string, headers map[string]str
 	}
 	h.Set("Content-Type", ct)
 
-	return &Client{
+	return Client{
 		HTTPMethod: m,
 		Headers:    h,
 	}
@@ -110,6 +129,8 @@ func (c *Client) Post(u string, payload interface{}) error {
 		return err
 	}
 
+	req.Header = c.Headers
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
@@ -120,7 +141,11 @@ func (c *Client) Post(u string, payload interface{}) error {
 	case http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent: // 200, 201, 202, 204
 		return nil
 	case http.StatusBadRequest: // 400
-		return ErrHeaderMissing
+		bodyBytes, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return ErrHeaderMissing
+		}
+		return fmt.Errorf("%v: %v", ErrHeaderMissing, string(bodyBytes))
 	case http.StatusUnauthorized: // 401
 		return ErrClientAuthenticationError
 	case http.StatusForbidden: // 403

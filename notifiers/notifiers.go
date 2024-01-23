@@ -7,6 +7,7 @@ import (
 	"github.com/Issif/falco-talon/internal/events"
 	"github.com/Issif/falco-talon/internal/rules"
 	"github.com/Issif/falco-talon/notifiers/k8sevents"
+	"github.com/Issif/falco-talon/notifiers/loki"
 	"github.com/Issif/falco-talon/notifiers/slack"
 	"github.com/Issif/falco-talon/notifiers/smtp"
 	"github.com/Issif/falco-talon/notifiers/webhook"
@@ -52,6 +53,11 @@ func GetDefaultNotifiers() *Notifiers {
 				Name:         "webhook",
 				Init:         webhook.Init,
 				Notification: webhook.Notify,
+			},
+			&Notifier{
+				Name:         "loki",
+				Init:         loki.Init,
+				Notification: loki.Notify,
 			},
 		)
 	}
