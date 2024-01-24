@@ -187,14 +187,14 @@ var NetworkPolicy = func(rule *rules.Rule, action *rules.Action, event *events.E
 		payload.Spec.Egress = []networkingv1.NetworkPolicyEgressRule{*np}
 	}
 
-	var status string
+	var output string
 	_, err = client.NetworkingV1().NetworkPolicies(namespace).Get(context.Background(), owner, metav1.GetOptions{})
 	if errorsv1.IsNotFound(err) {
 		_, err = client.NetworkingV1().NetworkPolicies(namespace).Create(context.Background(), &payload, metav1.CreateOptions{})
-		status = fmt.Sprintf("The NetworkPolicy '%v' in the namespace '%v' has been created", owner, namespace)
+		output = fmt.Sprintf("The NetworkPolicy '%v' in the Namespace '%v' has been created", owner, namespace)
 	} else {
 		_, err = client.NetworkingV1().NetworkPolicies(namespace).Update(context.Background(), &payload, metav1.UpdateOptions{})
-		status = fmt.Sprintf("The NetworkPolicy '%v' in the namespace '%v' has been updated", owner, namespace)
+		output = fmt.Sprintf("The NetworkPolicy '%v' in the Namespace '%v' has been updated", owner, namespace)
 	}
 	if err != nil {
 		return utils.LogLine{
@@ -207,7 +207,7 @@ var NetworkPolicy = func(rule *rules.Rule, action *rules.Action, event *events.E
 	objects["NetworkPolicy"] = owner
 	return utils.LogLine{
 			Objects: objects,
-			Output:  status,
+			Output:  output,
 			Status:  "success",
 		},
 		nil
