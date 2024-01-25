@@ -145,7 +145,7 @@ func SetFields(structure interface{}, fields map[string]interface{}) interface{}
 		if fields[field] != nil {
 			switch valueOf.Type().Field(i).Type.String() {
 			case StringStr:
-				valueOf.Field(i).SetString(fields[field].(string))
+				valueOf.Field(i).SetString(fmt.Sprint(fields[field]))
 			case IntStr, Int64Str:
 				d := int64(fields[field].(int))
 				valueOf.Field(i).SetInt(d)

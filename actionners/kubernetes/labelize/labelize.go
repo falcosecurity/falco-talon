@@ -86,7 +86,7 @@ var Labelize = func(rule *rules.Rule, action *rules.Action, event *events.Event)
 	}
 	return utils.LogLine{
 			Objects: objects,
-			Output:  fmt.Sprintf("The Pod '%v' in the Namespace '%v' has been labelized", pod, namespace),
+			Output:  fmt.Sprintf("the pod '%v' in the namespace '%v' has been labelized", pod, namespace),
 			Status:  "success",
 		},
 		nil
