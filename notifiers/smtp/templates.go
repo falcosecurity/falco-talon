@@ -34,7 +34,7 @@ var htmlTmpl = `
     td{font-family:arial,helvetica,sans-serif;}
 </style>
 
-<table cellpadding="3" cellspacing="0" style="font-family:arial,helvetica,sans-serif; height:2px; width:700px;">
+<table cellpadding="5" cellspacing="0" style="font-family:arial,helvetica,sans-serif; height:2px; width:800px;">
     <tbody>
         <tr>
             <td><img src="https://raw.githubusercontent.com/cncf/artwork/master/projects/falco/horizontal/color/falco-horizontal-color.png" width="117px" height="47"></td>
@@ -43,14 +43,14 @@ var htmlTmpl = `
     </tbody>
 </table>
 <br>
-<table cellpadding="3" cellspacing="0" style="font-family:arial,helvetica,sans-serif; height:2px; width:700px;">
+<table cellpadding="3" cellspacing="0" style="font-family:arial,helvetica,sans-serif; height:2px; width:800px;">
     <tbody>
         <tr>
-            <td style="background-color:{{ $color }}; width:700px; text-align:center;"><span style="font-size:12px; color:#fff;"><strong>{{ .Status }}</strong></span></td>
+            <td style="background-color:{{ $color }}; width:800px; text-align:center;"><span style="font-size:12px; color:#fff;"><strong>{{ .Status }}</strong></span></td>
         </tr>
     </tbody>
 </table>
-<table cellpadding="5" cellspacing="0" style="font-family:arial,helvetica,sans-serif; width:700px; font-size:13px">
+<table cellpadding="5" cellspacing="0" style="font-family:arial,helvetica,sans-serif; width:800px; font-size:13px">
     <tbody>
         <tr>
             <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Action</strong></span></td>
@@ -97,7 +97,7 @@ var htmlTmpl = `
         {{ if .Output }}
         <tr>
             <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Output</strong></span></td>
-            <td style="background-color:#d1d6da">{{ printf "%s" .Output }}</td>
+            <td style="background-color:#d1d6da;max-width:502px;overflow:hidden;">{{ printf "%s" .Output }}</td>
         </tr>
         {{ end }}
     </tbody>

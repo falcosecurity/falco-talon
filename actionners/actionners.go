@@ -5,6 +5,7 @@ import (
 
 	"github.com/Issif/falco-talon/actionners/kubernetes/exec"
 	labelize "github.com/Issif/falco-talon/actionners/kubernetes/labelize"
+	logActionner "github.com/Issif/falco-talon/actionners/kubernetes/log"
 	networkpolicy "github.com/Issif/falco-talon/actionners/kubernetes/networkpolicy"
 	"github.com/Issif/falco-talon/actionners/kubernetes/script"
 	terminate "github.com/Issif/falco-talon/actionners/kubernetes/terminate"
@@ -97,7 +98,19 @@ func GetDefaultActionners() *Actionners {
 				},
 				CheckParameters: script.CheckParameters,
 				Action:          script.Script,
-			})
+			},
+			&Actionner{
+				Category:        "kubernetes",
+				Name:            "log",
+				DefaultContinue: true,
+				Init:            kubernetes.Init,
+				Checks: []checkActionner{
+					kubernetes.CheckPodExist,
+				},
+				CheckParameters: logActionner.CheckParameters,
+				Action:          logActionner.Log,
+			},
+		)
 	}
 
 	return defaultActionners

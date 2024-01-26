@@ -59,7 +59,7 @@ var Init = func(fields map[string]interface{}) error {
 
 var Notify = func(log utils.LogLine) error {
 	if smtpconfig.HostPort == "" {
-		return errors.New("wrong config")
+		return errors.New("wrong host_port")
 	}
 
 	payload, err := NewPayload(log)
