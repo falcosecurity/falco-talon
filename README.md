@@ -11,6 +11,7 @@
     - [`kubernetes:networkpolicy`](#kubernetesnetworkpolicy)
     - [`kubernetes:exec`](#kubernetesexec)
     - [`kubernetes:script`](#kubernetesscript)
+    - [`kubernetes:log`](#kuberneteslog)
   - [Notifiers](#notifiers)
     - [K8s Events](#k8s-events)
     - [Slack](#slack)
@@ -112,6 +113,16 @@ Each `actionner` is configured with:
   * `shell`: SHELL used to run the script (default; `/bin/sh`)
   * `script`: Script to run (use `|` to use multilines) (can't be used at the same time than `file`)
   * `file`: Shell script file (can't be used at the same time than `script`)
+* Required fields:
+  * `k8s.pod.name`
+  * `k8s.ns.name`
+
+### `kubernetes:log`
+
+* Description: **Get logs from a pod**
+* Continue: `true`
+* Parameters:
+  * `tail_lines`: The number of lines from the end of the logs to show (default: `1000`)
 * Required fields:
   * `k8s.pod.name`
   * `k8s.ns.name`
