@@ -29,7 +29,7 @@ const (
 	ignoredStr string = "ignored"
 )
 
-type Configuration struct {
+type Settings struct {
 	HostPort string `field:"host_port"`
 	User     string `field:"user"`
 	Password string `field:"password"`
@@ -49,17 +49,20 @@ type Payload struct {
 	Date    string
 }
 
-var smtpconfig *Configuration
+var settings *Settings
 
 var Init = func(fields map[string]interface{}) error {
-	smtpconfig = new(Configuration)
-	smtpconfig = utils.SetFields(smtpconfig, fields).(*Configuration)
+	settings = new(Settings)
+	settings = utils.SetFields(settings, fields).(*Settings)
+	if err := checkSettings(settings); err != nil {
+		return err
+	}
 	return nil
 }
 
 var Notify = func(log utils.LogLine) error {
-	if smtpconfig.HostPort == "" {
-		return errors.New("wrong host_port")
+	if settings.HostPort == "" {
+		return errors.New("wrong `host_port` setting")
 	}
 
 	payload, err := NewPayload(log)
@@ -70,6 +73,14 @@ var Notify = func(log utils.LogLine) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func checkSettings(settings *Settings) error {
+	if settings.HostPort == "" {
+		return errors.New("wrong `host_port` setting")
+	}
+
 	return nil
 }
 
@@ -85,14 +96,14 @@ func NewPayload(log utils.LogLine) (Payload, error) {
 	}
 
 	payload := Payload{
-		From:    fmt.Sprintf("From: %v", smtpconfig.From),
-		To:      fmt.Sprintf("To: %v", smtpconfig.To),
+		From:    fmt.Sprintf("From: %v", settings.From),
+		To:      fmt.Sprintf("To: %v", settings.To),
 		Subject: fmt.Sprintf("Subject: [falco] Action `%v` from rule `%v` has been %v", log.Action, log.Rule, status),
 		Mime:    "MIME-version: 1.0;",
 		Date:    "Date: " + time.Now().Format(rfc2822),
 	}
 
-	if smtpconfig.Format != Text {
+	if settings.Format != Text {
 		payload.Mime += "\nContent-Type: multipart/alternative; boundary=4t74weu9byeSdJTM\n\n\n--4t74weu9byeSdJTM"
 	}
 
@@ -111,7 +122,7 @@ func NewPayload(log utils.LogLine) (Payload, error) {
 		return Payload{}, err
 	}
 
-	if smtpconfig.Format == Text {
+	if settings.Format == Text {
 		return payload, nil
 	}
 
@@ -141,16 +152,16 @@ func NewPayload(log utils.LogLine) (Payload, error) {
 }
 
 func Send(payload Payload) error {
-	to := strings.Split(strings.ReplaceAll(smtpconfig.To, " ", ""), ",")
-	auth := sasl.NewPlainClient("", smtpconfig.User, smtpconfig.Password)
+	to := strings.Split(strings.ReplaceAll(settings.To, " ", ""), ",")
+	auth := sasl.NewPlainClient("", settings.User, settings.Password)
 
-	smtpClient, err := gosmtp.Dial(smtpconfig.HostPort)
+	smtpClient, err := gosmtp.Dial(settings.HostPort)
 	if err != nil {
 		return err
 	}
-	if smtpconfig.TLS {
+	if settings.TLS {
 		tlsCfg := &tls.Config{
-			ServerName: strings.Split(smtpconfig.HostPort, ":")[0],
+			ServerName: strings.Split(settings.HostPort, ":")[0],
 			MinVersion: tls.VersionTLS12,
 		}
 		if err = smtpClient.StartTLS(tlsCfg); err != nil {
@@ -162,7 +173,7 @@ func Send(payload Payload) error {
 	if err != nil {
 		return err
 	}
-	err = smtpClient.SendMail(smtpconfig.From, to, strings.NewReader(payload.Body))
+	err = smtpClient.SendMail(settings.From, to, strings.NewReader(payload.Body))
 	if err != nil {
 		return err
 	}

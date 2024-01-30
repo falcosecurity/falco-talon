@@ -25,7 +25,7 @@ const (
 	metadataLabels = "/metadata/labels/"
 )
 
-var Labelize = func(rule *rules.Rule, action *rules.Action, event *events.Event) (utils.LogLine, error) {
+var Action = func(rule *rules.Rule, action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	pod := event.GetPodName()
 	namespace := event.GetNamespaceName()
 

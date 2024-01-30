@@ -15,7 +15,7 @@ import (
 	"github.com/Issif/falco-talon/utils"
 )
 
-var Terminate = func(rule *rules.Rule, action *rules.Action, event *events.Event) (utils.LogLine, error) {
+var Action = func(rule *rules.Rule, action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 

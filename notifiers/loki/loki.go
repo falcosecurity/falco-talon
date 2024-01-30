@@ -10,7 +10,7 @@ import (
 	"github.com/Issif/falco-talon/utils"
 )
 
-type Configuration struct {
+type Settings struct {
 	CustomHeaders map[string]string `field:"custom_headers"`
 	HostPort      string            `field:"host_port"`
 	User          string            `field:"user"`
@@ -31,37 +31,48 @@ type Value []string
 
 const contentType = "application/json"
 
-var lokiconfig *Configuration
+var settings *Settings
 
 var Init = func(fields map[string]interface{}) error {
-	lokiconfig = new(Configuration)
-	lokiconfig = utils.SetFields(lokiconfig, fields).(*Configuration)
+	settings = new(Settings)
+	settings = utils.SetFields(settings, fields).(*Settings)
+	if err := checkSettings(settings); err != nil {
+		return err
+	}
 	return nil
 }
 
 var Notify = func(log utils.LogLine) error {
-	if lokiconfig.HostPort == "" {
-		return errors.New("wrong config")
+	if settings.HostPort == "" {
+		return errors.New("wrong `host_port` setting")
 	}
 
-	if err := http.CheckURL(lokiconfig.HostPort); err != nil {
+	if err := http.CheckURL(settings.HostPort); err != nil {
 		return err
 	}
 
-	client := http.NewClient("", contentType, "", lokiconfig.CustomHeaders)
+	client := http.NewClient("", contentType, "", settings.CustomHeaders)
 
-	if lokiconfig.User != "" && lokiconfig.APIKey != "" {
-		client.SetBasicAuth(lokiconfig.User, lokiconfig.APIKey)
+	if settings.User != "" && settings.APIKey != "" {
+		client.SetBasicAuth(settings.User, settings.APIKey)
 	}
 
-	if lokiconfig.Tenant != "" {
-		client.SetHeader("X-Scope-OrgID", lokiconfig.Tenant)
+	if settings.Tenant != "" {
+		client.SetHeader("X-Scope-OrgID", settings.Tenant)
 	}
 
-	err := client.Post(lokiconfig.HostPort+"/loki/api/v1/push", NewPayload(log))
+	err := client.Post(settings.HostPort+"/loki/api/v1/push", NewPayload(log))
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func checkSettings(settings *Settings) error {
+	if settings.HostPort == "" {
+		return errors.New("wrong `host_port` setting")
+	}
+
 	return nil
 }
 

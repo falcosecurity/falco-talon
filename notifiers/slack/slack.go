@@ -20,7 +20,7 @@ const (
 	resultStr string = "result"
 )
 
-type Configuration struct {
+type Settings struct {
 	WebhookURL string `field:"webhook_url"`
 	Icon       string `field:"icon" default:"https://upload.wikimedia.org/wikipedia/commons/2/26/Circaetus_gallicus_claw.jpg"`
 	Username   string `field:"username" default:"Falco Talon"`
@@ -51,29 +51,36 @@ type Payload struct {
 	Attachments []Attachment `json:"attachments,omitempty"`
 }
 
-var slackconfig *Configuration
+var settings *Settings
 
 var Init = func(fields map[string]interface{}) error {
-	slackconfig = new(Configuration)
-	slackconfig = utils.SetFields(slackconfig, fields).(*Configuration)
+	settings = new(Settings)
+	settings = utils.SetFields(settings, fields).(*Settings)
+	if err := checkSettings(settings); err != nil {
+		return err
+	}
 	return nil
 }
 
 var Notify = func(log utils.LogLine) error {
-	if slackconfig.WebhookURL == "" {
-		return errors.New("wrong config")
-	}
-
-	if err := http.CheckURL(slackconfig.WebhookURL); err != nil {
-		return err
-	}
-
 	client := http.DefaultClient()
 
-	err := client.Post(slackconfig.WebhookURL, NewPayload(log))
+	err := client.Post(settings.WebhookURL, NewPayload(log))
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func checkSettings(settings *Settings) error {
+	if settings.WebhookURL == "" {
+		return errors.New("wrong `webhook_url` setting")
+	}
+
+	if err := http.CheckURL(settings.WebhookURL); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -100,7 +107,7 @@ func NewPayload(log utils.LogLine) Payload {
 
 	text := fmt.Sprintf("Action `%v` from rule `%v` has been %v", log.Action, log.Rule, status)
 
-	if slackconfig.Format == "short" {
+	if settings.Format == "short" {
 		attachment.Text = text + fmt.Sprintf(", with %v: `%v`", resultOrError, log.Message)
 		text = ""
 	} else {
@@ -164,8 +171,8 @@ func NewPayload(log utils.LogLine) Payload {
 			fields = append(fields, field)
 		}
 
-		if slackconfig.Footer != "" {
-			attachment.Footer = slackconfig.Footer
+		if settings.Footer != "" {
+			attachment.Footer = settings.Footer
 		}
 
 		attachment.Fallback = ""
@@ -176,8 +183,8 @@ func NewPayload(log utils.LogLine) Payload {
 
 	s := Payload{
 		Text:        text,
-		Username:    slackconfig.Username,
-		IconURL:     slackconfig.Icon,
+		Username:    settings.Username,
+		IconURL:     settings.Icon,
 		Attachments: attachments,
 	}
 

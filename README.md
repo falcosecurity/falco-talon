@@ -16,6 +16,7 @@
     - [K8s Events](#k8s-events)
     - [Slack](#slack)
     - [Loki](#loki)
+    - [Elasticsearch](#elasticsearch)
     - [SMTP](#smtp)
     - [Webhook](#webhook)
   - [Configuration](#configuration)
@@ -154,23 +155,34 @@ Results:
 
 |     Setting      | Default |         Description          |
 | ---------------- | ------- | ---------------------------- |
-| `host_port`      | n/a     | http://{domain or ip}:{port} |
+| `url`            | n/a     | http://{domain or ip}:{port} |
 | `user`           | n/a     | User for Grafana Logs        |
 | `api_key`        | n/a     | API Key for Grafana Logs     |
 | `tenant`         | n/a     | Add the Tenant header        |
 | `custom_headers` | n/a     | Custom HTTP Headers          |
 
+### Elasticsearch
+
+|     Setting      |    Default    |                                    Description                                    |
+| ---------------- | ------------- | --------------------------------------------------------------------------------- |
+| `host_port`      | n/a           | http://{domain or ip}:{port}                                                      |
+| `user`           | n/a           | User for Grafana Logs                                                             |
+| `password`       | n/a           | Password for Grafana Logs                                                         |
+| `index`          | `falco-talon` | Elasticsearch index                                                               |
+| `suffix`         | `daily`       | Date suffix for index rotation : `daily` (default), `monthly`, `annually`, `none` |
+| `custom_headers` | n/a           | Custom HTTP Headers                                                               |
+
 ### SMTP
 
-|   Setting   | Default |              Description              |        |
-| ----------- | ------- | ------------------------------------- | ------ |
-| `host_port` | n/a     | Host:Port of SMTP server              |        |
-| `user`      | n/a     | User for SMTP                         |        |
-| `password`  | n/a     | Password for SMTP                     |        |
-| `from`      | n/a     | From                                  |        |
-| `to`        | n/a     | To (comma separated list of adresses) |        |
-| `format`    | `html`  | Format of the email (`text            | html`) |
-| `tls`       | `false` | Use TLS connection                    |        |
+|   Setting   | Default |              Description              |
+| ----------- | ------- | ------------------------------------- |
+| `host_port` | n/a     | Host:Port of SMTP server              |
+| `user`      | n/a     | User for SMTP                         |
+| `password`  | n/a     | Password for SMTP                     |
+| `from`      | n/a     | From                                  |
+| `to`        | n/a     | To (comma separated list of adresses) |
+| `format`    | `html`  | Format of the email (`text`, `html`)  |
+| `tls`       | `false` | Use TLS connection                    |
 
 Results:
 

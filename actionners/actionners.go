@@ -31,7 +31,7 @@ type checkActionner func(event *events.Event) error
 
 type Actionners []*Actionner
 
-var defaultActionners *Actionners
+var availableActionners *Actionners
 var enabledActionners *Actionners
 
 const (
@@ -40,14 +40,14 @@ const (
 )
 
 func init() {
-	defaultActionners = new(Actionners)
-	defaultActionners = GetDefaultActionners()
+	availableActionners = new(Actionners)
+	availableActionners = GetDefaultActionners()
 	enabledActionners = new(Actionners)
 }
 
 func GetDefaultActionners() *Actionners {
-	if len(*defaultActionners) == 0 {
-		defaultActionners.Add(
+	if len(*availableActionners) == 0 {
+		availableActionners.Add(
 			&Actionner{
 				Category:        "kubernetes",
 				Name:            "terminate",
@@ -55,7 +55,7 @@ func GetDefaultActionners() *Actionners {
 				Init:            kubernetes.Init,
 				Checks:          []checkActionner{kubernetes.CheckPodExist},
 				CheckParameters: terminate.CheckParameters,
-				Action:          terminate.Terminate,
+				Action:          terminate.Action,
 			},
 			&Actionner{
 				Category:        "kubernetes",
@@ -64,7 +64,7 @@ func GetDefaultActionners() *Actionners {
 				Init:            kubernetes.Init,
 				Checks:          []checkActionner{kubernetes.CheckPodExist},
 				CheckParameters: labelize.CheckParameters,
-				Action:          labelize.Labelize,
+				Action:          labelize.Action,
 			},
 			&Actionner{
 				Category:        "kubernetes",
@@ -75,7 +75,7 @@ func GetDefaultActionners() *Actionners {
 					kubernetes.CheckPodExist,
 				},
 				CheckParameters: networkpolicy.CheckParameters,
-				Action:          networkpolicy.NetworkPolicy,
+				Action:          networkpolicy.Action,
 			},
 			&Actionner{
 				Category:        "kubernetes",
@@ -86,7 +86,7 @@ func GetDefaultActionners() *Actionners {
 					kubernetes.CheckPodExist,
 				},
 				CheckParameters: exec.CheckParameters,
-				Action:          exec.Exec,
+				Action:          exec.Action,
 			},
 			&Actionner{
 				Category:        "kubernetes",
@@ -97,7 +97,7 @@ func GetDefaultActionners() *Actionners {
 					kubernetes.CheckPodExist,
 				},
 				CheckParameters: script.CheckParameters,
-				Action:          script.Script,
+				Action:          script.Action,
 			},
 			&Actionner{
 				Category:        "kubernetes",
@@ -108,12 +108,12 @@ func GetDefaultActionners() *Actionners {
 					kubernetes.CheckPodExist,
 				},
 				CheckParameters: logActionner.CheckParameters,
-				Action:          logActionner.Log,
+				Action:          logActionner.Action,
 			},
 		)
 	}
 
-	return defaultActionners
+	return availableActionners
 }
 
 func Init() error {
@@ -131,7 +131,7 @@ func Init() error {
 	}
 
 	for category := range categories {
-		for _, actionner := range *defaultActionners {
+		for _, actionner := range *availableActionners {
 			if category == actionner.Category {
 				if actionner.Init != nil {
 					utils.PrintLog("info", config.LogFormat, utils.LogLine{Message: "init", ActionnerCategory: actionner.Category})
@@ -147,7 +147,7 @@ func Init() error {
 	}
 
 	for i := range enabledCategories {
-		for _, j := range *defaultActionners {
+		for _, j := range *availableActionners {
 			if i == j.Category {
 				enabledActionners.Add(j)
 			}

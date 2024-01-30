@@ -6,6 +6,7 @@ import (
 	"github.com/Issif/falco-talon/configuration"
 	"github.com/Issif/falco-talon/internal/events"
 	"github.com/Issif/falco-talon/internal/rules"
+	"github.com/Issif/falco-talon/notifiers/elasticsearch"
 	"github.com/Issif/falco-talon/notifiers/k8sevents"
 	"github.com/Issif/falco-talon/notifiers/loki"
 	"github.com/Issif/falco-talon/notifiers/slack"
@@ -22,18 +23,18 @@ type Notifier struct {
 
 type Notifiers []*Notifier
 
-var notifiers *Notifiers
-var defaultNotifiers *Notifiers
+var enabledNotifiers *Notifiers
+var availableNotifiers *Notifiers
 
 func init() {
-	defaultNotifiers = new(Notifiers)
-	defaultNotifiers = GetDefaultNotifiers()
-	notifiers = new(Notifiers)
+	availableNotifiers = new(Notifiers)
+	availableNotifiers = GetAvailableNotifiers()
+	enabledNotifiers = new(Notifiers)
 }
 
-func GetDefaultNotifiers() *Notifiers {
-	if len(*defaultNotifiers) == 0 {
-		defaultNotifiers.Add(
+func GetAvailableNotifiers() *Notifiers {
+	if len(*availableNotifiers) == 0 {
+		availableNotifiers.Add(
 			&Notifier{
 				Name:         "k8sevents",
 				Init:         nil,
@@ -59,9 +60,14 @@ func GetDefaultNotifiers() *Notifiers {
 				Init:         loki.Init,
 				Notification: loki.Notify,
 			},
+			&Notifier{
+				Name:         "elasticsearch",
+				Init:         elasticsearch.Init,
+				Notification: elasticsearch.Notify,
+			},
 		)
 	}
-	return defaultNotifiers
+	return availableNotifiers
 }
 
 func Init() {
@@ -80,7 +86,7 @@ func Init() {
 	}
 
 	for i := range specifiedNotifiers {
-		for _, j := range *defaultNotifiers {
+		for _, j := range *availableNotifiers {
 			if strings.ToLower(i) == j.Name {
 				if j.Init != nil {
 					if err := j.Init(config.Notifiers[i]); err != nil {
@@ -89,14 +95,14 @@ func Init() {
 					}
 					utils.PrintLog("info", config.LogFormat, utils.LogLine{Notifier: i, Message: "init", Status: "success"})
 				}
-				notifiers.Add(j)
+				enabledNotifiers.Add(j)
 			}
 		}
 	}
 }
 
 func GetNotifiers() *Notifiers {
-	return notifiers
+	return enabledNotifiers
 }
 
 func Notify(rule *rules.Rule, action *rules.Action, event *events.Event, log utils.LogLine) {

@@ -36,6 +36,7 @@ const (
 )
 
 type LogLine struct {
+	Time              string            `json:"time,omitempty"`
 	Objects           map[string]string `json:"objects,omitempty"`
 	TraceID           string            `json:"trace_id,omitempty"`
 	Rule              string            `json:"rule,omitempty"`
@@ -54,7 +55,6 @@ type LogLine struct {
 }
 
 func PrintLog(level, format string, line LogLine) {
-	// zerolog.TimeFieldFormat = time.RFC3339
 	var output zerolog.ConsoleWriter
 
 	var log zerolog.Logger

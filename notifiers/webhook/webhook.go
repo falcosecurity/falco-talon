@@ -15,30 +15,35 @@ type Configuration struct {
 	UserAgent     string            `field:"user_agent" default:"Falco-Talon"`
 }
 
-var webhookConfig *Configuration
+var config *Configuration
 
 var Init = func(fields map[string]interface{}) error {
-	webhookConfig = new(Configuration)
-	webhookConfig = utils.SetFields(webhookConfig, fields).(*Configuration)
+	config = new(Configuration)
+	config = utils.SetFields(config, fields).(*Configuration)
+	return nil
+}
+
+var CheckParameters = func(settings map[string]interface{}) error {
+	if settings["url"].(string) == "" {
+		return errors.New("wrong `url` setting")
+	}
+
+	if err := http.CheckURL(settings["url"].(string)); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 var Notify = func(log utils.LogLine) error {
-	if webhookConfig.URL == "" {
-		return errors.New("wrong config")
-	}
-	if err := http.CheckURL(webhookConfig.URL); err != nil {
-		return err
-	}
-
 	client := http.NewClient(
-		webhookConfig.HTTPMethod,
-		webhookConfig.ContentType,
-		webhookConfig.UserAgent,
-		webhookConfig.CustomHeaders,
+		config.HTTPMethod,
+		config.ContentType,
+		config.UserAgent,
+		config.CustomHeaders,
 	)
 
-	err := client.Post(webhookConfig.URL, log)
+	err := client.Post(config.URL, log)
 	if err != nil {
 		return err
 	}
