@@ -61,7 +61,7 @@ var Notify = func(log utils.LogLine) error {
 		client.SetHeader("X-Scope-OrgID", settings.Tenant)
 	}
 
-	err := client.Post(settings.HostPort+"/loki/api/v1/push", NewPayload(log))
+	err := client.Request(settings.HostPort+"/loki/api/v1/push", NewPayload(log))
 	if err != nil {
 		return err
 	}

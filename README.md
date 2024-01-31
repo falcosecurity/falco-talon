@@ -163,14 +163,17 @@ Results:
 
 ### Elasticsearch
 
-|     Setting      |    Default    |                                    Description                                    |
-| ---------------- | ------------- | --------------------------------------------------------------------------------- |
-| `host_port`      | n/a           | http://{domain or ip}:{port}                                                      |
-| `user`           | n/a           | User for Grafana Logs                                                             |
-| `password`       | n/a           | Password for Grafana Logs                                                         |
-| `index`          | `falco-talon` | Elasticsearch index                                                               |
-| `suffix`         | `daily`       | Date suffix for index rotation : `daily` (default), `monthly`, `annually`, `none` |
-| `custom_headers` | n/a           | Custom HTTP Headers                                                               |
+|         Setting         |    Default    |                                    Description                                    |
+| ----------------------- | ------------- | --------------------------------------------------------------------------------- |
+| `host_port`             | n/a           | http://{domain or ip}:{port}                                                      |
+| `user`                  | n/a           | User for Grafana Logs                                                             |
+| `password`              | n/a           | Password for Grafana Logs                                                         |
+| `index`                 | `falco-talon` | Elasticsearch index                                                               |
+| `suffix`                | `daily`       | Date suffix for index rotation : `daily` (default), `monthly`, `annually`, `none` |
+| `create_index_template` | `true`        | Create the index template at the init if it doesn't exist                         |
+| `number_of_shards`      | `3`           | Number of shards for the index  (if `create_index_template` is `true`)            |
+| `number_of_replicas`    | `3`           | Number of replicas for the index (if `create_index_template` is `true`)           |
+| `custom_headers`        | n/a           | Custom HTTP Headers                                                               |
 
 ### SMTP
 

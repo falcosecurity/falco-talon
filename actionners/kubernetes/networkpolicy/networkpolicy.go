@@ -21,8 +21,8 @@ var Action = func(rule *rules.Rule, action *rules.Action, event *events.Event) (
 	namespace := event.GetNamespaceName()
 
 	objects := map[string]string{
-		"Pod":       podName,
-		"Namespace": namespace,
+		"pod":       podName,
+		"namespace": namespace,
 	}
 	client := kubernetes.GetClient()
 

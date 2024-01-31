@@ -43,7 +43,7 @@ var Notify = func(log utils.LogLine) error {
 		config.CustomHeaders,
 	)
 
-	err := client.Post(config.URL, log)
+	err := client.Request(config.URL, log)
 	if err != nil {
 		return err
 	}

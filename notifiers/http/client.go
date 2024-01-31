@@ -59,6 +59,10 @@ func DefaultClient() Client {
 	}
 }
 
+func (c *Client) SetHTTPMethod(hm string) {
+	c.HTTPMethod = hm
+}
+
 func (c *Client) SetContentType(ct string) {
 	c.Headers.Set("Content-Type", ct)
 }
@@ -106,7 +110,7 @@ func NewClient(httpMethod, contentType, userAgent string, headers map[string]str
 	}
 }
 
-func (c *Client) Post(u string, payload interface{}) error {
+func (c *Client) Request(u string, payload interface{}) error {
 	// defer + recover to catch panic if output doesn't respond
 	config := configuration.GetConfiguration()
 	defer func() {
@@ -116,8 +120,11 @@ func (c *Client) Post(u string, payload interface{}) error {
 	}()
 
 	body := new(bytes.Buffer)
-	if err := json.NewEncoder(body).Encode(payload); err != nil {
-		return err
+
+	if c.HTTPMethod != "GET" {
+		if err := json.NewEncoder(body).Encode(payload); err != nil {
+			return err
+		}
 	}
 
 	client := &http.Client{

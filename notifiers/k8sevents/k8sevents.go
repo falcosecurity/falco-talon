@@ -70,8 +70,8 @@ var Notify = func(log utils.LogLine) error {
 		},
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "Pod",
-			Namespace: log.Objects["Namespace"],
-			Name:      log.Objects["Pod"],
+			Namespace: log.Objects["namespace"],
+			Name:      log.Objects["pod"],
 		},
 		Reason:  falcoTalon + ":" + log.Actionner + ":" + log.Status,
 		Message: strings.ReplaceAll(message, `'`, `"`),
@@ -85,7 +85,7 @@ var Notify = func(log utils.LogLine) error {
 		Action:              log.Actionner,
 	}
 	k8sclient := kubernetes.GetClient()
-	_, err = k8sclient.CoreV1().Events(log.Objects["Namespace"]).Create(context.TODO(), k8sevent, metav1.CreateOptions{})
+	_, err = k8sclient.CoreV1().Events(log.Objects["namespace"]).Create(context.TODO(), k8sevent, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}

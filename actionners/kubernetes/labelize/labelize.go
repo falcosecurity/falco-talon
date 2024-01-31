@@ -30,8 +30,8 @@ var Action = func(rule *rules.Rule, action *rules.Action, event *events.Event) (
 	namespace := event.GetNamespaceName()
 
 	objects := map[string]string{
-		"Pod":       pod,
-		"Namespace": namespace,
+		"pod":       pod,
+		"namespace": namespace,
 	}
 
 	payload := make([]patch, 0)

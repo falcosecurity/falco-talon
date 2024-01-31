@@ -121,7 +121,7 @@ func PrintLog(level, format string, line LogLine) {
 	}
 	if len(line.Objects) > 0 {
 		for i, j := range line.Objects {
-			l.Str(i, j)
+			l.Str(strings.ToLower(i), j)
 		}
 	}
 	if line.Error != "" {
@@ -147,12 +147,29 @@ func SetFields(structure interface{}, fields map[string]interface{}) interface{}
 			case StringStr:
 				valueOf.Field(i).SetString(fmt.Sprint(fields[field]))
 			case IntStr, Int64Str:
-				d := int64(fields[field].(int))
-				valueOf.Field(i).SetInt(d)
+				d, err := strconv.Atoi(fmt.Sprintf("%v", fields[field]))
+				if err == nil {
+					valueOf.Field(i).SetInt(int64(d))
+				} else if deflt != "" {
+					d, _ := strconv.Atoi(deflt)
+					valueOf.Field(i).SetInt(int64(d))
+				}
 			case FloatStr, Float64Str:
-				valueOf.Field(i).SetFloat(fields[field].(float64))
+				d, err := strconv.ParseFloat(fmt.Sprintf("%v", fields[field]), 64)
+				if err == nil {
+					valueOf.Field(i).SetFloat(d)
+				} else if deflt != "" {
+					d, _ := strconv.ParseFloat(deflt, 64)
+					valueOf.Field(i).SetFloat(d)
+				}
 			case BoolStr:
-				valueOf.Field(i).SetBool(fields[field].(bool))
+				d, err := strconv.ParseBool(fmt.Sprintf("%v", fields[field]))
+				if err == nil {
+					valueOf.Field(i).SetBool(d)
+				} else if deflt != "" {
+					d, _ := strconv.ParseBool(deflt)
+					valueOf.Field(i).SetBool(d)
+				}
 			case MapStringStr:
 				valueOf.Field(i).SetMapIndex(reflect.ValueOf(fields[field]), reflect.ValueOf(fields[field]).Elem())
 			}

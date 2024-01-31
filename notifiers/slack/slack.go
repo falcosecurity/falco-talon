@@ -65,7 +65,7 @@ var Init = func(fields map[string]interface{}) error {
 var Notify = func(log utils.LogLine) error {
 	client := http.DefaultClient()
 
-	err := client.Post(settings.WebhookURL, NewPayload(log))
+	err := client.Request(settings.WebhookURL, NewPayload(log))
 	if err != nil {
 		return err
 	}
