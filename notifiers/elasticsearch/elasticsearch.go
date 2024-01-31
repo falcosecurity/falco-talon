@@ -17,10 +17,10 @@ type Settings struct {
 	User                string            `field:"user"`
 	Password            string            `field:"password"`
 	Suffix              string            `field:"suffix" default:"daily"`
-	CreateIndexTemplate bool              `field:"create_index_template" default:"true"`
+	Index               string            `field:"index" default:"falco-talon"`
 	NumberOfShards      int               `field:"number_of_shards" default:"3"`
 	NumberOfReplicas    int               `field:"number_of_replicas" default:"3"`
-	Index               string            `field:"index" default:"falco-talon"`
+	CreateIndexTemplate bool              `field:"create_index_template" default:"true"`
 }
 
 const docType string = "/_doc"
