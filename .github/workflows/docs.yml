@@ -7,12 +7,10 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-  deploy:
-    steps:
+        runs-on: ubuntu-latest
       - name: Deploy the site
         working-directory: docs-website
         uses: benmatselby/hugo-deploy-gh-pages@main
@@ -22,4 +20,4 @@ jobs:
           TARGET_BRANCH: ${{ var.GITHUB_BASE_REF }}
           TOKEN: ${{ secrets.TOKEN }}
           HUGO_ARGS: '-gc  --minify'
-          CNAME: benmatselby.github.io
+          CNAME: issif.github.io
