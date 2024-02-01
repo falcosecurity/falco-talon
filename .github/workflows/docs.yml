@@ -6,11 +6,12 @@ on:
       - hugo-docs
 
 jobs:
-  build:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        runs-on: ubuntu-latest
       - name: Deploy the site
         working-directory: docs-website
         uses: benmatselby/hugo-deploy-gh-pages@main
