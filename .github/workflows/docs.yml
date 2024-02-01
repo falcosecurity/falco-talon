@@ -1,0 +1,25 @@
+name: Push to GitHub Pages on push to main
+on:
+  push:
+    branches:
+      - main
+      - hugo-docs
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+  deploy:
+    steps:
+      - name: Deploy the site
+        working-directory: docs-website
+        uses: benmatselby/hugo-deploy-gh-pages@main
+        env:
+          HUGO_VERSION: 0.118.2
+          TARGET_REPO: issif/falco-talon
+          TARGET_BRANCH: ${{ var.GITHUB_BASE_REF }}
+          TOKEN: ${{ secrets.TOKEN }}
+          HUGO_ARGS: '-gc  --minify'
+          CNAME: benmatselby.github.io
