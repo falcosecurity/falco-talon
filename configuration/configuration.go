@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/Issif/falco-talon/utils"
+	"github.com/Falco-Talon/falco-talon/utils"
 )
 
 const (

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/Issif/falco-talon/cmd"
+	"github.com/Falco-Talon/falco-talon/cmd"
 )
 
 func main() {

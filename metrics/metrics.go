@@ -5,8 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Issif/falco-talon/configuration"
-	"github.com/Issif/falco-talon/utils"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/prometheus"
@@ -14,6 +12,9 @@ import (
 	sdk "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
+
+	"github.com/Falco-Talon/falco-talon/configuration"
+	"github.com/Falco-Talon/falco-talon/utils"
 )
 
 const meterName = "github.com/Falco-Talon/falco-talon"

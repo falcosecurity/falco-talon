@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Issif/falco-talon/notifiers/http"
-	"github.com/Issif/falco-talon/utils"
+	"github.com/Falco-Talon/falco-talon/notifiers/http"
+	"github.com/Falco-Talon/falco-talon/utils"
 )
 
 const (
@@ -24,7 +24,7 @@ type Settings struct {
 	WebhookURL string `field:"webhook_url"`
 	Icon       string `field:"icon" default:"https://upload.wikimedia.org/wikipedia/commons/2/26/Circaetus_gallicus_claw.jpg"`
 	Username   string `field:"username" default:"Falco Talon"`
-	Footer     string `field:"footer" default:"http://github.com/Issif/falco-talon"`
+	Footer     string `field:"footer" default:"http://github.com/Falco-Talon/falco-talon"`
 	Format     string `field:"format" default:"long"`
 }
 

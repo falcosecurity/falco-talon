@@ -3,17 +3,17 @@ package notifiers
 import (
 	"strings"
 
-	"github.com/Issif/falco-talon/configuration"
-	"github.com/Issif/falco-talon/internal/events"
-	"github.com/Issif/falco-talon/internal/rules"
-	"github.com/Issif/falco-talon/metrics"
-	"github.com/Issif/falco-talon/notifiers/elasticsearch"
-	"github.com/Issif/falco-talon/notifiers/k8sevents"
-	"github.com/Issif/falco-talon/notifiers/loki"
-	"github.com/Issif/falco-talon/notifiers/slack"
-	"github.com/Issif/falco-talon/notifiers/smtp"
-	"github.com/Issif/falco-talon/notifiers/webhook"
-	"github.com/Issif/falco-talon/utils"
+	"github.com/Falco-Talon/falco-talon/configuration"
+	"github.com/Falco-Talon/falco-talon/internal/events"
+	"github.com/Falco-Talon/falco-talon/internal/rules"
+	"github.com/Falco-Talon/falco-talon/metrics"
+	"github.com/Falco-Talon/falco-talon/notifiers/elasticsearch"
+	"github.com/Falco-Talon/falco-talon/notifiers/k8sevents"
+	"github.com/Falco-Talon/falco-talon/notifiers/loki"
+	"github.com/Falco-Talon/falco-talon/notifiers/slack"
+	"github.com/Falco-Talon/falco-talon/notifiers/smtp"
+	"github.com/Falco-Talon/falco-talon/notifiers/webhook"
+	"github.com/Falco-Talon/falco-talon/utils"
 )
 
 type Notifier struct {

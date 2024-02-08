@@ -3,8 +3,8 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/Issif/falco-talon/configuration"
-	"github.com/Issif/falco-talon/utils"
+	"github.com/Falco-Talon/falco-talon/configuration"
+	"github.com/Falco-Talon/falco-talon/utils"
 )
 
 var RootCmd = &cobra.Command{

@@ -7,13 +7,13 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 
-	"github.com/Issif/falco-talon/actionners"
-	"github.com/Issif/falco-talon/configuration"
-	"github.com/Issif/falco-talon/internal/handler"
-	ruleengine "github.com/Issif/falco-talon/internal/rules"
-	"github.com/Issif/falco-talon/metrics"
-	"github.com/Issif/falco-talon/notifiers"
-	"github.com/Issif/falco-talon/utils"
+	"github.com/Falco-Talon/falco-talon/actionners"
+	"github.com/Falco-Talon/falco-talon/configuration"
+	"github.com/Falco-Talon/falco-talon/internal/handler"
+	ruleengine "github.com/Falco-Talon/falco-talon/internal/rules"
+	"github.com/Falco-Talon/falco-talon/metrics"
+	"github.com/Falco-Talon/falco-talon/notifiers"
+	"github.com/Falco-Talon/falco-talon/utils"
 
 	"github.com/spf13/cobra"
 )

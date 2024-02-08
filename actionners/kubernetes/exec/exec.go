@@ -10,10 +10,10 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/kubectl/pkg/scheme"
 
-	"github.com/Issif/falco-talon/internal/events"
-	kubernetes "github.com/Issif/falco-talon/internal/kubernetes/client"
-	"github.com/Issif/falco-talon/internal/rules"
-	"github.com/Issif/falco-talon/utils"
+	"github.com/Falco-Talon/falco-talon/internal/events"
+	kubernetes "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
+	"github.com/Falco-Talon/falco-talon/internal/rules"
+	"github.com/Falco-Talon/falco-talon/utils"
 )
 
 var Action = func(rule *rules.Rule, action *rules.Action, event *events.Event) (utils.LogLine, error) {

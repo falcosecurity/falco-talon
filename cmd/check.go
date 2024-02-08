@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"github.com/Issif/falco-talon/actionners"
-	"github.com/Issif/falco-talon/configuration"
-	ruleengine "github.com/Issif/falco-talon/internal/rules"
-	"github.com/Issif/falco-talon/utils"
+	"github.com/Falco-Talon/falco-talon/actionners"
+	"github.com/Falco-Talon/falco-talon/configuration"
+	ruleengine "github.com/Falco-Talon/falco-talon/internal/rules"
+	"github.com/Falco-Talon/falco-talon/utils"
 
 	"github.com/spf13/cobra"
 )

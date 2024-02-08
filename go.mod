@@ -1,4 +1,4 @@
-module github.com/Issif/falco-talon
+module github.com/Falco-Talon/falco-talon
 
 go 1.21
 

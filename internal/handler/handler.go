@@ -6,12 +6,12 @@ import (
 	"github.com/jinzhu/copier"
 	"gopkg.in/yaml.v2"
 
-	"github.com/Issif/falco-talon/actionners"
-	"github.com/Issif/falco-talon/configuration"
-	"github.com/Issif/falco-talon/internal/events"
-	"github.com/Issif/falco-talon/internal/rules"
-	"github.com/Issif/falco-talon/metrics"
-	"github.com/Issif/falco-talon/utils"
+	"github.com/Falco-Talon/falco-talon/actionners"
+	"github.com/Falco-Talon/falco-talon/configuration"
+	"github.com/Falco-Talon/falco-talon/internal/events"
+	"github.com/Falco-Talon/falco-talon/internal/rules"
+	"github.com/Falco-Talon/falco-talon/metrics"
+	"github.com/Falco-Talon/falco-talon/utils"
 )
 
 const (

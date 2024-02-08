@@ -3,7 +3,7 @@ package checks
 import (
 	"errors"
 
-	"github.com/Issif/falco-talon/internal/events"
+	"github.com/Falco-Talon/falco-talon/internal/events"
 )
 
 var CheckPodName = func(event *events.Event) error {

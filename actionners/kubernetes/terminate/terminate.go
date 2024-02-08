@@ -9,10 +9,10 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/Issif/falco-talon/internal/events"
-	kubernetes "github.com/Issif/falco-talon/internal/kubernetes/client"
-	"github.com/Issif/falco-talon/internal/rules"
-	"github.com/Issif/falco-talon/utils"
+	"github.com/Falco-Talon/falco-talon/internal/events"
+	kubernetes "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
+	"github.com/Falco-Talon/falco-talon/internal/rules"
+	"github.com/Falco-Talon/falco-talon/utils"
 )
 
 var Action = func(rule *rules.Rule, action *rules.Action, event *events.Event) (utils.LogLine, error) {

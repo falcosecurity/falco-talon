@@ -10,9 +10,9 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/Issif/falco-talon/actionners/checks"
-	"github.com/Issif/falco-talon/configuration"
-	"github.com/Issif/falco-talon/internal/events"
+	"github.com/Falco-Talon/falco-talon/actionners/checks"
+	"github.com/Falco-Talon/falco-talon/configuration"
+	"github.com/Falco-Talon/falco-talon/internal/events"
 )
 
 type Client struct {

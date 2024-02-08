@@ -10,9 +10,9 @@ import (
 
 	yaml "gopkg.in/yaml.v3"
 
-	"github.com/Issif/falco-talon/configuration"
-	"github.com/Issif/falco-talon/internal/events"
-	"github.com/Issif/falco-talon/utils"
+	"github.com/Falco-Talon/falco-talon/configuration"
+	"github.com/Falco-Talon/falco-talon/internal/events"
+	"github.com/Falco-Talon/falco-talon/utils"
 )
 
 type Action struct {
