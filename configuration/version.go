@@ -16,11 +16,11 @@ var (
 	// tagged using the correct versioning strategy.
 	GitVersion = "devel"
 	// SHA1 from git, output of $(git rev-parse HEAD)
-	gitCommit = "unknown"
+	GitCommit = "unknown"
 	// State of git tree, either "clean" or "dirty"
-	gitTreeState = "unknown"
+	GitTreeState = "unknown"
 	// Build date in ISO8601 format, output of $(date -u +'%Y-%m-%dT%H:%M:%SZ')
-	buildDate = "unknown"
+	BuildDate = "unknown"
 )
 
 type Info struct {
@@ -33,12 +33,12 @@ type Info struct {
 	Platform     string
 }
 
-func GetVersionInfo() *Info {
+func GetInfo() *Info {
 	return &Info{
 		GitVersion:   GitVersion,
-		GitCommit:    gitCommit,
-		GitTreeState: gitTreeState,
-		BuildDate:    buildDate,
+		GitCommit:    GitCommit,
+		GitTreeState: GitTreeState,
+		BuildDate:    BuildDate,
 		GoVersion:    runtime.Version(),
 		Compiler:     runtime.Compiler,
 		Platform:     fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),

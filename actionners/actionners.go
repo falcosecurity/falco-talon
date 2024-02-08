@@ -13,6 +13,7 @@ import (
 	"github.com/Issif/falco-talon/internal/events"
 	kubernetes "github.com/Issif/falco-talon/internal/kubernetes/client"
 	"github.com/Issif/falco-talon/internal/rules"
+	"github.com/Issif/falco-talon/metrics"
 	"github.com/Issif/falco-talon/notifiers"
 	"github.com/Issif/falco-talon/utils"
 )
@@ -247,6 +248,9 @@ func RunAction(rule *rules.Rule, action *rules.Action, event *events.Event) erro
 	if result.Error != "" {
 		log.Error = result.Error
 	}
+
+	metrics.IncreaseCounter(log)
+
 	if err != nil {
 		utils.PrintLog("error", config.LogFormat, log)
 		notifiers.Notify(rule, action, event, log)

@@ -10,6 +10,7 @@ import (
 	"github.com/Issif/falco-talon/configuration"
 	"github.com/Issif/falco-talon/internal/events"
 	"github.com/Issif/falco-talon/internal/rules"
+	"github.com/Issif/falco-talon/metrics"
 	"github.com/Issif/falco-talon/utils"
 )
 
@@ -36,16 +37,20 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if config.PrintAllEvents {
-		utils.PrintLog("info", config.LogFormat, utils.LogLine{
-			Message:  "event",
-			Event:    event.Rule,
-			Priority: event.Priority,
-			Output:   event.Output,
-			Source:   event.Source,
-			TraceID:  event.TraceID,
-		})
+	log := utils.LogLine{
+		Message:  "event",
+		Event:    event.Rule,
+		Priority: event.Priority,
+		Output:   event.Output,
+		Source:   event.Source,
+		TraceID:  event.TraceID,
 	}
+
+	if config.PrintAllEvents {
+		utils.PrintLog("info", config.LogFormat, log)
+	}
+
+	metrics.IncreaseCounter(log)
 
 	go func() {
 		enabledRules := rules.GetRules()
@@ -61,25 +66,15 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if !config.PrintAllEvents {
-			utils.PrintLog("info", config.LogFormat, utils.LogLine{
-				Message:  "event",
-				Event:    event.Rule,
-				Priority: event.Priority,
-				Output:   event.Output,
-				Source:   event.Source,
-				TraceID:  event.TraceID,
-			})
+			utils.PrintLog("info", config.LogFormat, log)
 		}
 
 		for _, i := range triggeredRules {
-			utils.PrintLog("info", config.LogFormat, utils.LogLine{
-				Message:  "match",
-				Rule:     i.GetName(),
-				Event:    event.Rule,
-				Priority: event.Priority,
-				Source:   event.Source,
-				TraceID:  event.TraceID,
-			})
+			log.Message = "match"
+			log.Rule = i.GetName()
+
+			utils.PrintLog("info", config.LogFormat, log)
+			metrics.IncreaseCounter(log)
 
 			for _, a := range i.GetActions() {
 				if err := actionners.RunAction(i, a, event); err != nil && a.IgnoreErrors == falseStr {
