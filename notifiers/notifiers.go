@@ -6,6 +6,7 @@ import (
 	"github.com/Issif/falco-talon/configuration"
 	"github.com/Issif/falco-talon/internal/events"
 	"github.com/Issif/falco-talon/internal/rules"
+	"github.com/Issif/falco-talon/metrics"
 	"github.com/Issif/falco-talon/notifiers/elasticsearch"
 	"github.com/Issif/falco-talon/notifiers/k8sevents"
 	"github.com/Issif/falco-talon/notifiers/loki"
@@ -136,9 +137,11 @@ func Notify(rule *rules.Rule, action *rules.Action, event *events.Event, log uti
 				logN.Status = "failure"
 				logN.Error = err.Error()
 				utils.PrintLog("error", config.LogFormat, logN)
+				metrics.IncreaseCounter(log)
 			} else {
 				logN.Status = "success"
 				utils.PrintLog("info", config.LogFormat, logN)
+				metrics.IncreaseCounter(log)
 			}
 		}
 	}

@@ -11,6 +11,7 @@ import (
 	"github.com/Issif/falco-talon/configuration"
 	"github.com/Issif/falco-talon/internal/handler"
 	ruleengine "github.com/Issif/falco-talon/internal/rules"
+	"github.com/Issif/falco-talon/metrics"
 	"github.com/Issif/falco-talon/notifiers"
 	"github.com/Issif/falco-talon/utils"
 
@@ -73,6 +74,7 @@ var serverCmd = &cobra.Command{
 		http.HandleFunc("/", handler.MainHandler)
 		http.HandleFunc("/healthz", handler.HealthHandler)
 		http.HandleFunc("/rules", handler.RulesHandler)
+		http.Handle("/metrics", metrics.Handler())
 
 		if config.WatchRules {
 			utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: "watch of rules enabled", Message: "init"})
