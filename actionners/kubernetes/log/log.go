@@ -14,7 +14,7 @@ import (
 	"github.com/Falco-Talon/falco-talon/utils"
 )
 
-func Action(rule *rules.Rule, action *rules.Action, event *events.Event) (utils.LogLine, error) {
+func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	pod := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
@@ -60,16 +60,14 @@ func Action(rule *rules.Rule, action *rules.Action, event *events.Event) (utils.
 			TailLines: tailLines,
 		}).Stream(ctx)
 		if err != nil {
-			if err != nil {
-				if i == len(containers)-1 {
-					return utils.LogLine{
-						Objects: objects,
-						Error:   err.Error(),
-						Status:  "failure",
-					}, err
-				}
-				continue
+			if i == len(containers)-1 {
+				return utils.LogLine{
+					Objects: objects,
+					Error:   err.Error(),
+					Status:  "failure",
+				}, err
 			}
+			continue
 		}
 		defer logs.Close()
 

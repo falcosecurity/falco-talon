@@ -23,7 +23,7 @@ import (
 type Actionner struct {
 	Name            string
 	Category        string
-	Action          func(rule *rules.Rule, action *rules.Action, event *events.Event) (utils.LogLine, error)
+	Action          func(action *rules.Action, event *events.Event) (utils.LogLine, error)
 	CheckParameters func(action *rules.Action) error
 	Init            func() error
 	Checks          []checkActionner
@@ -252,7 +252,7 @@ func RunAction(rule *rules.Rule, action *rules.Action, event *events.Event) erro
 		}
 	}
 
-	result, err := actionner.Action(rule, action, event)
+	result, err := actionner.Action(action, event)
 	log.Status = result.Status
 	if len(result.Objects) != 0 {
 		log.Objects = result.Objects

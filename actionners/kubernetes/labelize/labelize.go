@@ -25,7 +25,7 @@ const (
 	metadataLabels = "/metadata/labels/"
 )
 
-func Action(rule *rules.Rule, action *rules.Action, event *events.Event) (utils.LogLine, error) {
+func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	pod := event.GetPodName()
 	namespace := event.GetNamespaceName()
 

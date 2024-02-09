@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"strings"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/Falco-Talon/falco-talon/internal/events"
 	kubernetes "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
 	"github.com/Falco-Talon/falco-talon/internal/rules"
 	"github.com/Falco-Talon/falco-talon/utils"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func Action(rule *rules.Rule, action *rules.Action, event *events.Event) (utils.LogLine, error) {
+func Action(_ *rules.Action, event *events.Event) (utils.LogLine, error) {
 	name := event.GetTargetName()
 	resource := event.GetTargetResource()
 	namespace := event.GetTargetNamespace()
