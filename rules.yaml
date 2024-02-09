@@ -35,3 +35,13 @@
   actions:
     - action: Labelize Pod as Suspicious
 
+- rule: Delete resource 
+  match:
+    rules:
+      - Test resource
+    output_fields:
+      - k8s.ns.name!=kube-system
+  actions:
+    - action: Delete resource
+      actionner: kubernetes:delete
+

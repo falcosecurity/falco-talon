@@ -14,7 +14,7 @@ import (
 	"github.com/Falco-Talon/falco-talon/utils"
 )
 
-var Action = func(rule *rules.Rule, action *rules.Action, event *events.Event) (utils.LogLine, error) {
+func Action(rule *rules.Rule, action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	pod := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
@@ -98,7 +98,7 @@ var Action = func(rule *rules.Rule, action *rules.Action, event *events.Event) (
 		nil
 }
 
-var CheckParameters = func(action *rules.Action) error {
+func CheckParameters(action *rules.Action) error {
 	parameters := action.GetParameters()
 	err := utils.CheckParameters(parameters, "tail_lines", utils.IntStr, nil, false)
 	if err != nil {
