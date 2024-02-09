@@ -54,3 +54,24 @@ func (event *Event) GetNamespaceName() string {
 	}
 	return ""
 }
+
+func (event *Event) GetTargetName() string {
+	if event.OutputFields["ka.target.name"] != nil {
+		return event.OutputFields["ka.target.name"].(string)
+	}
+	return ""
+}
+
+func (event *Event) GetTargetNamespace() string {
+	if event.OutputFields["ka.target.namespace"] != nil {
+		return event.OutputFields["ka.target.namespace"].(string)
+	}
+	return ""
+}
+
+func (event *Event) GetTargetResource() string {
+	if event.OutputFields["ka.target.resource"] != nil {
+		return event.OutputFields["ka.target.resource"].(string)
+	}
+	return ""
+}

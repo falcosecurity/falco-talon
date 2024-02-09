@@ -23,7 +23,7 @@ var Init = func(fields map[string]interface{}) error {
 	return nil
 }
 
-var CheckParameters = func(settings map[string]interface{}) error {
+func CheckParameters(settings map[string]interface{}) error {
 	if settings["url"].(string) == "" {
 		return errors.New("wrong `url` setting")
 	}

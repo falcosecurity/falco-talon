@@ -16,7 +16,7 @@ import (
 	"github.com/Falco-Talon/falco-talon/utils"
 )
 
-var Action = func(rule *rules.Rule, action *rules.Action, event *events.Event) (utils.LogLine, error) {
+func Action(rule *rules.Rule, action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
@@ -232,7 +232,7 @@ func createEgressRule(action *rules.Action) (*networkingv1.NetworkPolicyEgressRu
 	return &networkingv1.NetworkPolicyEgressRule{To: np}, nil
 }
 
-var CheckParameters = func(action *rules.Action) error {
+func CheckParameters(action *rules.Action) error {
 	parameters := action.GetParameters()
 	if err := utils.CheckParameters(parameters, "allow", utils.SliceInterfaceStr, nil, false); err != nil {
 		return err

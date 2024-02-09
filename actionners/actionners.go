@@ -3,15 +3,17 @@ package actionners
 import (
 	"fmt"
 
+	k8sDelete "github.com/Falco-Talon/falco-talon/actionners/kubernetes/delete"
 	"github.com/Falco-Talon/falco-talon/actionners/kubernetes/exec"
-	labelize "github.com/Falco-Talon/falco-talon/actionners/kubernetes/labelize"
-	logActionner "github.com/Falco-Talon/falco-talon/actionners/kubernetes/log"
-	networkpolicy "github.com/Falco-Talon/falco-talon/actionners/kubernetes/networkpolicy"
+	k8sLabelize "github.com/Falco-Talon/falco-talon/actionners/kubernetes/labelize"
+	k8sLog "github.com/Falco-Talon/falco-talon/actionners/kubernetes/log"
+	"github.com/Falco-Talon/falco-talon/actionners/kubernetes/networkpolicy"
 	"github.com/Falco-Talon/falco-talon/actionners/kubernetes/script"
-	terminate "github.com/Falco-Talon/falco-talon/actionners/kubernetes/terminate"
+	k8sTerminate "github.com/Falco-Talon/falco-talon/actionners/kubernetes/terminate"
 	"github.com/Falco-Talon/falco-talon/configuration"
 	"github.com/Falco-Talon/falco-talon/internal/events"
-	kubernetes "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
+	k8sChecks "github.com/Falco-Talon/falco-talon/internal/kubernetes/checks"
+	k8s "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
 	"github.com/Falco-Talon/falco-talon/internal/rules"
 	"github.com/Falco-Talon/falco-talon/metrics"
 	"github.com/Falco-Talon/falco-talon/notifiers"
@@ -53,27 +55,29 @@ func GetDefaultActionners() *Actionners {
 				Category:        "kubernetes",
 				Name:            "terminate",
 				DefaultContinue: false,
-				Init:            kubernetes.Init,
-				Checks:          []checkActionner{kubernetes.CheckPodExist},
-				CheckParameters: terminate.CheckParameters,
-				Action:          terminate.Action,
+				Init:            k8s.Init,
+				Checks: []checkActionner{
+					k8sChecks.CheckPodExist,
+				},
+				CheckParameters: k8sTerminate.CheckParameters,
+				Action:          k8sTerminate.Action,
 			},
 			&Actionner{
 				Category:        "kubernetes",
 				Name:            "labelize",
 				DefaultContinue: true,
-				Init:            kubernetes.Init,
-				Checks:          []checkActionner{kubernetes.CheckPodExist},
-				CheckParameters: labelize.CheckParameters,
-				Action:          labelize.Action,
+				Init:            k8s.Init,
+				Checks:          []checkActionner{k8sChecks.CheckPodExist},
+				CheckParameters: k8sLabelize.CheckParameters,
+				Action:          k8sLabelize.Action,
 			},
 			&Actionner{
 				Category:        "kubernetes",
 				Name:            "networkpolicy",
 				DefaultContinue: true,
-				Init:            kubernetes.Init,
+				Init:            k8s.Init,
 				Checks: []checkActionner{
-					kubernetes.CheckPodExist,
+					k8sChecks.CheckPodExist,
 				},
 				CheckParameters: networkpolicy.CheckParameters,
 				Action:          networkpolicy.Action,
@@ -82,9 +86,9 @@ func GetDefaultActionners() *Actionners {
 				Category:        "kubernetes",
 				Name:            "exec",
 				DefaultContinue: true,
-				Init:            kubernetes.Init,
+				Init:            k8s.Init,
 				Checks: []checkActionner{
-					kubernetes.CheckPodExist,
+					k8sChecks.CheckPodExist,
 				},
 				CheckParameters: exec.CheckParameters,
 				Action:          exec.Action,
@@ -93,9 +97,9 @@ func GetDefaultActionners() *Actionners {
 				Category:        "kubernetes",
 				Name:            "script",
 				DefaultContinue: true,
-				Init:            kubernetes.Init,
+				Init:            k8s.Init,
 				Checks: []checkActionner{
-					kubernetes.CheckPodExist,
+					k8sChecks.CheckPodExist,
 				},
 				CheckParameters: script.CheckParameters,
 				Action:          script.Action,
@@ -104,12 +108,23 @@ func GetDefaultActionners() *Actionners {
 				Category:        "kubernetes",
 				Name:            "log",
 				DefaultContinue: true,
-				Init:            kubernetes.Init,
+				Init:            k8s.Init,
 				Checks: []checkActionner{
-					kubernetes.CheckPodExist,
+					k8sChecks.CheckPodExist,
 				},
-				CheckParameters: logActionner.CheckParameters,
-				Action:          logActionner.Action,
+				CheckParameters: k8sLog.CheckParameters,
+				Action:          k8sLog.Action,
+			},
+			&Actionner{
+				Category:        "kubernetes",
+				Name:            "delete",
+				DefaultContinue: false,
+				Init:            k8s.Init,
+				Checks: []checkActionner{
+					k8sChecks.CheckTargetExist,
+				},
+				CheckParameters: nil,
+				Action:          k8sDelete.Action,
 			},
 		)
 	}
