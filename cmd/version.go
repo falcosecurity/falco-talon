@@ -12,7 +12,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version of Falco Talon.",
 	Long:  "Print version of Falco Talon",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		fmt.Println(configuration.GetInfo().String())
 	},
 }

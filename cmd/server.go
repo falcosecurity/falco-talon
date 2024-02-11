@@ -22,7 +22,7 @@ var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Start Falco Talon",
 	Long:  "Start Falco Talon",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		configFile, _ := cmd.Flags().GetString("config")
 		config := configuration.CreateConfiguration(configFile)
 		rulesFiles, _ := cmd.Flags().GetStringArray("rules")

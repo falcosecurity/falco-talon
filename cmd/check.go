@@ -13,7 +13,7 @@ var checkCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Check Falco Talon Rules file",
 	Long:  "Check Falco Talon Rules file",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		configFile, _ := cmd.Flags().GetString("config")
 		config := configuration.CreateConfiguration(configFile)
 		rulesFiles, _ := cmd.Flags().GetStringArray("rules")
