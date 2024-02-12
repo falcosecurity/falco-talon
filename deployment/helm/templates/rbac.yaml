@@ -26,6 +26,10 @@ rules:
     resources:
       - pods
     verbs:
+      - get
+      - list
+      - update
+      - patch
       - delete
   - apiGroups:
       - ""
@@ -38,18 +42,12 @@ rules:
       - ""
     resources:
       - events
-      - pods
     verbs:
+      - create
       - get
       - list
       - update
       - patch
-  - apiGroups:
-      - ""
-    resources:
-      - events
-    verbs:
-      - create
   - apiGroups:
       - apps
     resources:
@@ -71,6 +69,24 @@ rules:
       - list
       - update
       - patch
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - clusterroles
+      - roles
+    verbs:
+      - get
+      - list
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+      - secrets
+    verbs:
+      - get
+      - list
+      - delete
 {{- if .Values.podSecurityPolicy.create }}
 - apiGroups:
     - policy
