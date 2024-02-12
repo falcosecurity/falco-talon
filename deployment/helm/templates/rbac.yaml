@@ -58,6 +58,7 @@ rules:
     verbs:
       - get
       - list
+      - delete
   - apiGroups:
       - networking.k8s.io
       - crd.projectcalico.org
