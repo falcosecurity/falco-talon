@@ -35,13 +35,13 @@
   actions:
     - action: Labelize Pod as Suspicious
 
-- rule: Delete resource 
+- rule: Calico netpol 
   match:
     rules:
-      - Test resource
+      - Test Calico netpol
     output_fields:
       - k8s.ns.name!=kube-system
   actions:
-    - action: Delete resource
-      actionner: kubernetes:delete
+    - action: Create Calico netpol
+      actionner: calico:networkpolicy
 

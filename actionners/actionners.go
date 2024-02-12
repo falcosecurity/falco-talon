@@ -3,14 +3,16 @@ package actionners
 import (
 	"fmt"
 
+	calicoNetworkpolicy "github.com/Falco-Talon/falco-talon/actionners/calico/networkpolicy"
 	k8sDelete "github.com/Falco-Talon/falco-talon/actionners/kubernetes/delete"
-	"github.com/Falco-Talon/falco-talon/actionners/kubernetes/exec"
+	k8sExec "github.com/Falco-Talon/falco-talon/actionners/kubernetes/exec"
 	k8sLabelize "github.com/Falco-Talon/falco-talon/actionners/kubernetes/labelize"
 	k8sLog "github.com/Falco-Talon/falco-talon/actionners/kubernetes/log"
-	"github.com/Falco-Talon/falco-talon/actionners/kubernetes/networkpolicy"
-	"github.com/Falco-Talon/falco-talon/actionners/kubernetes/script"
+	k8sNetworkpolicy "github.com/Falco-Talon/falco-talon/actionners/kubernetes/networkpolicy"
+	k8sScript "github.com/Falco-Talon/falco-talon/actionners/kubernetes/script"
 	k8sTerminate "github.com/Falco-Talon/falco-talon/actionners/kubernetes/terminate"
 	"github.com/Falco-Talon/falco-talon/configuration"
+	calico "github.com/Falco-Talon/falco-talon/internal/calico/client"
 	"github.com/Falco-Talon/falco-talon/internal/events"
 	k8sChecks "github.com/Falco-Talon/falco-talon/internal/kubernetes/checks"
 	k8s "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
@@ -79,8 +81,8 @@ func GetDefaultActionners() *Actionners {
 				Checks: []checkActionner{
 					k8sChecks.CheckPodExist,
 				},
-				CheckParameters: networkpolicy.CheckParameters,
-				Action:          networkpolicy.Action,
+				CheckParameters: k8sNetworkpolicy.CheckParameters,
+				Action:          k8sNetworkpolicy.Action,
 			},
 			&Actionner{
 				Category:        "kubernetes",
@@ -90,8 +92,8 @@ func GetDefaultActionners() *Actionners {
 				Checks: []checkActionner{
 					k8sChecks.CheckPodExist,
 				},
-				CheckParameters: exec.CheckParameters,
-				Action:          exec.Action,
+				CheckParameters: k8sExec.CheckParameters,
+				Action:          k8sExec.Action,
 			},
 			&Actionner{
 				Category:        "kubernetes",
@@ -101,8 +103,8 @@ func GetDefaultActionners() *Actionners {
 				Checks: []checkActionner{
 					k8sChecks.CheckPodExist,
 				},
-				CheckParameters: script.CheckParameters,
-				Action:          script.Action,
+				CheckParameters: k8sScript.CheckParameters,
+				Action:          k8sScript.Action,
 			},
 			&Actionner{
 				Category:        "kubernetes",
@@ -121,10 +123,23 @@ func GetDefaultActionners() *Actionners {
 				DefaultContinue: false,
 				Init:            k8s.Init,
 				Checks: []checkActionner{
-					k8sChecks.CheckTargetExist,
+					k8sChecks.CheckPodExist,
 				},
 				CheckParameters: nil,
 				Action:          k8sDelete.Action,
+			},
+			&Actionner{
+				Category:        "calico",
+				Name:            "networkpolicy",
+				DefaultContinue: false,
+				Init:            calico.Init,
+				Checks: []checkActionner{
+					k8sChecks.CheckPodExist,
+					k8sChecks.CheckRemoteIP,
+					k8sChecks.CheckRemotePort,
+				},
+				CheckParameters: nil,
+				Action:          calicoNetworkpolicy.Action,
 			},
 		)
 	}

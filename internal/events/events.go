@@ -75,3 +75,23 @@ func (event *Event) GetTargetResource() string {
 	}
 	return ""
 }
+
+func (event *Event) GetRemoteIP() string {
+	if i := event.OutputFields["fd.rip"]; i != nil {
+		return i.(string)
+	}
+	if i := event.OutputFields["fd.sip"]; i != nil {
+		return i.(string)
+	}
+	return ""
+}
+
+func (event *Event) GetRemotePort() string {
+	if i := event.OutputFields["fd.rport"]; i != nil {
+		return i.(string)
+	}
+	if i := event.OutputFields["fd.sport"]; i != nil {
+		return i.(string)
+	}
+	return ""
+}

@@ -23,7 +23,7 @@ type Client struct {
 
 var client *Client
 
-var Init = func() error {
+func Init() error {
 	client = new(Client)
 	config := configuration.GetConfiguration()
 	var err error
@@ -64,34 +64,86 @@ func GetContainers(pod *corev1.Pod) []string {
 	return c
 }
 
-func (client Client) GetDaemonsetFromPod(pod *corev1.Pod) (*appsv1.DaemonSet, error) {
-	d, err := client.Clientset.AppsV1().DaemonSets(pod.ObjectMeta.Namespace).Get(context.Background(), pod.OwnerReferences[0].Name, metav1.GetOptions{})
+func (client Client) GetDeployment(name, namespace string) (*appsv1.Deployment, error) {
+	p, err := client.Clientset.AppsV1().Deployments(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("the deployment '%v' in the namespace '%v' doesn't exist", name, namespace)
+	}
+	return p, nil
+}
+
+func (client Client) GetDaemonSet(name, namespace string) (*appsv1.DaemonSet, error) {
+	p, err := client.Clientset.AppsV1().DaemonSets(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("the daemonset '%v' in the namespace '%v' doesn't exist", name, namespace)
+	}
+	return p, nil
+}
+
+func (client Client) GetStatefulSet(name, namespace string) (*appsv1.StatefulSet, error) {
+	p, err := client.Clientset.AppsV1().StatefulSets(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("the statefulset '%v' in the namespace '%v' doesn't exist", name, namespace)
+	}
+	return p, nil
+}
+
+func (client Client) GetReplicaSet(name, namespace string) (*appsv1.ReplicaSet, error) {
+	p, err := client.Clientset.AppsV1().ReplicaSets(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("the replicaset '%v' in the namespace '%v' doesn't exist", name, namespace)
+	}
+	return p, nil
+}
+
+func (client Client) GetDeploymentFromPod(pod *corev1.Pod) (*appsv1.Deployment, error) {
+	podName := pod.OwnerReferences[0].Name
+	namespace := pod.ObjectMeta.Namespace
+	r, err := client.GetDeployment(podName, namespace)
 	if err != nil {
 		return nil, err
 	}
-	return d, nil
-}
-
-func (client Client) GetStatefulsetFromPod(pod *corev1.Pod) (*appsv1.StatefulSet, error) {
-	s, err := client.Clientset.AppsV1().StatefulSets(pod.ObjectMeta.Namespace).Get(context.Background(), pod.OwnerReferences[0].Name, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return s, nil
-}
-
-func (client Client) GetReplicasetFromPod(pod *corev1.Pod) (*appsv1.ReplicaSet, error) {
-	r, err := client.Clientset.AppsV1().ReplicaSets(pod.ObjectMeta.Namespace).Get(context.Background(), pod.OwnerReferences[0].Name, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
+	if r == nil {
+		return nil, fmt.Errorf("can't find the deployment for the pod'%v' in namespace '%v'", pod, namespace)
 	}
 	return r, nil
 }
 
-func (client Client) GetDeloymentFromPod(pod *corev1.Pod) (*appsv1.ReplicaSet, error) {
-	r, err := client.Clientset.AppsV1().ReplicaSets(pod.ObjectMeta.Namespace).Get(context.Background(), pod.OwnerReferences[0].Name, metav1.GetOptions{})
+func (client Client) GetDaemonsetFromPod(pod *corev1.Pod) (*appsv1.DaemonSet, error) {
+	podName := pod.OwnerReferences[0].Name
+	namespace := pod.ObjectMeta.Namespace
+	r, err := client.GetDaemonSet(podName, namespace)
 	if err != nil {
 		return nil, err
+	}
+	if r == nil {
+		return nil, fmt.Errorf("can't find the daemonset for the pod'%v' in namespace '%v'", pod, namespace)
+	}
+	return r, nil
+}
+
+func (client Client) GetStatefulsetFromPod(pod *corev1.Pod) (*appsv1.StatefulSet, error) {
+	podName := pod.OwnerReferences[0].Name
+	namespace := pod.ObjectMeta.Namespace
+	r, err := client.GetStatefulSet(podName, namespace)
+	if err != nil {
+		return nil, err
+	}
+	if r == nil {
+		return nil, fmt.Errorf("can't find the statefulset for the pod'%v' in namespace '%v'", pod, namespace)
+	}
+	return r, nil
+}
+
+func (client Client) GetReplicasetFromPod(pod *corev1.Pod) (*appsv1.ReplicaSet, error) {
+	podName := pod.OwnerReferences[0].Name
+	namespace := pod.ObjectMeta.Namespace
+	r, err := client.GetReplicaSet(podName, namespace)
+	if err != nil {
+		return nil, err
+	}
+	if r == nil {
+		return nil, fmt.Errorf("can't find the replicaset for the pod'%v' in namespace '%v'", pod, namespace)
 	}
 	return r, nil
 }
@@ -135,38 +187,6 @@ func (client Client) GetSecret(name, namespace string) (*corev1.Secret, error) {
 	p, err := client.Clientset.CoreV1().Secrets(namespace).Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("the secret '%v' in the namespace '%v' doesn't exist", name, namespace)
-	}
-	return p, nil
-}
-
-func (client Client) GetDeployment(name, namespace string) (*appsv1.Deployment, error) {
-	p, err := client.Clientset.AppsV1().Deployments(namespace).Get(context.Background(), name, metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("the deployment '%v' in the namespace '%v' doesn't exist", name, namespace)
-	}
-	return p, nil
-}
-
-func (client Client) GetDaemonSet(name, namespace string) (*appsv1.DaemonSet, error) {
-	p, err := client.Clientset.AppsV1().DaemonSets(namespace).Get(context.Background(), name, metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("the daemonset '%v' in the namespace '%v' doesn't exist", name, namespace)
-	}
-	return p, nil
-}
-
-func (client Client) GetStatefulSet(name, namespace string) (*appsv1.StatefulSet, error) {
-	p, err := client.Clientset.AppsV1().StatefulSets(namespace).Get(context.Background(), name, metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("the statefulset '%v' in the namespace '%v' doesn't exist", name, namespace)
-	}
-	return p, nil
-}
-
-func (client Client) GetReplicaSet(name, namespace string) (*appsv1.ReplicaSet, error) {
-	p, err := client.Clientset.AppsV1().ReplicaSets(namespace).Get(context.Background(), name, metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("the replicaset '%v' in the namespace '%v' doesn't exist", name, namespace)
 	}
 	return p, nil
 }
