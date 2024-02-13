@@ -2,12 +2,17 @@ package networkpolicy
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"net"
+	"strconv"
+	"strings"
 
-	networkingv1 "k8s.io/api/networking/v1"
+	networkingv3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
+	"github.com/projectcalico/api/pkg/lib/numorstring"
 	errorsv1 "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	calico "github.com/Falco-Talon/falco-talon/internal/calico/client"
 
 	"github.com/Falco-Talon/falco-talon/internal/events"
 	kubernetes "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
@@ -15,7 +20,7 @@ import (
 	"github.com/Falco-Talon/falco-talon/utils"
 )
 
-func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
+func Action(_ *rules.Action, event *events.Event) (utils.LogLine, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
@@ -23,9 +28,10 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		"pod":       podName,
 		"namespace": namespace,
 	}
-	client := kubernetes.GetClient()
+	k8sClient := kubernetes.GetClient()
+	calicoClient := calico.GetClient()
 
-	pod, err := client.GetPod(podName, namespace)
+	pod, err := k8sClient.GetPod(podName, namespace)
 	if err != nil {
 		return utils.LogLine{
 				Objects: objects,
@@ -41,7 +47,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	if len(pod.OwnerReferences) != 0 {
 		switch pod.OwnerReferences[0].Kind {
 		case "DaemonSet":
-			u, err2 := client.GetDaemonsetFromPod(pod)
+			u, err2 := k8sClient.GetDaemonsetFromPod(pod)
 			if err2 != nil {
 				return utils.LogLine{
 						Objects: objects,
@@ -53,7 +59,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			owner = u.ObjectMeta.Name
 			labels = u.Spec.Selector.MatchLabels
 		case "StatefulSet":
-			u, err2 := client.GetStatefulsetFromPod(pod)
+			u, err2 := k8sClient.GetStatefulsetFromPod(pod)
 			if err2 != nil {
 				return utils.LogLine{
 						Objects: objects,
@@ -65,7 +71,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			owner = u.ObjectMeta.Name
 			labels = u.Spec.Selector.MatchLabels
 		case "ReplicaSet":
-			u, err2 := client.GetReplicasetFromPod(pod)
+			u, err2 := k8sClient.GetReplicasetFromPod(pod)
 			if err2 != nil {
 				return utils.LogLine{
 						Objects: objects,
@@ -83,7 +89,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	}
 
 	if owner == "" || len(labels) == 0 {
-		err3 := fmt.Errorf("can't find the owner and/or labels for the pod '%v' in namespace '%v'", podName, namespace)
+		err3 := fmt.Errorf("can't find the owner and/or labels for the pod '%v' in the namespace '%v'", podName, namespace)
 		return utils.LogLine{
 				Objects: objects,
 				Error:   err3.Error(),
@@ -94,21 +100,25 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 	delete(labels, "pod-template-hash")
 
-	payload := networkingv1.NetworkPolicy{
+	payload := networkingv3.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      owner,
 			Namespace: namespace,
 			Labels:    labels,
 		},
-		Spec: networkingv1.NetworkPolicySpec{
-			PolicyTypes: []networkingv1.PolicyType{"Egress"},
-			PodSelector: metav1.LabelSelector{
-				MatchLabels: labels,
-			},
+		Spec: networkingv3.NetworkPolicySpec{
+			Types: []networkingv3.PolicyType{networkingv3.PolicyTypeEgress},
 		},
 	}
 
-	np, err := createEgressRule(action)
+	var selector string
+	for i, j := range labels {
+		selector += fmt.Sprintf(`%v == "%v" &&`, i, j)
+	}
+
+	payload.Spec.Selector = strings.TrimSuffix(selector, " &&")
+
+	r, err := createEgressRule(event)
 	if err != nil {
 		return utils.LogLine{
 				Objects: objects,
@@ -118,17 +128,20 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			err
 	}
 
-	if np != nil {
-		payload.Spec.Egress = []networkingv1.NetworkPolicyEgressRule{*np}
+	if r != nil {
+		payload.Spec.Egress = []networkingv3.Rule{*r}
 	}
 
+	j, _ := json.Marshal(payload)
+	fmt.Println(string(j))
+
 	var output string
-	_, err = client.NetworkingV1().NetworkPolicies(namespace).Get(context.Background(), owner, metav1.GetOptions{})
+	_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).List(context.Background(), metav1.ListOptions{})
 	if errorsv1.IsNotFound(err) {
-		_, err = client.NetworkingV1().NetworkPolicies(namespace).Create(context.Background(), &payload, metav1.CreateOptions{})
+		_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Create(context.Background(), &payload, metav1.CreateOptions{})
 		output = fmt.Sprintf("the networkpolicy '%v' in the namespace '%v' has been created", owner, namespace)
 	} else {
-		_, err = client.NetworkingV1().NetworkPolicies(namespace).Update(context.Background(), &payload, metav1.UpdateOptions{})
+		_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Update(context.Background(), &payload, metav1.UpdateOptions{})
 		output = fmt.Sprintf("the networkpolicy '%v' in the namespace '%v' has been updated", owner, namespace)
 	}
 	if err != nil {
@@ -148,39 +161,23 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		nil
 }
 
-func createEgressRule(action *rules.Action) (*networkingv1.NetworkPolicyEgressRule, error) {
-	if action.GetParameters()["allow"] == nil {
-		return nil, nil
+func createEgressRule(event *events.Event) (*networkingv3.Rule, error) {
+	port, err := strconv.ParseUint(event.GetRemotePort(), 0, 16)
+	if err != nil {
+		return nil, err
 	}
-	np := make([]networkingv1.NetworkPolicyPeer, 0)
-	if allowedCidr := action.GetParameters()["allow"].([]interface{}); len(allowedCidr) != 0 {
-		for _, i := range allowedCidr {
-			np = append(np,
-				networkingv1.NetworkPolicyPeer{
-					IPBlock: &networkingv1.IPBlock{
-						CIDR: i.(string),
-					},
+	r := networkingv3.Rule{
+		Action: "Deny",
+		Destination: networkingv3.EntityRule{
+			Nets: []string{event.GetRemoteIP()},
+			Ports: []numorstring.Port{
+				{
+					MinPort: uint16(port),
+					MaxPort: uint16(port),
 				},
-			)
-		}
+			},
+		},
 	}
-	return &networkingv1.NetworkPolicyEgressRule{To: np}, nil
-}
 
-func CheckParameters(action *rules.Action) error {
-	parameters := action.GetParameters()
-	if err := utils.CheckParameters(parameters, "allow", utils.SliceInterfaceStr, nil, false); err != nil {
-		return err
-	}
-	if parameters["allow"] == nil {
-		return nil
-	}
-	if p := parameters["allow"].([]interface{}); len(p) != 0 {
-		for _, i := range p {
-			if _, _, err := net.ParseCIDR(i.(string)); err != nil {
-				return fmt.Errorf("wrong CIDR '%v'", i)
-			}
-		}
-	}
-	return nil
+	return &r, nil
 }
