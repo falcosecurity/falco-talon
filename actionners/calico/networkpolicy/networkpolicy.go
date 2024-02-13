@@ -2,7 +2,6 @@ package networkpolicy
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -128,21 +127,24 @@ func Action(_ *rules.Action, event *events.Event) (utils.LogLine, error) {
 			err
 	}
 
-	if r != nil {
-		payload.Spec.Egress = []networkingv3.Rule{*r}
-	}
-
-	j, _ := json.Marshal(payload)
-	fmt.Println(string(j))
-
 	var output string
-	_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).List(context.Background(), metav1.ListOptions{})
+	netpol, err := calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Get(context.Background(), owner, metav1.GetOptions{})
 	if errorsv1.IsNotFound(err) {
+		payload.Spec.Egress = []networkingv3.Rule{*r}
 		_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Create(context.Background(), &payload, metav1.CreateOptions{})
 		output = fmt.Sprintf("the networkpolicy '%v' in the namespace '%v' has been created", owner, namespace)
 	} else {
-		_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Update(context.Background(), &payload, metav1.UpdateOptions{})
-		output = fmt.Sprintf("the networkpolicy '%v' in the namespace '%v' has been updated", owner, namespace)
+		resourceVersion := netpol.ObjectMeta.ResourceVersion
+		resourceVersionInt, err2 := strconv.ParseUint(resourceVersion, 0, 64)
+		if err2 != nil {
+			err = fmt.Errorf("can't upgrade the resource version for the networkpolicy '%v' in the namespace '%v'", payload.ObjectMeta.Name, namespace)
+		} else {
+			payload.ObjectMeta.ResourceVersion = fmt.Sprintf("%v", resourceVersionInt)
+			netpol.Spec.Egress = append(netpol.Spec.Egress, *r)
+			payload.Spec.Egress = netpol.Spec.Egress
+			_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Update(context.Background(), &payload, metav1.UpdateOptions{})
+			output = fmt.Sprintf("the networkpolicy '%v' in the namespace '%v' has been updated", owner, namespace)
+		}
 	}
 	if err != nil {
 		return utils.LogLine{
@@ -166,10 +168,12 @@ func createEgressRule(event *events.Event) (*networkingv3.Rule, error) {
 	if err != nil {
 		return nil, err
 	}
+	proto := numorstring.ProtocolFromString("TCP")
 	r := networkingv3.Rule{
-		Action: "Deny",
+		Action:   "Deny",
+		Protocol: &proto,
 		Destination: networkingv3.EntityRule{
-			Nets: []string{event.GetRemoteIP()},
+			Nets: []string{event.GetRemoteIP() + "/32"},
 			Ports: []numorstring.Port{
 				{
 					MinPort: uint16(port),
