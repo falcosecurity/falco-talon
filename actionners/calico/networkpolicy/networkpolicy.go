@@ -19,6 +19,8 @@ import (
 	"github.com/Falco-Talon/falco-talon/utils"
 )
 
+const mask32 string = "/32"
+
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
@@ -125,15 +127,15 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	payload.Spec.Selector = strings.TrimSuffix(selector, " &&")
 
 	allowRule := createAllowEgressRule(action)
-	denyRule := createDenyEgressRule([]string{event.GetRemoteIP() + "/32"})
+	denyRule := createDenyEgressRule([]string{event.GetRemoteIP() + mask32})
 	if denyRule == nil {
-		err := fmt.Errorf("can't create the rule for the networkpolicy '%v' in the namespace '%v'", owner, namespace)
+		err2 := fmt.Errorf("can't create the rule for the networkpolicy '%v' in the namespace '%v'", owner, namespace)
 		return utils.LogLine{
 				Objects: objects,
-				Error:   err.Error(),
+				Error:   err2.Error(),
 				Status:  "failure",
 			},
-			err
+			err2
 	}
 
 	var output string
@@ -156,7 +158,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 					denyCIDR = append(denyCIDR, i.Destination.Nets...)
 				}
 			}
-			denyCIDR = append(denyCIDR, event.GetRemoteIP()+"/32")
+			denyCIDR = append(denyCIDR, event.GetRemoteIP()+mask32)
 			denyCIDR = utils.Deduplicate(denyCIDR)
 			denyRule = createDenyEgressRule(denyCIDR)
 			payload.Spec.Egress = []networkingv3.Rule{*denyRule}

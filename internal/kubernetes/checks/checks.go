@@ -9,9 +9,6 @@ import (
 	kubernetes "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
 )
 
-const na string = "<na>"
-const null string = "null"
-
 func CheckPodName(event *events.Event) error {
 	pod := event.GetPodName()
 	if pod == "" {
