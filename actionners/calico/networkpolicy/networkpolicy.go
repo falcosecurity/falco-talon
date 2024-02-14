@@ -124,7 +124,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 	payload.Spec.Selector = strings.TrimSuffix(selector, " &&")
 
-	allowRule := createAllowEgressRules(action)
+	allowRule := createAllowEgressRule(action)
 	denyRule := createDenyEgressRule([]string{event.GetRemoteIP() + "/32"})
 	if denyRule == nil {
 		err := fmt.Errorf("can't create the rule for the networkpolicy '%v' in the namespace '%v'", owner, namespace)
@@ -140,9 +140,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	netpol, err := calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Get(context.Background(), owner, metav1.GetOptions{})
 	if errorsv1.IsNotFound(err) {
 		payload.Spec.Egress = []networkingv3.Rule{*denyRule}
-		if allowRule != nil {
-			payload.Spec.Egress = append(payload.Spec.Egress, *allowRule)
-		}
+		payload.Spec.Egress = append(payload.Spec.Egress, *allowRule)
 		_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Create(context.Background(), &payload, metav1.CreateOptions{})
 		output = fmt.Sprintf("the networkpolicy '%v' in the namespace '%v' has been created", owner, namespace)
 	} else {
@@ -162,9 +160,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			denyCIDR = utils.Deduplicate(denyCIDR)
 			denyRule = createDenyEgressRule(denyCIDR)
 			payload.Spec.Egress = []networkingv3.Rule{*denyRule}
-			if allowRule != nil {
-				payload.Spec.Egress = append(payload.Spec.Egress, *allowRule)
-			}
+			payload.Spec.Egress = append(payload.Spec.Egress, *allowRule)
 			_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Update(context.Background(), &payload, metav1.UpdateOptions{})
 			output = fmt.Sprintf("the networkpolicy '%v' in the namespace '%v' has been updated", owner, namespace)
 		}
@@ -186,20 +182,25 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		nil
 }
 
-func createAllowEgressRules(action *rules.Action) *networkingv3.Rule {
-	if action.GetParameters()["allow"] == nil {
-		return nil
+func createAllowEgressRule(action *rules.Action) *networkingv3.Rule {
+	var allowCIDR []string
+	if action.GetParameters()["allow"] != nil {
+		if allowedCidr := action.GetParameters()["allow"].([]interface{}); len(allowedCidr) != 0 {
+			for _, i := range allowedCidr {
+				allowedCidr = append(allowedCidr, i.(string))
+			}
+		} else {
+			allowCIDR = append(allowCIDR, "0.0.0.0/0")
+		}
+	} else {
+		allowCIDR = append(allowCIDR, "0.0.0.0/0")
 	}
 
 	rule := &networkingv3.Rule{
-		Action:      "Allow",
-		Destination: networkingv3.EntityRule{},
-	}
-
-	if allowedCidr := action.GetParameters()["allow"].([]interface{}); len(allowedCidr) != 0 {
-		for _, i := range allowedCidr {
-			rule.Destination.Nets = append(rule.Destination.Nets, i.(string))
-		}
+		Action: "Allow",
+		Destination: networkingv3.EntityRule{
+			Nets: allowCIDR,
+		},
 	}
 
 	return rule
