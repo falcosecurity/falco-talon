@@ -95,3 +95,13 @@ func (event *Event) GetRemotePort() string {
 	}
 	return ""
 }
+
+func (event *Event) GetRemoteProtocol() string {
+	if i := event.OutputFields["fd.rproto"]; i != nil {
+		return i.(string)
+	}
+	if i := event.OutputFields["fd.rproto"]; i != nil {
+		return i.(string)
+	}
+	return ""
+}

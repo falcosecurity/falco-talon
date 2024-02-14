@@ -3,11 +3,11 @@ package networkpolicy
 import (
 	"context"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 
 	networkingv3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
-	"github.com/projectcalico/api/pkg/lib/numorstring"
 	errorsv1 "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -19,9 +19,11 @@ import (
 	"github.com/Falco-Talon/falco-talon/utils"
 )
 
-func Action(_ *rules.Action, event *events.Event) (utils.LogLine, error) {
+func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
+
+	parameters := action.GetParameters()
 
 	objects := map[string]string{
 		"pod":       podName,
@@ -110,6 +112,11 @@ func Action(_ *rules.Action, event *events.Event) (utils.LogLine, error) {
 		},
 	}
 
+	if parameters["order"] != nil {
+		order := float64(parameters["order"].(int))
+		payload.Spec.Order = &order
+	}
+
 	var selector string
 	for i, j := range labels {
 		selector += fmt.Sprintf(`%v == "%v" &&`, i, j)
@@ -117,8 +124,10 @@ func Action(_ *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 	payload.Spec.Selector = strings.TrimSuffix(selector, " &&")
 
-	r, err := createEgressRule(event)
-	if err != nil {
+	allowRule := createAllowEgressRules(action)
+	denyRule := createDenyEgressRule([]string{event.GetRemoteIP() + "/32"})
+	if denyRule == nil {
+		err := fmt.Errorf("can't create the rule for the networkpolicy '%v' in the namespace '%v'", owner, namespace)
 		return utils.LogLine{
 				Objects: objects,
 				Error:   err.Error(),
@@ -130,7 +139,10 @@ func Action(_ *rules.Action, event *events.Event) (utils.LogLine, error) {
 	var output string
 	netpol, err := calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Get(context.Background(), owner, metav1.GetOptions{})
 	if errorsv1.IsNotFound(err) {
-		payload.Spec.Egress = []networkingv3.Rule{*r}
+		payload.Spec.Egress = []networkingv3.Rule{*denyRule}
+		if allowRule != nil {
+			payload.Spec.Egress = append(payload.Spec.Egress, *allowRule)
+		}
 		_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Create(context.Background(), &payload, metav1.CreateOptions{})
 		output = fmt.Sprintf("the networkpolicy '%v' in the namespace '%v' has been created", owner, namespace)
 	} else {
@@ -140,8 +152,19 @@ func Action(_ *rules.Action, event *events.Event) (utils.LogLine, error) {
 			err = fmt.Errorf("can't upgrade the resource version for the networkpolicy '%v' in the namespace '%v'", payload.ObjectMeta.Name, namespace)
 		} else {
 			payload.ObjectMeta.ResourceVersion = fmt.Sprintf("%v", resourceVersionInt)
-			netpol.Spec.Egress = append(netpol.Spec.Egress, *r)
-			payload.Spec.Egress = netpol.Spec.Egress
+			var denyCIDR []string
+			for _, i := range netpol.Spec.Egress {
+				if i.Action == "Deny" {
+					denyCIDR = append(denyCIDR, i.Destination.Nets...)
+				}
+			}
+			denyCIDR = append(denyCIDR, event.GetRemoteIP()+"/32")
+			denyCIDR = utils.Deduplicate(denyCIDR)
+			denyRule = createDenyEgressRule(denyCIDR)
+			payload.Spec.Egress = []networkingv3.Rule{*denyRule}
+			if allowRule != nil {
+				payload.Spec.Egress = append(payload.Spec.Egress, *allowRule)
+			}
 			_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Update(context.Background(), &payload, metav1.UpdateOptions{})
 			output = fmt.Sprintf("the networkpolicy '%v' in the namespace '%v' has been updated", owner, namespace)
 		}
@@ -163,25 +186,52 @@ func Action(_ *rules.Action, event *events.Event) (utils.LogLine, error) {
 		nil
 }
 
-func createEgressRule(event *events.Event) (*networkingv3.Rule, error) {
-	port, err := strconv.ParseUint(event.GetRemotePort(), 0, 16)
-	if err != nil {
-		return nil, err
+func createAllowEgressRules(action *rules.Action) *networkingv3.Rule {
+	if action.GetParameters()["allow"] == nil {
+		return nil
 	}
-	proto := numorstring.ProtocolFromString("TCP")
+
+	rule := &networkingv3.Rule{
+		Action:      "Allow",
+		Destination: networkingv3.EntityRule{},
+	}
+
+	if allowedCidr := action.GetParameters()["allow"].([]interface{}); len(allowedCidr) != 0 {
+		for _, i := range allowedCidr {
+			rule.Destination.Nets = append(rule.Destination.Nets, i.(string))
+		}
+	}
+
+	return rule
+}
+
+func createDenyEgressRule(ips []string) *networkingv3.Rule {
 	r := networkingv3.Rule{
-		Action:   "Deny",
-		Protocol: &proto,
+		Action: "Deny",
 		Destination: networkingv3.EntityRule{
-			Nets: []string{event.GetRemoteIP() + "/32"},
-			Ports: []numorstring.Port{
-				{
-					MinPort: uint16(port),
-					MaxPort: uint16(port),
-				},
-			},
+			Nets: ips,
 		},
 	}
 
-	return &r, nil
+	return &r
+}
+
+func CheckParameters(action *rules.Action) error {
+	parameters := action.GetParameters()
+	if err := utils.CheckParameters(parameters, "allow", utils.SliceInterfaceStr, nil, false); err != nil {
+		return err
+	}
+	if parameters["allow"] != nil {
+		if p := parameters["allow"].([]interface{}); len(p) != 0 {
+			for _, i := range p {
+				if _, _, err := net.ParseCIDR(i.(string)); err != nil {
+					return fmt.Errorf("wrong CIDR '%v'", i)
+				}
+			}
+		}
+	}
+	if err := utils.CheckParameters(parameters, "order", utils.IntStr, nil, false); err != nil {
+		return err
+	}
+	return nil
 }

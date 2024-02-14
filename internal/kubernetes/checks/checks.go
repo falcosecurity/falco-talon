@@ -4,13 +4,13 @@ import (
 	"errors"
 	"net"
 	"strconv"
-	"strings"
 
 	"github.com/Falco-Talon/falco-talon/internal/events"
 	kubernetes "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
 )
 
-const na string = "<n/a>"
+const na string = "<na>"
+const null string = "null"
 
 func CheckPodName(event *events.Event) error {
 	pod := event.GetPodName()
@@ -71,17 +71,11 @@ func CheckRemoteIP(event *events.Event) error {
 		return errors.New("missing IP field(s) (fd.sip or fd.rip)")
 	}
 	if event.OutputFields["fd.sip"] != nil {
-		if event.OutputFields["fd.sip"].(string) == na {
-			return errors.New("<n/a> value for fd.sip")
-		}
 		if net.ParseIP(event.OutputFields["fd.sip"].(string)) == nil {
 			return errors.New("wrong value for fd.sip")
 		}
 	}
 	if event.OutputFields["fd.rip"] != nil {
-		if strings.ToLower(event.OutputFields["fd.rip"].(string)) == na {
-			return errors.New("<n/a> value for fd.rip")
-		}
 		if net.ParseIP(event.OutputFields["fd.rip"].(string)) == nil {
 			return errors.New("wrong value for fd.rip")
 		}

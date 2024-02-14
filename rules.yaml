@@ -15,16 +15,13 @@
       suspicious: true
 
 - rule: Suspicious outbound connection
-  continue: false
   match:
     rules:
       - Unexpected outbound connection destination
+    output_fields:
+      - k8s.ns.name!=kube-system
   actions:
-    - action: Disable outbound connections
-      parameters:
-        allow:
-          - "10.0.0.0/32"
-    - action: Terminate Pod
+    - action: Labelize Pod as Suspicious
 
 - rule: Terminal shell in container 
   match:
@@ -35,13 +32,27 @@
   actions:
     - action: Labelize Pod as Suspicious
 
+- rule: Delete unknown namespace
+  match:
+    rules:
+      - K8s Namespace Created
+    output_fields:
+      - ka.target.namespace=todelete
+  actions:
+      - action: Delete the namespace
+        actionner: kubernetes:delete
+  
 - rule: Calico netpol 
   match:
     rules:
-      - Test Calico netpol
+      - Unexpected outbound connection destination
     output_fields:
       - k8s.ns.name!=kube-system
   actions:
     - action: Create Calico netpol
       actionner: calico:networkpolicy
+      parameters:
+        order: 20
+        allow:
+          - "0.0.0.0/0"
 

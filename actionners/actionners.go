@@ -136,9 +136,8 @@ func GetDefaultActionners() *Actionners {
 				Checks: []checkActionner{
 					k8sChecks.CheckPodExist,
 					k8sChecks.CheckRemoteIP,
-					k8sChecks.CheckRemotePort,
 				},
-				CheckParameters: nil,
+				CheckParameters: calicoNetworkpolicy.CheckParameters,
 				Action:          calicoNetworkpolicy.Action,
 			},
 		)
