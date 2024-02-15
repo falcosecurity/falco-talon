@@ -56,6 +56,9 @@ func CheckTargetResource(event *events.Event) error {
 }
 
 func CheckTargetNamespace(event *events.Event) error {
+	if event.OutputFields["ka.target.resource"] == "namespaces" {
+		return nil
+	}
 	if event.OutputFields["ka.target.namespace"] == nil {
 		return errors.New("missing target namespace (ka.target.namespace)")
 	}

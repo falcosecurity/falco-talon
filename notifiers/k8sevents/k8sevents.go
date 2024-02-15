@@ -40,7 +40,7 @@ Output:
 TraceID: {{ .TraceID }}
 `
 
-var Notify = func(log utils.LogLine) error {
+func Notify(log utils.LogLine) error {
 	var err error
 	var message string
 	ttmpl := textTemplate.New("message")
@@ -60,6 +60,17 @@ var Notify = func(log utils.LogLine) error {
 		message = message[:1024]
 	}
 
+	client := kubernetes.GetClient()
+
+	namespace := log.Objects["namespace"]
+	ns, err := client.GetNamespace(log.Objects["namespace"])
+	if err != nil {
+		namespace = "default"
+	}
+	if ns == nil {
+		namespace = "default"
+	}
+
 	k8sevent := &corev1.Event{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Event",
@@ -70,7 +81,7 @@ var Notify = func(log utils.LogLine) error {
 		},
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "Pod",
-			Namespace: log.Objects["namespace"],
+			Namespace: namespace,
 			Name:      log.Objects["pod"],
 		},
 		Reason:  falcoTalon + ":" + log.Actionner + ":" + log.Status,
@@ -84,8 +95,7 @@ var Notify = func(log utils.LogLine) error {
 		ReportingInstance:   falcoTalon,
 		Action:              log.Actionner,
 	}
-	k8sclient := kubernetes.GetClient()
-	_, err = k8sclient.CoreV1().Events(log.Objects["namespace"]).Create(context.TODO(), k8sevent, metav1.CreateOptions{})
+	_, err = client.Clientset.CoreV1().Events(namespace).Create(context.TODO(), k8sevent, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}

@@ -62,9 +62,16 @@ func Action(_ *rules.Action, event *events.Event) (utils.LogLine, error) {
 			err
 	}
 
+	var output string
+	if resource == "namespaces" {
+		output = fmt.Sprintf("the %v '%v' has been deleted", strings.TrimSuffix(resource, "s"), name)
+	} else {
+		output = fmt.Sprintf("the %v '%v' in the namespace '%v' has been deleted", strings.TrimSuffix(resource, "s"), name, namespace)
+	}
+
 	return utils.LogLine{
 			Objects: objects,
-			Output:  fmt.Sprintf("the %v '%v' in the namespace '%v' has been deleted", strings.TrimSuffix(resource, "s"), name, namespace),
+			Output:  output,
 			Status:  "success",
 		},
 		nil

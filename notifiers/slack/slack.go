@@ -53,7 +53,7 @@ type Payload struct {
 
 var settings *Settings
 
-var Init = func(fields map[string]interface{}) error {
+func Init(fields map[string]interface{}) error {
 	settings = new(Settings)
 	settings = utils.SetFields(settings, fields).(*Settings)
 	if err := checkSettings(settings); err != nil {
@@ -62,7 +62,7 @@ var Init = func(fields map[string]interface{}) error {
 	return nil
 }
 
-var Notify = func(log utils.LogLine) error {
+func Notify(log utils.LogLine) error {
 	client := http.DefaultClient()
 
 	err := client.Request(settings.WebhookURL, NewPayload(log))

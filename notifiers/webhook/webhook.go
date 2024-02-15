@@ -17,7 +17,7 @@ type Configuration struct {
 
 var config *Configuration
 
-var Init = func(fields map[string]interface{}) error {
+func Init(fields map[string]interface{}) error {
 	config = new(Configuration)
 	config = utils.SetFields(config, fields).(*Configuration)
 	return nil
@@ -35,7 +35,7 @@ func CheckParameters(settings map[string]interface{}) error {
 	return nil
 }
 
-var Notify = func(log utils.LogLine) error {
+func Notify(log utils.LogLine) error {
 	client := http.NewClient(
 		config.HTTPMethod,
 		config.ContentType,
