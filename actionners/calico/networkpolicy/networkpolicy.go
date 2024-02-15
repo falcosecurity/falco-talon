@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strconv"
 	"strings"
 
 	networkingv3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
@@ -146,26 +145,20 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Create(context.Background(), &payload, metav1.CreateOptions{})
 		output = fmt.Sprintf("the networkpolicy '%v' in the namespace '%v' has been created", owner, namespace)
 	} else if err == nil {
-		resourceVersion := netpol.ObjectMeta.ResourceVersion
-		resourceVersionInt, err2 := strconv.ParseUint(resourceVersion, 0, 64)
-		if err2 != nil {
-			err = fmt.Errorf("can't upgrade the resource version for the networkpolicy '%v' in the namespace '%v'", payload.ObjectMeta.Name, namespace)
-		} else {
-			payload.ObjectMeta.ResourceVersion = fmt.Sprintf("%v", resourceVersionInt)
-			var denyCIDR []string
-			for _, i := range netpol.Spec.Egress {
-				if i.Action == "Deny" {
-					denyCIDR = append(denyCIDR, i.Destination.Nets...)
-				}
+		payload.ObjectMeta.ResourceVersion = netpol.ObjectMeta.ResourceVersion
+		var denyCIDR []string
+		for _, i := range netpol.Spec.Egress {
+			if i.Action == "Deny" {
+				denyCIDR = append(denyCIDR, i.Destination.Nets...)
 			}
-			denyCIDR = append(denyCIDR, event.GetRemoteIP()+mask32)
-			denyCIDR = utils.Deduplicate(denyCIDR)
-			denyRule = createDenyEgressRule(denyCIDR)
-			payload.Spec.Egress = []networkingv3.Rule{*denyRule}
-			payload.Spec.Egress = append(payload.Spec.Egress, *allowRule)
-			_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Update(context.Background(), &payload, metav1.UpdateOptions{})
-			output = fmt.Sprintf("the networkpolicy '%v' in the namespace '%v' has been updated", owner, namespace)
 		}
+		denyCIDR = append(denyCIDR, event.GetRemoteIP()+mask32)
+		denyCIDR = utils.Deduplicate(denyCIDR)
+		denyRule = createDenyEgressRule(denyCIDR)
+		payload.Spec.Egress = []networkingv3.Rule{*denyRule}
+		payload.Spec.Egress = append(payload.Spec.Egress, *allowRule)
+		_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Update(context.Background(), &payload, metav1.UpdateOptions{})
+		output = fmt.Sprintf("the networkpolicy '%v' in the namespace '%v' has been updated", owner, namespace)
 	}
 	if err != nil {
 		return utils.LogLine{
