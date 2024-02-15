@@ -131,7 +131,7 @@ func GetDefaultActionners() *Actionners {
 			&Actionner{
 				Category:        "calico",
 				Name:            "networkpolicy",
-				DefaultContinue: false,
+				DefaultContinue: true,
 				Init:            calico.Init,
 				Checks: []checkActionner{
 					k8sChecks.CheckPodExist,

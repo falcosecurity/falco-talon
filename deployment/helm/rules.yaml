@@ -17,9 +17,6 @@
       - Outbound Connection to Free.fr
   actions:
     - action: Disable outbound connections with Calico
-    - action: Terminate Pod
-      parameters:
-        grace_period_seconds: 0
 
 - rule: Terminal shell in container 
   match:
