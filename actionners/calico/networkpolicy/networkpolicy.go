@@ -144,9 +144,9 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		payload.Spec.Egress = append(payload.Spec.Egress, *allowRule)
 		_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Create(context.Background(), &payload, metav1.CreateOptions{})
 		output = fmt.Sprintf("the networkpolicy '%v' in the namespace '%v' has been created", owner, namespace)
-		if errorsv1.IsAlreadyExists(err) {
-			netpol, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Get(context.Background(), owner, metav1.GetOptions{})
-		}
+	}
+	if errorsv1.IsAlreadyExists(err) {
+		netpol, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Get(context.Background(), owner, metav1.GetOptions{})
 	}
 	if err == nil {
 		payload.ObjectMeta.ResourceVersion = netpol.ObjectMeta.ResourceVersion
