@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	networkingv3 "github.com/projectcalico/api/pkg/apis/projectcalico/v3"
 	errorsv1 "k8s.io/apimachinery/pkg/api/errors"
@@ -158,6 +159,10 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		payload.Spec.Egress = []networkingv3.Rule{*denyRule}
 		payload.Spec.Egress = append(payload.Spec.Egress, *allowRule)
 		_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Update(context.Background(), &payload, metav1.UpdateOptions{})
+		if errorsv1.IsAlreadyExists(err) {
+			time.Sleep(1 * time.Second)
+			_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Update(context.Background(), &payload, metav1.UpdateOptions{})
+		}
 		output = fmt.Sprintf("the networkpolicy '%v' in the namespace '%v' has been updated", owner, namespace)
 	}
 	if err != nil {

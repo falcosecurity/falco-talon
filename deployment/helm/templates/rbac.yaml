@@ -27,7 +27,6 @@ rules:
       - pods
     verbs:
       - get
-      - list
       - update
       - patch
       - delete
@@ -45,7 +44,6 @@ rules:
     verbs:
       - create
       - get
-      - list
       - update
       - patch
   - apiGroups:
@@ -57,17 +55,16 @@ rules:
       - statefulsets
     verbs:
       - get
-      - list
       - delete
   - apiGroups:
       - networking.k8s.io
-      - crd.projectcalico.org
+      - projectcalico.org
     resources:
       - networkpolicies
+      - caliconetworkpolicies
     verbs:
       - create
       - get
-      - list
       - update
       - patch
   - apiGroups:
@@ -77,16 +74,15 @@ rules:
       - roles
     verbs:
       - get
-      - list
       - delete
   - apiGroups:
       - ""
     resources:
       - configmaps
       - secrets
+      - namespace
     verbs:
       - get
-      - list
       - delete
 {{- if .Values.podSecurityPolicy.create }}
 - apiGroups:

@@ -53,6 +53,14 @@
       actionner: calico:networkpolicy
       parameters:
         order: 20
-        allow:
-          - "0.0.0.0/0"
+  
+- rule: Delete namespace 
+  match:
+    rules:
+      - Test delete namespace
+    output_fields:
+      - ka.target.name=todelete
+  actions:
+    - action: Delete the resource
+      actionner: kubernetes:delete
 

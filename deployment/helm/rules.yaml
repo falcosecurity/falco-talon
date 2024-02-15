@@ -1,13 +1,8 @@
 - action: Terminate Pod
   actionner: kubernetes:terminate
 
-- action: Disable outbound connections
-  actionner: kubernetes:networkpolicy
-  parameters:
-    allow:
-      - "192.168.1.0/24"
-      - "172.17.0.0/16"
-      - "10.0.0.0/32"
+- action: Disable outbound connections with Calico
+  actionner: calico:networkpolicy
 
 - action: Labelize Pod as Suspicious
   actionner: kubernetes:labelize
@@ -21,7 +16,7 @@
       - Unexpected outbound connection destination
       - Outbound Connection to Free.fr
   actions:
-    - action: Disable outbound connections
+    - action: Disable outbound connections with Calico
     - action: Terminate Pod
       parameters:
         grace_period_seconds: 0
