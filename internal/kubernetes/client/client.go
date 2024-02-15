@@ -151,7 +151,7 @@ func (client Client) GetReplicasetFromPod(pod *corev1.Pod) (*appsv1.ReplicaSet, 
 func (client Client) GetTarget(resource, name, namespace string) (interface{}, error) {
 	switch resource {
 	case "namespaces":
-		return client.GetNamespace(name, namespace)
+		return client.GetNamespace(name)
 	case "configmaps":
 		return client.GetConfigMap(name, namespace)
 	case "secrets":
@@ -177,10 +177,10 @@ func (client Client) GetTarget(resource, name, namespace string) (interface{}, e
 	return nil, errors.New("the resource doesn't exist or its type is not yet managed")
 }
 
-func (client Client) GetNamespace(name, namespace string) (*corev1.Namespace, error) {
+func (client Client) GetNamespace(name string) (*corev1.Namespace, error) {
 	p, err := client.Clientset.CoreV1().Namespaces().Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("the namespace '%v' doesn't exist", name, namespace)
+		return nil, fmt.Errorf("the namespace '%v' doesn't exist", name)
 	}
 	return p, nil
 }
