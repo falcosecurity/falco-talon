@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	falcoTalon = "falco-talon"
+	falcoTalon string = "falco-talon"
+	defaultStr string = "default"
 )
 
 var plaintextTmpl = `Status: {{ .Status }}
@@ -65,10 +66,10 @@ func Notify(log utils.LogLine) error {
 	namespace := log.Objects["namespace"]
 	ns, err := client.GetNamespace(log.Objects["namespace"])
 	if err != nil {
-		namespace = "default"
+		namespace = defaultStr
 	}
 	if ns == nil {
-		namespace = "default"
+		namespace = defaultStr
 	}
 
 	k8sevent := &corev1.Event{

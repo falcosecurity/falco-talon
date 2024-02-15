@@ -58,7 +58,6 @@ func Init(fields map[string]interface{}) error {
 }
 
 func Notify(log utils.LogLine) error {
-
 	client := http.DefaultClient()
 
 	current := time.Now()

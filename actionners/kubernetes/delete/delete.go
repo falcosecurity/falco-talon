@@ -13,6 +13,8 @@ import (
 	"github.com/Falco-Talon/falco-talon/utils"
 )
 
+const namespaces string = "namespaces"
+
 func Action(_ *rules.Action, event *events.Event) (utils.LogLine, error) {
 	name := event.GetTargetName()
 	resource := event.GetTargetResource()
@@ -29,7 +31,7 @@ func Action(_ *rules.Action, event *events.Event) (utils.LogLine, error) {
 	var err error
 
 	switch resource {
-	case "namespaces":
+	case namespaces:
 		err = client.Clientset.CoreV1().Namespaces().Delete(context.Background(), name, metav1.DeleteOptions{})
 	case "configmaps":
 		err = client.Clientset.CoreV1().ConfigMaps(namespace).Delete(context.Background(), name, metav1.DeleteOptions{})
@@ -63,7 +65,7 @@ func Action(_ *rules.Action, event *events.Event) (utils.LogLine, error) {
 	}
 
 	var output string
-	if resource == "namespaces" {
+	if resource == namespaces {
 		output = fmt.Sprintf("the %v '%v' has been deleted", strings.TrimSuffix(resource, "s"), name)
 	} else {
 		output = fmt.Sprintf("the %v '%v' in the namespace '%v' has been deleted", strings.TrimSuffix(resource, "s"), name, namespace)
