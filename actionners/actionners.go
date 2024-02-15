@@ -123,7 +123,7 @@ func GetDefaultActionners() *Actionners {
 				DefaultContinue: false,
 				Init:            k8s.Init,
 				Checks: []checkActionner{
-					k8sChecks.CheckPodExist,
+					k8sChecks.CheckTargetExist,
 				},
 				CheckParameters: nil,
 				Action:          k8sDelete.Action,

@@ -29,6 +29,8 @@ func Action(_ *rules.Action, event *events.Event) (utils.LogLine, error) {
 	var err error
 
 	switch resource {
+	case "namespaces":
+		err = client.Clientset.CoreV1().Namespaces().Delete(context.Background(), name, metav1.DeleteOptions{})
 	case "configmaps":
 		err = client.Clientset.CoreV1().ConfigMaps(namespace).Delete(context.Background(), name, metav1.DeleteOptions{})
 	case "secrets":
