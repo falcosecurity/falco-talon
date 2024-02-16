@@ -77,7 +77,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	// copy the script to /tmp of the pod
 	for i, j := range containers {
 		container = j
-		request := client.CoreV1().RESTClient().
+		request := client.Clientset.CoreV1().RESTClient().
 			Post().
 			Namespace(namespace).
 			Resource("pods").
@@ -119,7 +119,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	}
 
 	// run the script
-	request := client.CoreV1().RESTClient().
+	request := client.Clientset.CoreV1().RESTClient().
 		Post().
 		Namespace(namespace).
 		Resource("pods").
