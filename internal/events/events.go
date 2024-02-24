@@ -3,6 +3,7 @@ package events
 import (
 	"encoding/json"
 	"io"
+	"regexp"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,6 +18,16 @@ type Event struct {
 	Source       string                 `json:"source"`
 	OutputFields map[string]interface{} `json:"output_fields"`
 	Tags         []interface{}          `json:"tags"`
+}
+
+const (
+	trimPrefix = "(?i)^\\d{2}:\\d{2}:\\d{2}\\.\\d{9}\\:\\ (Debug|Info|Informational|Notice|Warning|Error|Critical|Alert|Emergency)"
+)
+
+var regTrimPrefix *regexp.Regexp
+
+func init() {
+	regTrimPrefix, _ = regexp.Compile(trimPrefix)
 }
 
 func DecodeEvent(payload io.Reader) (*Event, error) {
@@ -37,6 +48,8 @@ func DecodeEvent(payload io.Reader) (*Event, error) {
 	if event.TraceID == "" {
 		event.TraceID = uuid.New().String()
 	}
+
+	event.Output = regTrimPrefix.ReplaceAllString(event.Output, "")
 
 	return &event, nil
 }
