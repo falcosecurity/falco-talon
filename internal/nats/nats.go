@@ -113,6 +113,7 @@ func (client *Client) createStream() error {
 			Duplicates:           5 * time.Second,
 			MaxAge:               5 * time.Second,
 			MaxMsgsPerSubject:    1,
+			Discard:              nats.DiscardNew,
 			DiscardNewPerSubject: true,
 		})
 		if err != nil {
