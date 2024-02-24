@@ -108,10 +108,12 @@ func (client *Client) createStream() error {
 	}
 	if stream == nil {
 		_, err = client.JetStreamContext.AddStream(&nats.StreamConfig{
-			Name:       streamName,
-			Subjects:   []string{streamSubjects},
-			Duplicates: 5 * time.Second,
-			MaxAge:     5 * time.Second,
+			Name:                 streamName,
+			Subjects:             []string{streamSubjects},
+			Duplicates:           5 * time.Second,
+			MaxAge:               5 * time.Second,
+			MaxMsgsPerSubject:    1,
+			DiscardNewPerSubject: true,
 		})
 		if err != nil {
 			return err
