@@ -41,6 +41,9 @@ spec:
             - name: http
               containerPort: 2803
               protocol: TCP
+            - name: nats
+              containerPort: 4222
+              protocol: TCP
           livenessProbe:
             httpGet:
               path: /healthz

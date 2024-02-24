@@ -305,6 +305,7 @@ func StartConsumer(eventsC <-chan string) {
 		}
 
 		log := utils.LogLine{
+			Message:  "event",
 			Event:    event.Rule,
 			Priority: event.Priority,
 			Output:   event.Output,
