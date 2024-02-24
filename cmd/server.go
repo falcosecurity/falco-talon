@@ -10,6 +10,8 @@ import (
 	"github.com/Falco-Talon/falco-talon/actionners"
 	"github.com/Falco-Talon/falco-talon/configuration"
 	"github.com/Falco-Talon/falco-talon/internal/handler"
+	k8s "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
+	"github.com/Falco-Talon/falco-talon/internal/nats"
 	ruleengine "github.com/Falco-Talon/falco-talon/internal/rules"
 	"github.com/Falco-Talon/falco-talon/metrics"
 	"github.com/Falco-Talon/falco-talon/notifiers"
@@ -79,8 +81,6 @@ var serverCmd = &cobra.Command{
 		if config.WatchRules {
 			utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: "watch of rules enabled", Message: "init"})
 		}
-
-		utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("Falco Talon is up and listening on %s:%d", config.ListenAddress, config.ListenPort), Message: "init"})
 
 		srv := http.Server{
 			Addr:         fmt.Sprintf("%s:%d", config.ListenAddress, config.ListenPort),
@@ -155,8 +155,44 @@ var serverCmd = &cobra.Command{
 			}()
 		}
 
+		// start the local NATS
+		ns, err := nats.StartServer()
+		if err != nil {
+			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "nats"})
+		}
+		defer ns.Shutdown()
+
+		// starts a goroutine to get the holder of the lease
+		go func() {
+			err2 := k8s.Init()
+			if err2 != nil {
+				utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err2.Error(), Message: "lease"})
+			}
+			c, err2 := k8s.GetClient().GetLeaseHolder()
+			if err2 != nil {
+				utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err2.Error(), Message: "lease"})
+			}
+			for {
+				s := <-c
+				utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("new leader detected '%v'", s), Message: "nats"})
+				err2 = nats.GetPublisher().SetJetStreamContext("nats://" + s + ":4222")
+				if err2 != nil {
+					utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err2.Error(), Message: "nats"})
+				}
+			}
+		}()
+
+		// start the consumer for the actionners
+		c, err := nats.GetConsumer().ConsumeMsg()
+		if err != nil {
+			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "nats"})
+		}
+		go actionners.StartConsumer(c)
+
+		utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("Falco Talon is up and listening on %s:%d", config.ListenAddress, config.ListenPort), Message: "http"})
+
 		if err := srv.ListenAndServe(); err != nil {
-			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err.Error()})
+			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "http"})
 		}
 	},
 }

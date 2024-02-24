@@ -13,10 +13,12 @@
 - rule: Suspicious outbound connection
   match:
     rules:
-      - Unexpected outbound connection destination
-      - Outbound Connection to Free.fr
+      - Outbound Connection to Suspicious IPs
   actions:
     - action: Disable outbound connections with Calico
+    - action: Terminate Pod
+      parameters:
+        grace_period_seconds: 20
 
 - rule: Terminal shell in container 
   match:

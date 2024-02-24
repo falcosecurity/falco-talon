@@ -3,17 +3,28 @@ package kubernetes
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
+	"os"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/watch"
 	k8s "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/leaderelection"
+	"k8s.io/client-go/tools/leaderelection/resourcelock"
+	toolsWatch "k8s.io/client-go/tools/watch"
+
+	klog "k8s.io/klog/v2"
 
 	"github.com/Falco-Talon/falco-talon/configuration"
+	"github.com/Falco-Talon/falco-talon/utils"
 )
 
 type Client struct {
@@ -22,8 +33,12 @@ type Client struct {
 }
 
 var client *Client
+var leaseHolderChan chan string
 
 func Init() error {
+	if client != nil {
+		return nil
+	}
 	client = new(Client)
 	config := configuration.GetConfiguration()
 	var err error
@@ -41,6 +56,17 @@ func Init() error {
 	if err != nil {
 		return err
 	}
+
+	// // disable klog
+	klog.InitFlags(nil)
+	if err := flag.Set("logtostderr", "false"); err != nil {
+		return err
+	}
+	if err := flag.Set("alsologtostderr", "false"); err != nil {
+		return err
+	}
+	flag.Parse()
+
 	return nil
 }
 
@@ -231,4 +257,65 @@ func (client Client) GetClusterRole(name, namespace string) (*rbacv1.ClusterRole
 		return nil, fmt.Errorf("the clusterrole '%v' in the namespace '%v' doesn't exist", name, namespace)
 	}
 	return p, nil
+}
+
+func (client Client) GetWatcherEndpointSlices(labelSelector, namespace string) (<-chan watch.Event, error) {
+	watchFunc := func(_ metav1.ListOptions) (watch.Interface, error) {
+		timeOut := int64(5)
+		return client.DiscoveryV1().EndpointSlices(namespace).Watch(context.Background(), metav1.ListOptions{LabelSelector: labelSelector, TimeoutSeconds: &timeOut})
+	}
+
+	watcher, err := toolsWatch.NewRetryWatcher("1", &cache.ListWatch{WatchFunc: watchFunc})
+	if err != nil {
+		return nil, err
+	}
+	return watcher.ResultChan(), nil
+}
+
+func (client Client) GetLeaseHolder() (<-chan string, error) {
+	if leaseHolderChan != nil {
+		return leaseHolderChan, nil
+	}
+
+	leaseHolderChan = make(chan string, 20)
+	namespace := os.Getenv("NAMESPACE")
+	if namespace == "" {
+		namespace = "falco"
+	}
+	leaderElectionConfig := leaderelection.LeaderElectionConfig{
+		Lock: &resourcelock.LeaseLock{
+			LeaseMeta: metav1.ObjectMeta{
+				Name:      "falco-talon",
+				Namespace: namespace,
+			},
+			Client: client.Clientset.CoordinationV1(),
+			LockConfig: resourcelock.ResourceLockConfig{
+				Identity: *utils.GetLocalIP(),
+			},
+		},
+		LeaseDuration: time.Duration(4) * time.Second,
+		RenewDeadline: time.Duration(3) * time.Second,
+		RetryPeriod:   time.Duration(2) * time.Second,
+		Callbacks: leaderelection.LeaderCallbacks{
+			OnStartedLeading: func(_ context.Context) {},
+			OnStoppedLeading: func() {},
+			OnNewLeader: func(identity string) {
+				leaseHolderChan <- identity
+			},
+		},
+		ReleaseOnCancel: true,
+	}
+
+	leaderElector, err := leaderelection.NewLeaderElector(leaderElectionConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	go func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		leaderElector.Run(ctx)
+	}()
+
+	return leaseHolderChan, nil
 }

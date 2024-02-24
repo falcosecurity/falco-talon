@@ -1,22 +1,19 @@
 package handler
 
 import (
+	"crypto/md5" //nolint:gosec
+	"encoding/hex"
 	"net/http"
 
 	"github.com/jinzhu/copier"
 	"gopkg.in/yaml.v2"
 
-	"github.com/Falco-Talon/falco-talon/actionners"
 	"github.com/Falco-Talon/falco-talon/configuration"
 	"github.com/Falco-Talon/falco-talon/internal/events"
+	"github.com/Falco-Talon/falco-talon/internal/nats"
 	"github.com/Falco-Talon/falco-talon/internal/rules"
 	"github.com/Falco-Talon/falco-talon/metrics"
 	"github.com/Falco-Talon/falco-talon/utils"
-)
-
-const (
-	trueStr  string = "true"
-	falseStr string = "false"
 )
 
 func MainHandler(w http.ResponseWriter, r *http.Request) {
@@ -52,44 +49,12 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	metrics.IncreaseCounter(log)
 
-	go func() {
-		enabledRules := rules.GetRules()
-		triggeredRules := make([]*rules.Rule, 0)
-		for _, i := range *enabledRules {
-			if i.CompareRule(event) {
-				triggeredRules = append(triggeredRules, i)
-			}
-		}
-
-		if len(triggeredRules) == 0 {
-			return
-		}
-
-		if !config.PrintAllEvents {
-			utils.PrintLog("info", config.LogFormat, log)
-		}
-
-		for _, i := range triggeredRules {
-			log.Message = "match"
-			log.Rule = i.GetName()
-
-			utils.PrintLog("info", config.LogFormat, log)
-			metrics.IncreaseCounter(log)
-
-			for _, a := range i.GetActions() {
-				if err := actionners.RunAction(i, a, event); err != nil && a.IgnoreErrors == falseStr {
-					break
-				}
-				if a.Continue == falseStr || a.Continue != trueStr && !actionners.GetDefaultActionners().FindActionner(a.GetActionner()).MustDefaultContinue() {
-					break
-				}
-			}
-
-			if i.Continue == falseStr {
-				break
-			}
-		}
-	}()
+	hasher := md5.New() //nolint:gosec
+	hasher.Write([]byte(event.Output))
+	err = nats.GetPublisher().PublishMsg(hex.EncodeToString(hasher.Sum(nil)), event.String())
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
 }
 
 // HealthHandler is a simple handler to test if daemon is UP.

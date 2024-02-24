@@ -105,3 +105,8 @@ func (event *Event) GetRemoteProtocol() string {
 	}
 	return ""
 }
+
+func (event *Event) String() string {
+	e, _ := json.Marshal(*event)
+	return string(e)
+}

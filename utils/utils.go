@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"reflect"
 	"regexp"
@@ -53,6 +54,8 @@ type LogLine struct {
 	Error             string            `json:"error,omitempty"`
 	Status            string            `json:"status,omitempty"`
 }
+
+var localIP *string
 
 func PrintLog(level, format string, line LogLine) {
 	var output zerolog.ConsoleWriter
@@ -236,4 +239,23 @@ func Deduplicate[T comparable](s []T) []T {
 		}
 	}
 	return result
+}
+
+func GetLocalIP() *string {
+	if localIP != nil {
+		return localIP
+	}
+	localIP = new(string)
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return nil
+	}
+	for _, address := range addrs {
+		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				*localIP = ipnet.IP.String()
+			}
+		}
+	}
+	return localIP
 }

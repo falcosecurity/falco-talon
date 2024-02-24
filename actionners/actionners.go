@@ -1,6 +1,7 @@
 package actionners
 
 import (
+	"encoding/json"
 	"fmt"
 
 	calicoNetworkpolicy "github.com/Falco-Talon/falco-talon/actionners/calico/networkpolicy"
@@ -227,7 +228,7 @@ func (actionner *Actionner) MustDefaultContinue() bool {
 	return actionner.DefaultContinue
 }
 
-func RunAction(rule *rules.Rule, action *rules.Action, event *events.Event) error {
+func runAction(rule *rules.Rule, action *rules.Action, event *events.Event) error {
 	config := configuration.GetConfiguration()
 	actionners := GetActionners()
 	if actionners == nil {
@@ -288,4 +289,64 @@ func RunAction(rule *rules.Rule, action *rules.Action, event *events.Event) erro
 	utils.PrintLog("info", config.LogFormat, log)
 	notifiers.Notify(rule, action, event, log)
 	return nil
+}
+
+func StartConsumer(eventsC <-chan string) {
+	config := configuration.GetConfiguration()
+	for {
+		e := <-eventsC
+		var event *events.Event
+		err := json.Unmarshal([]byte(e), &event)
+		if err != nil {
+			continue
+		}
+		if event == nil {
+			continue
+		}
+
+		log := utils.LogLine{
+			Event:    event.Rule,
+			Priority: event.Priority,
+			Output:   event.Output,
+			Source:   event.Source,
+			TraceID:  event.TraceID,
+		}
+
+		enabledRules := rules.GetRules()
+		triggeredRules := make([]*rules.Rule, 0)
+		for _, i := range *enabledRules {
+			if i.CompareRule(event) {
+				triggeredRules = append(triggeredRules, i)
+			}
+		}
+
+		if len(triggeredRules) == 0 {
+			continue
+		}
+
+		if !config.PrintAllEvents {
+			utils.PrintLog("info", config.LogFormat, log)
+		}
+
+		for _, i := range triggeredRules {
+			log.Message = "match"
+			log.Rule = i.GetName()
+
+			utils.PrintLog("info", config.LogFormat, log)
+			metrics.IncreaseCounter(log)
+
+			for _, a := range i.GetActions() {
+				if err := runAction(i, a, event); err != nil && a.IgnoreErrors == falseStr {
+					break
+				}
+				if a.Continue == falseStr || a.Continue != trueStr && !GetDefaultActionners().FindActionner(a.GetActionner()).MustDefaultContinue() {
+					break
+				}
+			}
+
+			if i.Continue == falseStr {
+				break
+			}
+		}
+	}
 }
