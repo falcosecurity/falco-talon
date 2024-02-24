@@ -27,7 +27,7 @@ const (
 var regTrimPrefix *regexp.Regexp
 
 func init() {
-	regTrimPrefix, _ = regexp.Compile(trimPrefix)
+	regTrimPrefix = regexp.MustCompile(trimPrefix)
 }
 
 func DecodeEvent(payload io.Reader) (*Event, error) {
