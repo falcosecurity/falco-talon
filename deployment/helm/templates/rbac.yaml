@@ -84,6 +84,16 @@ rules:
     verbs:
       - get
       - delete
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - get
+      - watch
+      - create
+      - update
+      - patch
 {{- if .Values.podSecurityPolicy.create }}
 - apiGroups:
     - policy
