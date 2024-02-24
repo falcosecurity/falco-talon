@@ -93,7 +93,7 @@ func (client *Client) ConsumeMsg() (chan string, error) {
 }
 
 func (client *Client) PublishMsg(id, msg string) error {
-	if _, err := client.JetStreamContext.Publish(streamName+".NEW", []byte(msg), nats.MsgId(id)); err != nil {
+	if _, err := client.JetStreamContext.Publish(streamName+"."+id, []byte(msg), nats.MsgId(id)); err != nil {
 		return err
 	}
 	return nil

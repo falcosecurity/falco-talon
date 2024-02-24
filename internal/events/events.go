@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -50,6 +51,7 @@ func DecodeEvent(payload io.Reader) (*Event, error) {
 	}
 
 	event.Output = regTrimPrefix.ReplaceAllString(event.Output, "")
+	event.Output = strings.TrimPrefix(event.Output, " ")
 
 	return &event, nil
 }
