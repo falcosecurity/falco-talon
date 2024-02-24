@@ -174,6 +174,9 @@ var serverCmd = &cobra.Command{
 			}
 			for {
 				s := <-c
+				if s == *utils.GetLocalIP() {
+					s = "127.0.0.1"
+				}
 				utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("new leader detected '%v'", s), Message: "nats"})
 				err2 = nats.GetPublisher().SetJetStreamContext("nats://" + s + ":4222")
 				if err2 != nil {

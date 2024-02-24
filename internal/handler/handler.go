@@ -4,6 +4,7 @@ import (
 	"crypto/md5" //nolint:gosec
 	"encoding/hex"
 	"net/http"
+	"time"
 
 	"github.com/jinzhu/copier"
 	"gopkg.in/yaml.v2"
@@ -53,6 +54,13 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 	hasher.Write([]byte(event.Output))
 	err = nats.GetPublisher().PublishMsg(hex.EncodeToString(hasher.Sum(nil)), event.String())
 	if err != nil {
+		for i := 0; i < 3; i++ {
+			err = nats.GetPublisher().PublishMsg(hex.EncodeToString(hasher.Sum(nil)), event.String())
+			if err == nil {
+				break
+			}
+			time.Sleep(500 * time.Millisecond)
+		}
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
