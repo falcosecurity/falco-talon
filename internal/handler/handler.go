@@ -45,7 +45,7 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if config.PrintAllEvents {
-		utils.PrintLog("info", config.LogFormat, log)
+		utils.PrintLog("info", log)
 	}
 
 	metrics.IncreaseCounter(log)

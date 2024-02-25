@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"regexp"
 
-	"github.com/Falco-Talon/falco-talon/configuration"
 	"github.com/Falco-Talon/falco-talon/utils"
 )
 
@@ -112,10 +111,9 @@ func NewClient(httpMethod, contentType, userAgent string, headers map[string]str
 
 func (c *Client) Request(u string, payload interface{}) error {
 	// defer + recover to catch panic if output doesn't respond
-	config := configuration.GetConfiguration()
 	defer func() {
 		if err := recover(); err != nil {
-			utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "recover"})
+			utils.PrintLog("error", utils.LogLine{Error: "recover"})
 		}
 	}()
 

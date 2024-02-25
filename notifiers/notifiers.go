@@ -91,10 +91,10 @@ func Init() {
 			if strings.ToLower(i) == j.Name {
 				if j.Init != nil {
 					if err := j.Init(config.Notifiers[i]); err != nil {
-						utils.PrintLog("error", config.LogFormat, utils.LogLine{Notifier: i, Message: "init", Error: err.Error(), Status: "failure"})
+						utils.PrintLog("error", utils.LogLine{Notifier: i, Message: "init", Error: err.Error(), Status: "failure"})
 						continue
 					}
-					utils.PrintLog("info", config.LogFormat, utils.LogLine{Notifier: i, Message: "init", Status: "success"})
+					utils.PrintLog("info", utils.LogLine{Notifier: i, Message: "init", Status: "success"})
 				}
 				enabledNotifiers.Add(j)
 			}
@@ -136,11 +136,11 @@ func Notify(rule *rules.Rule, action *rules.Action, event *events.Event, log uti
 			if err := n.Notification(log); err != nil {
 				logN.Status = "failure"
 				logN.Error = err.Error()
-				utils.PrintLog("error", config.LogFormat, logN)
+				utils.PrintLog("error", logN)
 				metrics.IncreaseCounter(log)
 			} else {
 				logN.Status = "success"
-				utils.PrintLog("info", config.LogFormat, logN)
+				utils.PrintLog("info", logN)
 				metrics.IncreaseCounter(log)
 			}
 		}

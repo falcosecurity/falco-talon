@@ -56,15 +56,26 @@ type LogLine struct {
 }
 
 var localIP *string
+var logFormat *string
 
-func PrintLog(level, format string, line LogLine) {
+func init() {
+	logFormat = new(string)
+	*logFormat = colorStr
+}
+
+func SetLogFormat(format string) {
+	if logFormat != nil {
+		*logFormat = strings.ToLower(format)
+	}
+}
+
+func PrintLog(level string, line LogLine) {
 	var output zerolog.ConsoleWriter
 
 	var log zerolog.Logger
-	f := strings.ToLower(format)
-	if f == textStr || f == colorStr {
+	if *logFormat == textStr || *logFormat == colorStr {
 		output = zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
-		if f != colorStr {
+		if *logFormat != colorStr {
 			output.NoColor = true
 		}
 		output.FormatFieldValue = func(i interface{}) string {

@@ -29,10 +29,9 @@ var ctx context.Context
 
 func init() {
 	ctx = context.Background()
-	config := configuration.GetConfiguration()
 	exporter, err := prometheus.New()
 	if err != nil {
-		utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "init"})
+		utils.PrintLog("fatal", utils.LogLine{Error: err.Error(), Message: "init"})
 		log.Fatal(err)
 	}
 	resources := resource.NewWithAttributes(

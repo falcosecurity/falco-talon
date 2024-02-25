@@ -3,7 +3,6 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/Falco-Talon/falco-talon/configuration"
 	"github.com/Falco-Talon/falco-talon/utils"
 )
 
@@ -16,10 +15,9 @@ no-code solution. With easy rules, you can perform actions over compromised pods
 }
 
 func Execute() {
-	config := configuration.GetConfiguration()
 	err := RootCmd.Execute()
 	if err != nil {
-		utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err.Error()})
+		utils.PrintLog("fatal", utils.LogLine{Error: err.Error()})
 	}
 }
 

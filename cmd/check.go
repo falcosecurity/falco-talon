@@ -16,13 +16,14 @@ var checkCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, _ []string) {
 		configFile, _ := cmd.Flags().GetString("config")
 		config := configuration.CreateConfiguration(configFile)
+		utils.SetLogFormat(config.LogFormat)
 		rulesFiles, _ := cmd.Flags().GetStringArray("rules")
 		if len(rulesFiles) != 0 {
 			config.RulesFiles = rulesFiles
 		}
 		rules := ruleengine.ParseRules(config.RulesFiles)
 		if rules == nil {
-			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
+			utils.PrintLog("fatal", utils.LogLine{Error: "invalid rules", Message: "rules"})
 		}
 		defaultActionners := actionners.GetDefaultActionners()
 
@@ -32,12 +33,12 @@ var checkCmd = &cobra.Command{
 				for _, j := range i.GetActions() {
 					actionner := defaultActionners.FindActionner(j.GetActionner())
 					if actionner == nil {
-						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "unknown actionner", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
+						utils.PrintLog("error", utils.LogLine{Error: "unknown actionner", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
 						valid = false
 					} else {
 						if actionner.CheckParameters != nil {
 							if err := actionner.CheckParameters(j); err != nil {
-								utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
+								utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
 								valid = false
 							}
 						}
@@ -46,9 +47,9 @@ var checkCmd = &cobra.Command{
 			}
 		}
 		if !valid {
-			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
+			utils.PrintLog("fatal", utils.LogLine{Error: "invalid rules", Message: "rules"})
 		}
-		utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: "rules file valid", Message: "rules"})
+		utils.PrintLog("info", utils.LogLine{Result: "rules file valid", Message: "rules"})
 	},
 }
 

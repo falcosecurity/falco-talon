@@ -60,12 +60,12 @@ func CreateConfiguration(configFile string) *Configuration {
 		v.AddConfigPath(d)
 		err := v.ReadInConfig()
 		if err != nil {
-			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: fmt.Sprintf("error when reading config file: '%v'", err.Error())})
+			utils.PrintLog("fatal", utils.LogLine{Error: fmt.Sprintf("error when reading config file: '%v'", err.Error())})
 		}
 	}
 
 	if err := v.Unmarshal(config); err != nil {
-		utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: fmt.Sprintf("error unmarshalling config file: '%v'", err.Error())})
+		utils.PrintLog("fatal", utils.LogLine{Error: fmt.Sprintf("error unmarshalling config file: '%v'", err.Error())})
 	}
 
 	return config

@@ -148,7 +148,6 @@ func GetDefaultActionners() *Actionners {
 }
 
 func Init() error {
-	config := configuration.GetConfiguration()
 	rules := rules.GetRules()
 
 	categories := map[string]bool{}
@@ -165,9 +164,9 @@ func Init() error {
 		for _, actionner := range *availableActionners {
 			if category == actionner.Category {
 				if actionner.Init != nil {
-					utils.PrintLog("info", config.LogFormat, utils.LogLine{Message: "init", ActionnerCategory: actionner.Category})
+					utils.PrintLog("info", utils.LogLine{Message: "init", ActionnerCategory: actionner.Category})
 					if err := actionner.Init(); err != nil {
-						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), ActionnerCategory: actionner.Category})
+						utils.PrintLog("error", utils.LogLine{Error: err.Error(), ActionnerCategory: actionner.Category})
 						return err
 					}
 					enabledCategories[category] = true
@@ -229,7 +228,6 @@ func (actionner *Actionner) MustDefaultContinue() bool {
 }
 
 func runAction(rule *rules.Rule, action *rules.Action, event *events.Event) error {
-	config := configuration.GetConfiguration()
 	actionners := GetActionners()
 	if actionners == nil {
 		return nil
@@ -246,14 +244,14 @@ func runAction(rule *rules.Rule, action *rules.Action, event *events.Event) erro
 
 	if rule.DryRun == trueStr {
 		log.Output = "no action, dry-run is enabled"
-		utils.PrintLog("info", config.LogFormat, log)
+		utils.PrintLog("info", log)
 		return nil
 	}
 
 	actionner := actionners.FindActionner(action.GetActionner())
 	if actionner == nil {
 		log.Error = fmt.Sprintf("unknown actionner '%v'", action.GetActionner())
-		utils.PrintLog("error", config.LogFormat, log)
+		utils.PrintLog("error", log)
 		return fmt.Errorf("unknown actionner '%v'", action.GetActionner())
 	}
 
@@ -261,7 +259,7 @@ func runAction(rule *rules.Rule, action *rules.Action, event *events.Event) erro
 		for _, i := range checks {
 			if err := i(event); err != nil {
 				log.Error = err.Error()
-				utils.PrintLog("error", config.LogFormat, log)
+				utils.PrintLog("error", log)
 				return err
 			}
 		}
@@ -282,11 +280,11 @@ func runAction(rule *rules.Rule, action *rules.Action, event *events.Event) erro
 	metrics.IncreaseCounter(log)
 
 	if err != nil {
-		utils.PrintLog("error", config.LogFormat, log)
+		utils.PrintLog("error", log)
 		notifiers.Notify(rule, action, event, log)
 		return err
 	}
-	utils.PrintLog("info", config.LogFormat, log)
+	utils.PrintLog("info", log)
 	notifiers.Notify(rule, action, event, log)
 	return nil
 }
@@ -326,14 +324,14 @@ func StartConsumer(eventsC <-chan string) {
 		}
 
 		if !config.PrintAllEvents {
-			utils.PrintLog("info", config.LogFormat, log)
+			utils.PrintLog("info", log)
 		}
 
 		for _, i := range triggeredRules {
 			log.Message = "match"
 			log.Rule = i.GetName()
 
-			utils.PrintLog("info", config.LogFormat, log)
+			utils.PrintLog("info", log)
 			metrics.IncreaseCounter(log)
 
 			for _, a := range i.GetActions() {

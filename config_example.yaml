@@ -1,17 +1,21 @@
-listenAddress: "0.0.0.0" # default: "0.0.0.0"
-listenPort: "2803" # default: "2803"
-rulesFile: "./rules.yaml" # default: "./rules.yaml"
+listen_address: "0.0.0.0" # default: "0.0.0.0"
+listen_port: "2803" # default: "2803"
+rules_file: "./rules.yaml" # default: "./rules.yaml"
 # kubeConfig: "~/.kube/config" # only if Falco Talon is running outside Kubernetes
-logFormat: "color" # Log Format: text, color, json (default: color)
-watchRules: true # reload if the rules file changes (default: true)
-printallEvents: true # print in logs all received events, not only those which match
+log_format: "color" # Log Format: text, color, json (default: color)
+watch_rules: true # reload if the rules file changes (default: true)
+print_all_events: true # print in logs all received events, not only those which match
 
-defaultNotifiers: # these notifiers will be enabled for all rules
+deduplication:
+  leader_lease: true # in k8s only, create a lease for the leader election
+  time_window_seconds: 5 # duration in seconds for the deduplication time window
+
+default_notifiers: # these notifiers will be enabled for all rules
   - k8sevents
 
 notifiers:
   slack:
-    webhookurl: "https://hooks.slack.com/services/XXXX"
+    webhook_url: "https://hooks.slack.com/services/XXXX"
     # icon: "" # default: "https://upload.wikimedia.org/wikipedia/commons/2/26/Circaetus_gallicus_claw.jpg"
     # username: "" # default: "Falco Talon"
     footer: "" # default: "https://github.com/Falco-Talon/falco-talon"
@@ -19,7 +23,7 @@ notifiers:
   # webhook:
   #   url: ""
   # smtp:
-  #   hostport: ""
+  #   host_port: ""
   #   from: ""
   #   to: ""
   #   user: ""

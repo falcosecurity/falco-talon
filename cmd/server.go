@@ -27,13 +27,14 @@ var serverCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, _ []string) {
 		configFile, _ := cmd.Flags().GetString("config")
 		config := configuration.CreateConfiguration(configFile)
+		utils.SetLogFormat(config.LogFormat)
 		rulesFiles, _ := cmd.Flags().GetStringArray("rules")
 		if len(rulesFiles) != 0 {
 			config.RulesFiles = rulesFiles
 		}
 		rules := ruleengine.ParseRules(config.RulesFiles)
 		if rules == nil {
-			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
+			utils.PrintLog("fatal", utils.LogLine{Error: "invalid rules", Message: "rules"})
 		}
 
 		defaultActionners := actionners.GetDefaultActionners()
@@ -44,12 +45,12 @@ var serverCmd = &cobra.Command{
 				for _, j := range i.GetActions() {
 					actionner := defaultActionners.FindActionner(j.GetActionner())
 					if actionner == nil {
-						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "unknown actionner", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
+						utils.PrintLog("error", utils.LogLine{Error: "unknown actionner", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
 						valid = false
 					} else {
 						if actionner.CheckParameters != nil {
 							if err := actionner.CheckParameters(j); err != nil {
-								utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
+								utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
 								valid = false
 							}
 						}
@@ -58,19 +59,19 @@ var serverCmd = &cobra.Command{
 			}
 		}
 		if !valid {
-			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
+			utils.PrintLog("fatal", utils.LogLine{Error: "invalid rules", Message: "rules"})
 		}
 
 		// init actionners
 		if err := actionners.Init(); err != nil {
-			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "actionners"})
+			utils.PrintLog("fatal", utils.LogLine{Error: err.Error(), Message: "actionners"})
 		}
 
 		// init notifiers
 		notifiers.Init()
 
 		if rules != nil {
-			utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*rules)), Message: "init"})
+			utils.PrintLog("info", utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*rules)), Message: "init"})
 		}
 
 		http.HandleFunc("/", handler.MainHandler)
@@ -79,7 +80,7 @@ var serverCmd = &cobra.Command{
 		http.Handle("/metrics", metrics.Handler())
 
 		if config.WatchRules {
-			utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: "watch of rules enabled", Message: "init"})
+			utils.PrintLog("info", utils.LogLine{Result: "watch of rules enabled", Message: "init"})
 		}
 
 		srv := http.Server{
@@ -94,13 +95,13 @@ var serverCmd = &cobra.Command{
 				ignore := false
 				watcher, err := fsnotify.NewWatcher()
 				if err != nil {
-					utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "rules"})
+					utils.PrintLog("error", utils.LogLine{Error: err.Error(), Message: "rules"})
 					return
 				}
 				defer watcher.Close()
 				for _, i := range config.RulesFiles {
 					if err := watcher.Add(i); err != nil {
-						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "rules"})
+						utils.PrintLog("error", utils.LogLine{Error: err.Error(), Message: "rules"})
 						return
 					}
 				}
@@ -113,10 +114,10 @@ var serverCmd = &cobra.Command{
 								time.Sleep(1 * time.Second)
 								ignore = false
 							}()
-							utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: "changes detected", Message: "rules"})
+							utils.PrintLog("info", utils.LogLine{Result: "changes detected", Message: "rules"})
 							newRules := ruleengine.ParseRules(config.RulesFiles)
 							if newRules == nil {
-								utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
+								utils.PrintLog("error", utils.LogLine{Error: "invalid rules", Message: "rules"})
 								break
 							}
 							defaultActionners := actionners.GetDefaultActionners()
@@ -130,26 +131,26 @@ var serverCmd = &cobra.Command{
 										}
 										if actionner.CheckParameters != nil {
 											if err := actionner.CheckParameters(j); err != nil {
-												utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Message: "rules"})
+												utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Message: "rules"})
 												valid = false
 											}
 										}
 									}
 									if !valid {
-										utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: "invalid rules", Message: "rules"})
+										utils.PrintLog("error", utils.LogLine{Error: "invalid rules", Message: "rules"})
 										break
 									}
-									utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*rules)), Message: "rules"})
+									utils.PrintLog("info", utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*rules)), Message: "rules"})
 									rules = newRules
 									if err := actionners.Init(); err != nil {
-										utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "actionners"})
+										utils.PrintLog("error", utils.LogLine{Error: err.Error(), Message: "actionners"})
 										break
 									}
 								}
 							}
 						}
 					case err := <-watcher.Errors:
-						utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "rules"})
+						utils.PrintLog("error", utils.LogLine{Error: err.Error(), Message: "rules"})
 					}
 				}
 			}()
@@ -158,7 +159,7 @@ var serverCmd = &cobra.Command{
 		// start the local NATS
 		ns, err := nats.StartServer()
 		if err != nil {
-			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "nats"})
+			utils.PrintLog("fatal", utils.LogLine{Error: err.Error(), Message: "nats"})
 		}
 		defer ns.Shutdown()
 
@@ -166,21 +167,21 @@ var serverCmd = &cobra.Command{
 		go func() {
 			err2 := k8s.Init()
 			if err2 != nil {
-				utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err2.Error(), Message: "lease"})
+				utils.PrintLog("fatal", utils.LogLine{Error: err2.Error(), Message: "lease"})
 			}
 			c, err2 := k8s.GetClient().GetLeaseHolder()
 			if err2 != nil {
-				utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err2.Error(), Message: "lease"})
+				utils.PrintLog("fatal", utils.LogLine{Error: err2.Error(), Message: "lease"})
 			}
 			for {
 				s := <-c
 				if s == *utils.GetLocalIP() {
 					s = "127.0.0.1"
 				}
-				utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("new leader detected '%v'", s), Message: "nats"})
+				utils.PrintLog("info", utils.LogLine{Result: fmt.Sprintf("new leader detected '%v'", s), Message: "nats"})
 				err2 = nats.GetPublisher().SetJetStreamContext("nats://" + s + ":4222")
 				if err2 != nil {
-					utils.PrintLog("error", config.LogFormat, utils.LogLine{Error: err2.Error(), Message: "nats"})
+					utils.PrintLog("error", utils.LogLine{Error: err2.Error(), Message: "nats"})
 				}
 			}
 		}()
@@ -188,14 +189,14 @@ var serverCmd = &cobra.Command{
 		// start the consumer for the actionners
 		c, err := nats.GetConsumer().ConsumeMsg()
 		if err != nil {
-			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "nats"})
+			utils.PrintLog("fatal", utils.LogLine{Error: err.Error(), Message: "nats"})
 		}
 		go actionners.StartConsumer(c)
 
-		utils.PrintLog("info", config.LogFormat, utils.LogLine{Result: fmt.Sprintf("Falco Talon is up and listening on %s:%d", config.ListenAddress, config.ListenPort), Message: "http"})
+		utils.PrintLog("info", utils.LogLine{Result: fmt.Sprintf("Falco Talon is up and listening on %s:%d", config.ListenAddress, config.ListenPort), Message: "http"})
 
 		if err := srv.ListenAndServe(); err != nil {
-			utils.PrintLog("fatal", config.LogFormat, utils.LogLine{Error: err.Error(), Message: "http"})
+			utils.PrintLog("fatal", utils.LogLine{Error: err.Error(), Message: "http"})
 		}
 	},
 }
