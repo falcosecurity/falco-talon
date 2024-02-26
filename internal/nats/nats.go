@@ -26,7 +26,7 @@ func StartServer(timeWindow int) (*natsserver.Server, error) {
 		&natsserver.Options{
 			JetStream: true,
 			Debug:     true,
-			// StoreDir:  nats.MemoryStorage.String(),
+			StoreDir:  nats.MemoryStorage.String(),
 		})
 	if err != nil {
 		return nil, err
