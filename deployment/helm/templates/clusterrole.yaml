@@ -5,10 +5,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: {{ template "falco-talon.name" .}}
   labels:
-    app: {{ template "falco-talon.name" . }}
-    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-    release: "{{ .Release.Name }}"
-    heritage: "{{ .Release.Service }}"
+    {{- include "falco-talon.labels" . | nindent 4 }}
 rules:
   - apiGroups:
       - policy

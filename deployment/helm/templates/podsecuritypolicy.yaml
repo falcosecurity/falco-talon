@@ -4,10 +4,7 @@ kind: PodSecurityPolicy
 metadata:
   name: {{ template "falco-talon.name" . }}
   labels:
-    app: {{ template "falco-talon.name" . }}
-    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-    release: "{{ .Release.Name }}"
-    heritage: "{{ .Release.Service }}"
+    {{- include "falco-talon.labels" . | nindent 4 }}
 spec:
   privileged: false
   allowPrivilegeEscalation: false

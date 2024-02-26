@@ -27,6 +27,27 @@ Return the appropriate apiVersion for ingress.
 {{- end -}}
 
 {{/*
+Common labels
+*/}}
+{{- define "falco-talon.labels" -}}
+helm.sh/chart: {{ include "falco-talon.chart" . }}
+app.kubernetes.io/part-of: {{ include "falco-talon.name" . }}
+app.kubernetes.io/managed-by: {{ .Release.Name }}
+{{ include "falco-talon.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+{{- end }}
+
+{{/*
+Selector labels
+*/}}
+{{- define "falco-talon.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "falco-talon.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
 Return if ingress is stable.
 */}}
 {{- define "falco-talon.ingress.isStable" -}}

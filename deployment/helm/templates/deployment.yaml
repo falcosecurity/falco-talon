@@ -5,10 +5,7 @@ metadata:
   name: {{ include "falco-talon.name" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ include "falco-talon.name" . }}
-    helm.sh/chart: {{ include "falco-talon.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- include "falco-talon.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -18,10 +15,9 @@ spec:
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: {{ include "falco-talon.name" . }}
-        app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- include "falco-talon.labels" . | nindent 8 }}
       {{- if .Values.podAnnotations }}
-{{ toYaml .Values.podAnnotations | indent 8 }}
+        {{ toYaml .Values.podAnnotations | indent 8 }}
       {{- end }}
     spec:
       serviceAccountName: {{ include "falco-talon.name" . }}

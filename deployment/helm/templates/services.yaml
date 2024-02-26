@@ -5,10 +5,7 @@ metadata:
   name: {{ include "falco-talon.name" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app.kubernetes.io/name: {{ include "falco-talon.name" . }}
-    helm.sh/chart: {{ include "falco-talon.chart" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- include "falco-talon.labels" . | nindent 4 }}
   {{- with .Values.service.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -21,5 +18,4 @@ spec:
       protocol: TCP
       name: http
   selector:
-    app.kubernetes.io/name: {{ include "falco-talon.name" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
+    {{- include "falco-talon.selectorLabels" . | nindent 4 }}
