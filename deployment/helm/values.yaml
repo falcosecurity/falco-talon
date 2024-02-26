@@ -83,8 +83,12 @@ rulesFiles: # list of locale rules files to use, they will be concatenated into 
   - rules.yaml
   - rules_override.yaml
 
+deduplicationLeaderLease: true # in k8s only, create a lease for the leader election
+# deduplicationTimeWindowSeconds: 5 # duration in seconds for the deduplication time window
+
 printAllEvents: false # print in stdout all received events, not only those which match a rule
 
+# See https://docs.falco-talon.org/docs/notifiers/list/ for the settings
 notifiers:
   slack:
     # webhook_url: "https://hooks.slack.com/services/XXXX"
