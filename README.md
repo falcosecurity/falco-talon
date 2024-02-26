@@ -64,20 +64,7 @@ The documentation is available on its own website: [https://docs.falco-talon.org
 
 ## Metrics
 
-The `/metrics` endpoint exposes some metrics in the Prometheus format.
-
-```
-# HELP action_total number of actions
-# TYPE action_total counter
-action_total{action="Disable outbound connections",actionner="kubernetes:networkpolicy",event="Test logs",namespace="falco",otel_scope_name="github.com/Falco-Talon/falco-talon",otel_scope_version="devel",pod="falco-5b7kc",rule="Suspicious outbound connection",status="failure"} 6
-action_total{action="Terminate Pod",actionner="kubernetes:terminate",event="Test logs",namespace="falco",otel_scope_name="github.com/Falco-Talon/falco-talon",otel_scope_version="devel",pod="falco-5b7kc",rule="Suspicious outbound connection",status="failure"} 6
-# HELP event_total number of received events
-# TYPE event_total counter
-event_total{event="Unexpected outbound connection destination",otel_scope_name="github.com/Falco-Talon/falco-talon",otel_scope_version="devel",priority="Critical",source="syscalls"} 2
-# HELP match_total number of matched events
-# TYPE match_total counter
-match_total{event="Unexpected outbound connection destination",otel_scope_name="github.com/Falco-Talon/falco-talon",otel_scope_version="devel",priority="Critical",rule="Suspicious outbound connection",source="syscalls"} 2
-```
+The `/metrics` endpoint exposes some metrics in the Prometheus format. See [here](https://docs.falco-talon.org/docs/installation_usage/metrics/).
 
 ## Docker images
 
@@ -102,6 +89,7 @@ helm install falco-talon . -n falco --create-namespace
 #### Configure Falcosidekick
 
 Once you have installed `Falco Talon` with Helm, you need to connect `Falcosidekick` by adding the flag `--set falcosidekick.config.webhook.address=http://falco-talon:2803`
+
 ```shell
 helm install falco falcosecurity/falco --namespace falco \
   --create-namespace \

@@ -157,34 +157,36 @@ var serverCmd = &cobra.Command{
 		}
 
 		// start the local NATS
-		ns, err := nats.StartServer()
+		ns, err := nats.StartServer(config.DeduplicationTimeWindowSeconds)
 		if err != nil {
 			utils.PrintLog("fatal", utils.LogLine{Error: err.Error(), Message: "nats"})
 		}
 		defer ns.Shutdown()
 
 		// starts a goroutine to get the holder of the lease
-		go func() {
-			err2 := k8s.Init()
-			if err2 != nil {
-				utils.PrintLog("fatal", utils.LogLine{Error: err2.Error(), Message: "lease"})
-			}
-			c, err2 := k8s.GetClient().GetLeaseHolder()
-			if err2 != nil {
-				utils.PrintLog("fatal", utils.LogLine{Error: err2.Error(), Message: "lease"})
-			}
-			for {
-				s := <-c
-				if s == *utils.GetLocalIP() {
-					s = "127.0.0.1"
-				}
-				utils.PrintLog("info", utils.LogLine{Result: fmt.Sprintf("new leader detected '%v'", s), Message: "nats"})
-				err2 = nats.GetPublisher().SetJetStreamContext("nats://" + s + ":4222")
+		if config.DeduplicationLeaderLease {
+			go func() {
+				err2 := k8s.Init()
 				if err2 != nil {
-					utils.PrintLog("error", utils.LogLine{Error: err2.Error(), Message: "nats"})
+					utils.PrintLog("fatal", utils.LogLine{Error: err2.Error(), Message: "lease"})
 				}
-			}
-		}()
+				c, err2 := k8s.GetClient().GetLeaseHolder()
+				if err2 != nil {
+					utils.PrintLog("fatal", utils.LogLine{Error: err2.Error(), Message: "lease"})
+				}
+				for {
+					s := <-c
+					if s == *utils.GetLocalIP() {
+						s = "127.0.0.1"
+					}
+					utils.PrintLog("info", utils.LogLine{Result: fmt.Sprintf("new leader detected '%v'", s), Message: "nats"})
+					err2 = nats.GetPublisher().SetJetStreamContext("nats://" + s + ":4222")
+					if err2 != nil {
+						utils.PrintLog("error", utils.LogLine{Error: err2.Error(), Message: "nats"})
+					}
+				}
+			}()
+		}
 
 		// start the consumer for the actionners
 		c, err := nats.GetConsumer().ConsumeMsg()

@@ -21,10 +21,11 @@ const (
 
 var consumer, publisher *Client
 
-func StartServer() (*natsserver.Server, error) {
+func StartServer(timeWindow int) (*natsserver.Server, error) {
 	ns, err := natsserver.NewServer(
 		&natsserver.Options{
 			JetStream: true,
+			StoreDir:  nats.MemoryStorage.String(),
 		})
 	if err != nil {
 		return nil, err
@@ -45,7 +46,7 @@ func StartServer() (*natsserver.Server, error) {
 		return nil, err
 	}
 
-	if err := consumer.createStream(); err != nil {
+	if err := consumer.createStream(timeWindow); err != nil {
 		return nil, err
 	}
 
@@ -93,13 +94,18 @@ func (client *Client) ConsumeMsg() (chan string, error) {
 }
 
 func (client *Client) PublishMsg(id, msg string) error {
-	if _, err := client.JetStreamContext.Publish(streamName+"."+id, []byte(msg), nats.MsgId(id)); err != nil {
+	if _, err := client.JetStreamContext.Publish(
+		streamName+"."+id,
+		[]byte(msg),
+		nats.MsgId(id),
+		nats.RetryAttempts(3),
+		nats.RetryWait(500*time.Millisecond)); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (client *Client) createStream() error {
+func (client *Client) createStream(timeWindow int) error {
 	stream, err := client.JetStreamContext.StreamInfo(streamName)
 	if err != nil {
 		if err != nats.ErrStreamNotFound {
@@ -108,13 +114,12 @@ func (client *Client) createStream() error {
 	}
 	if stream == nil {
 		_, err = client.JetStreamContext.AddStream(&nats.StreamConfig{
-			Name:                 streamName,
-			Subjects:             []string{streamSubjects},
-			Duplicates:           5 * time.Second,
-			MaxAge:               5 * time.Second,
-			MaxMsgsPerSubject:    1,
-			Discard:              nats.DiscardNew,
-			DiscardNewPerSubject: true,
+			Name:              streamName,
+			Subjects:          []string{streamSubjects},
+			Duplicates:        time.Duration(timeWindow) * time.Second,
+			MaxAge:            time.Duration(timeWindow) * time.Second,
+			MaxMsgsPerSubject: 1,
+			Storage:           nats.MemoryStorage,
 		})
 		if err != nil {
 			return err
