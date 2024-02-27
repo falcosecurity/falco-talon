@@ -6,9 +6,8 @@ log_format: "color" # log Format: text, color, json (default: color)
 watch_rules: true # reload if the rules file changes (default: true)
 print_all_events: true # print in logs all received events, not only those which match
 
-deduplication:
-  leader_lease: true # in k8s only, create a lease for the leader election
-  time_window_seconds: 5 # duration in seconds for the deduplication time window
+deduplication_leader_lease: true # in k8s only, create a lease for the leader election
+deduplication_time_window_seconds: 5 # duration in seconds for the deduplication time window
 
 default_notifiers: # these notifiers will be enabled for all rules
   - k8sevents
