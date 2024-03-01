@@ -287,6 +287,10 @@ func (client Client) GetLeaseHolder() (<-chan string, error) {
 			LeaseMeta: metav1.ObjectMeta{
 				Name:      "falco-talon",
 				Namespace: namespace,
+				Labels: map[string]string{
+					"app.kubernetes.io/part-of": "falco-talon",
+					"app.kubernetes.io/name":    "falco-talon",
+				},
 			},
 			Client: client.Clientset.CoordinationV1(),
 			LockConfig: resourcelock.ResourceLockConfig{
