@@ -14,6 +14,14 @@
     labels:
       suspicious: true
 
+- action: Invoke Lambda function
+  actionner: aws:lambdainvoke
+  parameters:
+    aws_lambda_name: sample-function
+    aws_lambda_alias_or_version: $LATEST
+
+
+
 - rule: Suspicious outbound connection
   match:
     rules:
@@ -31,6 +39,14 @@
       - k8s.ns.name!=kube-system, k8s.ns.name!=falco
   actions:
     - action: Labelize Pod as Suspicious
+
+- rule: Test invoke lambda
+  actionner: aws:lambdainvoke
+  match:
+    rules:
+      - Test invoke lambda
+  actions:
+    - action: Invoke Lambda function
 
 - rule: Delete unknown namespace
   match:

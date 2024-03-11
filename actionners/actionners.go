@@ -3,6 +3,7 @@ package actionners
 import (
 	"encoding/json"
 	"fmt"
+	lambdaInvoke "github.com/Falco-Talon/falco-talon/actionners/aws/lambda"
 
 	calicoNetworkpolicy "github.com/Falco-Talon/falco-talon/actionners/calico/networkpolicy"
 	k8sDelete "github.com/Falco-Talon/falco-talon/actionners/kubernetes/delete"
@@ -13,6 +14,7 @@ import (
 	k8sScript "github.com/Falco-Talon/falco-talon/actionners/kubernetes/script"
 	k8sTerminate "github.com/Falco-Talon/falco-talon/actionners/kubernetes/terminate"
 	"github.com/Falco-Talon/falco-talon/configuration"
+	aws "github.com/Falco-Talon/falco-talon/internal/aws/client"
 	calico "github.com/Falco-Talon/falco-talon/internal/calico/client"
 	"github.com/Falco-Talon/falco-talon/internal/events"
 	k8sChecks "github.com/Falco-Talon/falco-talon/internal/kubernetes/checks"
@@ -130,6 +132,15 @@ func GetDefaultActionners() *Actionners {
 				Action:          k8sDelete.Action,
 			},
 			&Actionner{
+				Category:        "aws",
+				Name:            "lambdainvoke",
+				DefaultContinue: false,
+				Init:            aws.Init,
+				Checks:          []checkActionner{},
+				CheckParameters: nil,
+				Action:          lambdaInvoke.Action,
+			},
+			&Actionner{
 				Category:        "calico",
 				Name:            "networkpolicy",
 				DefaultContinue: true,
@@ -158,6 +169,7 @@ func Init() error {
 		for _, j := range i.Actions {
 			categories[j.GetActionnerCategory()] = true
 		}
+
 	}
 
 	for category := range categories {
