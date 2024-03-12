@@ -15,7 +15,7 @@
       suspicious: true
 
 - action: Invoke Lambda function
-  actionner: aws:lambdainvoke
+  actionner: aws:lambda
   parameters:
     aws_lambda_name: sample-function
     aws_lambda_alias_or_version: $LATEST

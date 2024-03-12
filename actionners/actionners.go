@@ -133,7 +133,7 @@ func GetDefaultActionners() *Actionners {
 			},
 			&Actionner{
 				Category:        "aws",
-				Name:            "lambdainvoke",
+				Name:            "lambda",
 				DefaultContinue: false,
 				Init:            aws.Init,
 				Checks:          []checkActionner{},
