@@ -19,6 +19,7 @@
   parameters:
     aws_lambda_name: sample-function
     aws_lambda_alias_or_version: $LATEST
+    aws_lambda_invocation_type: RequestResponse
 
 
 

@@ -137,7 +137,7 @@ func GetDefaultActionners() *Actionners {
 				DefaultContinue: false,
 				Init:            aws.Init,
 				Checks:          []checkActionner{},
-				CheckParameters: nil,
+				CheckParameters: lambdaInvoke.CheckParameters,
 				Action:          lambdaInvoke.Action,
 			},
 			&Actionner{

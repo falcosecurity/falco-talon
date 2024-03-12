@@ -207,27 +207,46 @@ func SetFields(structure interface{}, fields map[string]interface{}) interface{}
 	return structure
 }
 
-func CheckParameters(parameters map[string]interface{}, name, typ string, reg *regexp.Regexp, mandatory bool) error {
+func CheckParameters(parameters map[string]interface{}, name, typ string, reg *regexp.Regexp, mandatory bool, allowedValues ...string) error {
 	if parameters == nil {
 		if mandatory {
 			return errors.New("missing parameters")
 		}
 		return nil
 	}
-	if parameters[name] == nil {
+
+	value, exists := parameters[name]
+	if !exists {
 		if mandatory {
 			return errors.New("missing parameters")
 		}
 		return nil
 	}
-	if reflect.TypeOf(parameters[name]).String() != typ {
+
+	if reflect.TypeOf(value).String() != typ {
 		return fmt.Errorf("wrong type for parameter '%v'", name)
 	}
-	if reg != nil {
-		if !reg.Match([]byte(fmt.Sprintf("%v", parameters[name]))) {
-			return fmt.Errorf("wrong value for parameter '%v'", name)
+
+	if reg != nil && !reg.Match([]byte(fmt.Sprintf("%v", value))) {
+		return fmt.Errorf("wrong value for parameter '%v'", name)
+	}
+
+	// Check if the parameter's value is within the allowed values (if provided and not empty)
+	if len(allowedValues) > 0 {
+		valueStr := fmt.Sprintf("%v", value)
+		isAllowed := false
+		for _, allowedValue := range allowedValues {
+			if valueStr == allowedValue {
+				isAllowed = true
+				break
+			}
+		}
+		if !isAllowed {
+			// If we reach this point, the value was not found in the allowedValues
+			return fmt.Errorf("parameter '%v' has an invalid value '%v'. Allowed values are: %v", name, value, allowedValues)
 		}
 	}
+
 	return nil
 }
 

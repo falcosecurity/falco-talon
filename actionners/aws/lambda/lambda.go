@@ -9,12 +9,14 @@ import (
 	"github.com/Falco-Talon/falco-talon/internal/rules"
 	"github.com/Falco-Talon/falco-talon/utils"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
+	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
+	"github.com/mitchellh/mapstructure"
 )
 
-func Action(r *rules.Action, event *events.Event) (utils.LogLine, error) {
+func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 	lambdaClient := client.GetAWSClient().LambdaClient()
-	parameters := r.GetParameters()
+	parameters := action.GetParameters()
 
 	lambdaConfig, err := NewLambdaConfig(parameters)
 	if err != nil {
@@ -44,7 +46,7 @@ func Action(r *rules.Action, event *events.Event) (utils.LogLine, error) {
 	input := &lambda.InvokeInput{
 		FunctionName:   &lambdaConfig.AWSLambdaName,
 		ClientContext:  nil,
-		InvocationType: "",
+		InvocationType: getInvocationType(lambdaConfig.AWSLambdaInvocationType),
 		Payload:        payload,
 		Qualifier:      &lambdaConfig.AWSLambdaAliasOrVersion,
 	}
@@ -69,27 +71,53 @@ func Action(r *rules.Action, event *events.Event) (utils.LogLine, error) {
 		nil
 }
 
-// NewLambdaConfig creates a new LambdaConfig with default values.
-// Each action would have your own data handler, so we can perform validation and keep defaults in a single place for each action
-func NewLambdaConfig(params map[string]interface{}) (LambdaConfig, error) {
-	var lambdaConfig LambdaConfig
+func getInvocationType(invocationType string) types.InvocationType {
+	switch invocationType {
+	case "RequestResponse":
+		return types.InvocationTypeRequestResponse
+	case "Event":
+		return types.InvocationTypeEvent
+	case "DryRun":
+		return types.InvocationTypeDryRun
+	default:
+		return types.InvocationTypeRequestResponse // Default
+	}
+}
 
-	// Check and set aws_lambda_name
-	if name, ok := params["aws_lambda_name"].(string); ok && name != "" {
-		lambdaConfig.AWSLambdaName = name
-	} else {
-		return LambdaConfig{}, fmt.Errorf("aws_lambda_name is required and must be a string")
+func NewLambdaConfig(params map[string]interface{}) (*LambdaConfig, error) {
+	var config LambdaConfig
+
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		TagName: "mapstructure",
+		Result:  &config,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error creating decoder: %w", err)
 	}
 
-	lambdaConfig.AWSLambdaAliasOrVersion = "$LATEST" // Default value
-	if version, ok := params["aws_lambda_alias_or_version"].(string); ok && version != "" {
-		lambdaConfig.AWSLambdaAliasOrVersion = version
+	if err := decoder.Decode(params); err != nil {
+		return nil, fmt.Errorf("error decoding parameters: %w", err)
 	}
 
-	return lambdaConfig, nil
+	return &config, nil
 }
 
 type LambdaConfig struct {
-	AWSLambdaName           string
-	AWSLambdaAliasOrVersion string
+	AWSLambdaName           string `mapstructure:"aws_lambda_name"`
+	AWSLambdaAliasOrVersion string `mapstructure:"aws_lambda_alias_or_version"`
+	AWSLambdaInvocationType string `mapstructure:"aws_lambda_invocation_type"`
+}
+
+func CheckParameters(action *rules.Action) error {
+	parameters := action.GetParameters()
+	if err := utils.CheckParameters(parameters, "aws_lambda_name", utils.StringStr, nil, true); err != nil {
+		return err
+	}
+	if err := utils.CheckParameters(parameters, "aws_lambda_alias_or_version", utils.StringStr, nil, false); err != nil {
+		return err
+	}
+	if err := utils.CheckParameters(parameters, "aws_lambda_invocation_type", utils.StringStr, nil, false, "RequestResponse", "DryRun", "Event"); err != nil {
+		return err
+	}
+	return nil
 }
