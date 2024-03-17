@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
 	"github.com/mitchellh/mapstructure"
+	"strconv"
 )
 
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
@@ -51,7 +52,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		Qualifier:      &lambdaConfig.AWSLambdaAliasOrVersion,
 	}
 
-	_, err = lambdaClient.Invoke(context.Background(), input)
+	lambdaOutput, err := lambdaClient.Invoke(context.Background(), input)
 	if err != nil {
 		return utils.LogLine{
 				Objects: objects,
@@ -59,6 +60,13 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 				Status:  "failure",
 			},
 			err
+	}
+
+	objects = map[string]string{
+		"name":          lambdaConfig.AWSLambdaName,
+		"version":       lambdaConfig.AWSLambdaAliasOrVersion,
+		"status_code":   strconv.FormatInt(int64(lambdaOutput.StatusCode), 10),
+		"lamba_payload": string(lambdaOutput.Payload),
 	}
 
 	output := fmt.Sprintf("the lambda %v:%v has been executed.", lambdaConfig.AWSLambdaName, lambdaConfig.AWSLambdaAliasOrVersion)

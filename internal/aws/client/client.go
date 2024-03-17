@@ -2,11 +2,13 @@ package client
 
 import (
 	"context"
+	"github.com/Falco-Talon/falco-talon/configuration"
 	"github.com/Falco-Talon/falco-talon/utils"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 )
 
@@ -25,16 +27,35 @@ var (
 
 func Init() error {
 	var err error
+
+	awsConfig := configuration.GetConfiguration().AwsConfig
+
 	once.Do(func() {
-		cfg, err := config.LoadDefaultConfig(context.TODO())
-		if err != nil {
-			return
+		var cfg aws.Config
+
+		// Check if static config is provided
+		if awsConfig.AccessKey != "" && awsConfig.SecretKey != "" && awsConfig.Region != "" {
+			cfg, err = config.LoadDefaultConfig(
+				context.TODO(),
+				config.WithRegion(awsConfig.Region),
+				config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(awsConfig.AccessKey, awsConfig.SecretKey, "")),
+			)
+			if err != nil {
+				return
+			}
+		} else {
+			// Load the default configuration
+			cfg, err = config.LoadDefaultConfig(context.TODO())
+			if err != nil {
+				return
+			}
 		}
 
 		awsClient = &AWSClient{
 			cfg: cfg,
 		}
 	})
+
 	return err
 }
 
