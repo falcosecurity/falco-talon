@@ -16,7 +16,7 @@ import (
 
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
-	lambdaClient := client.GetAWSClient().LambdaClient()
+	lambdaClient := client.GetAWSClient().GetLambdaClient()
 	parameters := action.GetParameters()
 
 	lambdaConfig, err := NewLambdaConfig(parameters)
