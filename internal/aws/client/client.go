@@ -6,6 +6,8 @@ import (
 	"github.com/Falco-Talon/falco-talon/utils"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -26,29 +28,45 @@ var (
 )
 
 func Init() error {
-	var err error
+	var initErr error
 
 	awsConfig := configuration.GetConfiguration().AwsConfig
 
 	once.Do(func() {
 		var cfg aws.Config
+		var err error
 
-		// Check if static config is provided
 		if awsConfig.AccessKey != "" && awsConfig.SecretKey != "" && awsConfig.Region != "" {
 			cfg, err = config.LoadDefaultConfig(
 				context.TODO(),
 				config.WithRegion(awsConfig.Region),
 				config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(awsConfig.AccessKey, awsConfig.SecretKey, "")),
 			)
-			if err != nil {
-				return
-			}
 		} else {
-			// Load the default configuration
 			cfg, err = config.LoadDefaultConfig(context.TODO())
-			if err != nil {
-				return
+		}
+		if err != nil {
+			initErr = err
+			return
+		}
+
+		if awsConfig.RoleArn != "" {
+			stsClient := sts.NewFromConfig(cfg)
+			assumeRoleOptions := func(o *stscreds.AssumeRoleOptions) {
+				if awsConfig.ExternalId != "" {
+					o.ExternalID = aws.String(awsConfig.ExternalId)
+				}
 			}
+			provider := stscreds.NewAssumeRoleProvider(stsClient, awsConfig.RoleArn, assumeRoleOptions)
+			cfg.Credentials = aws.NewCredentialsCache(provider)
+		}
+
+		// Perform a dry run to validate credentials
+		stsClient := sts.NewFromConfig(cfg)
+		_, err = stsClient.GetCallerIdentity(context.TODO(), &sts.GetCallerIdentityInput{})
+		if err != nil {
+			initErr = err
+			return
 		}
 
 		awsClient = &AWSClient{
@@ -56,7 +74,7 @@ func Init() error {
 		}
 	})
 
-	return err
+	return initErr
 }
 
 // GetAWSClient returns the singleton AWSClient instance. Make sure to call Init() before using this function.

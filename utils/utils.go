@@ -218,7 +218,7 @@ func CheckParameters(parameters map[string]interface{}, name, typ string, reg *r
 	value, exists := parameters[name]
 	if !exists {
 		if mandatory {
-			return errors.New("missing parameters")
+			return fmt.Errorf("missing parameter '%v'", name)
 		}
 		return nil
 	}

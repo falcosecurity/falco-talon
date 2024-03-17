@@ -86,7 +86,9 @@ func (c *Configuration) GetDefaultNotifiers() []string {
 }
 
 type AwsConfig struct {
-	Region    string `mapstructure:"region"`
-	AccessKey string `mapstructure:"access_key"`
-	SecretKey string `mapstructure:"secret_key"`
+	Region     string `mapstructure:"region"`
+	AccessKey  string `mapstructure:"access_key"`
+	SecretKey  string `mapstructure:"secret_key"`
+	RoleArn    string `mapstructure:"role_arn"`
+	ExternalId string `mapstructure:"external_id"`
 }

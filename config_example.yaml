@@ -12,10 +12,12 @@ deduplication_time_window_seconds: 5 # duration in seconds for the deduplication
 default_notifiers: # these notifiers will be enabled for all rules
   - k8sevents
 
-aws:
-#  region: us-east-1 # if not specified, default region from provider credential chain will be used
-#  access_key: a9s01m1mdlaklska # if not specified, default access_key from provider credential chain will be used
-#  secret_key: my_super_secret # if not specified, default secret_key from provider credential chain will be used
+#aws:
+#  role_arn: arn:aws:iam::<account_number>:role/<role_name>
+#  external_id: <external_id>
+#  region: <region> # if not specified, default region from provider credential chain will be used
+#  access_key: <access_key> # if not specified, default access_key from provider credential chain will be used
+#  secret_key: <secret_key> # if not specified, default secret_key from provider credential chain will be used
 
 notifiers:
   slack:
