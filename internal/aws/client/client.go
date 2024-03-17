@@ -82,7 +82,7 @@ func GetAWSClient() *AWSClient {
 	return awsClient
 }
 
-func (c *AWSClient) LambdaClient() *lambda.Client {
+func (c *AWSClient) GetLambdaClient() *lambda.Client {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
