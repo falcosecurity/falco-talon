@@ -11,8 +11,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
 	"github.com/mitchellh/mapstructure"
-	"strconv"
+	"net/http"
 )
+
+type LambdaConfig struct {
+	AWSLambdaName           string `mapstructure:"aws_lambda_name"`
+	AWSLambdaAliasOrVersion string `mapstructure:"aws_lambda_alias_or_version"`
+	AWSLambdaInvocationType string `mapstructure:"aws_lambda_invocation_type"`
+}
 
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
@@ -62,19 +68,14 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			err
 	}
 
-	objects = map[string]string{
-		"name":          lambdaConfig.AWSLambdaName,
-		"version":       lambdaConfig.AWSLambdaAliasOrVersion,
-		"status_code":   strconv.FormatInt(int64(lambdaOutput.StatusCode), 10),
-		"lamba_payload": string(lambdaOutput.Payload),
+	status := "success"
+	if lambdaOutput.StatusCode != http.StatusOK {
+		status = "failure"
 	}
-
-	output := fmt.Sprintf("the lambda %v:%v has been executed.", lambdaConfig.AWSLambdaName, lambdaConfig.AWSLambdaAliasOrVersion)
-
 	return utils.LogLine{
 			Objects: objects,
-			Output:  output,
-			Status:  "success",
+			Output:  string(lambdaOutput.Payload),
+			Status:  status,
 		},
 		nil
 }
@@ -108,12 +109,6 @@ func NewLambdaConfig(params map[string]interface{}) (*LambdaConfig, error) {
 	}
 
 	return &config, nil
-}
-
-type LambdaConfig struct {
-	AWSLambdaName           string `mapstructure:"aws_lambda_name"`
-	AWSLambdaAliasOrVersion string `mapstructure:"aws_lambda_alias_or_version"`
-	AWSLambdaInvocationType string `mapstructure:"aws_lambda_invocation_type"`
 }
 
 func CheckParameters(action *rules.Action) error {

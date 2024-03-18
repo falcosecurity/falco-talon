@@ -35,6 +35,7 @@ type Actionner struct {
 	DefaultContinue bool
 }
 
+// type checkActionner func(event *events.Event, actions ...rules.Action) error
 type checkActionner func(event *events.Event) error
 
 type Actionners []*Actionner
@@ -136,7 +137,9 @@ func GetDefaultActionners() *Actionners {
 				Name:            "lambda",
 				DefaultContinue: false,
 				Init:            aws.Init,
-				Checks:          []checkActionner{},
+				Checks:          []checkActionner{
+					//awsChecks.CheckLambdaExist
+				},
 				CheckParameters: lambdaInvoke.CheckParameters,
 				Action:          lambdaInvoke.Action,
 			},
