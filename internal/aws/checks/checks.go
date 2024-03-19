@@ -9,10 +9,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 )
 
-func CheckLambdaExist(event *events.Event, action ...rules.Action) error {
+func CheckLambdaExist(event *events.Event, action *rules.Action) error {
 
 	lambdaClient := client.GetAWSClient().GetLambdaClient()
-	parameters := action[0].GetParameters()
+	parameters := action.GetParameters()
 
 	lambdaConfig, err := lambdaActionner.NewLambdaConfig(parameters)
 	if err != nil {
