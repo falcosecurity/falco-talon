@@ -42,7 +42,6 @@
     - action: Labelize Pod as Suspicious
 
 - rule: Test invoke lambda
-  actionner: aws:lambdainvoke
   match:
     rules:
       - Test invoke lambda
