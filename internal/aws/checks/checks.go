@@ -14,7 +14,7 @@ func CheckLambdaExist(event *events.Event, action *rules.Action) error {
 	lambdaClient := client.GetAWSClient().GetLambdaClient()
 	parameters := action.GetParameters()
 
-	lambdaConfig, err := lambdaActionner.NewLambdaConfig(parameters)
+	lambdaConfig, err := lambdaActionner.CreateLambdaConfigFromParameters(parameters)
 	if err != nil {
 		return err
 	}

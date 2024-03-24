@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"github.com/go-playground/validator/v10"
 	"net"
 	"os"
 	"reflect"
@@ -205,6 +206,15 @@ func SetFields(structure interface{}, fields map[string]interface{}) interface{}
 	}
 
 	return structure
+}
+
+func ValidateStruct(s interface{}) error {
+	validate := validator.New()
+	err := validate.Struct(s)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func CheckParameters(parameters map[string]interface{}, name, typ string, reg *regexp.Regexp, mandatory bool, allowedValues ...string) error {

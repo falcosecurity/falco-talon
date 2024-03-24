@@ -15,9 +15,9 @@ import (
 )
 
 type LambdaConfig struct {
-	AWSLambdaName           string `mapstructure:"aws_lambda_name"`
-	AWSLambdaAliasOrVersion string `mapstructure:"aws_lambda_alias_or_version"`
-	AWSLambdaInvocationType string `mapstructure:"aws_lambda_invocation_type"`
+	AWSLambdaName           string `mapstructure:"aws_lambda_name" validate:"required"`
+	AWSLambdaAliasOrVersion string `mapstructure:"aws_lambda_alias_or_version" validate:"omitempty"`
+	AWSLambdaInvocationType string `mapstructure:"aws_lambda_invocation_type" validate:"omitempty,oneof=RequestResponse Event DryRun"`
 }
 
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
@@ -25,7 +25,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	lambdaClient := client.GetAWSClient().GetLambdaClient()
 	parameters := action.GetParameters()
 
-	lambdaConfig, err := NewLambdaConfig(parameters)
+	lambdaConfig, err := CreateLambdaConfigFromParameters(parameters)
 	if err != nil {
 		return utils.LogLine{
 				Objects: nil,
@@ -80,20 +80,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		nil
 }
 
-func getInvocationType(invocationType string) types.InvocationType {
-	switch invocationType {
-	case "RequestResponse":
-		return types.InvocationTypeRequestResponse
-	case "Event":
-		return types.InvocationTypeEvent
-	case "DryRun":
-		return types.InvocationTypeDryRun
-	default:
-		return types.InvocationTypeRequestResponse // Default
-	}
-}
-
-func NewLambdaConfig(params map[string]interface{}) (*LambdaConfig, error) {
+func CreateLambdaConfigFromParameters(params map[string]interface{}) (*LambdaConfig, error) {
 	var config LambdaConfig
 
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
@@ -108,19 +95,35 @@ func NewLambdaConfig(params map[string]interface{}) (*LambdaConfig, error) {
 		return nil, fmt.Errorf("error decoding parameters: %w", err)
 	}
 
+	if config.AWSLambdaAliasOrVersion == "" {
+		config.AWSLambdaAliasOrVersion = "$LATEST"
+	}
 	return &config, nil
 }
 
 func CheckParameters(action *rules.Action) error {
 	parameters := action.GetParameters()
-	if err := utils.CheckParameters(parameters, "aws_lambda_name", utils.StringStr, nil, true); err != nil {
+
+	lambdaConfig, err := CreateLambdaConfigFromParameters(parameters)
+	if err != nil {
 		return err
 	}
-	if err := utils.CheckParameters(parameters, "aws_lambda_alias_or_version", utils.StringStr, nil, false); err != nil {
-		return err
-	}
-	if err := utils.CheckParameters(parameters, "aws_lambda_invocation_type", utils.StringStr, nil, false, "RequestResponse", "DryRun", "Event"); err != nil {
+	err = utils.ValidateStruct(*lambdaConfig)
+	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func getInvocationType(invocationType string) types.InvocationType {
+	switch invocationType {
+	case "RequestResponse":
+		return types.InvocationTypeRequestResponse
+	case "Event":
+		return types.InvocationTypeEvent
+	case "DryRun":
+		return types.InvocationTypeDryRun
+	default:
+		return types.InvocationTypeRequestResponse // Default
+	}
 }
