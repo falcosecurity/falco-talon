@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-playground/validator/v10"
+	"github.com/mitchellh/mapstructure"
 	"net"
 	"os"
 	"reflect"
@@ -213,6 +214,21 @@ func ValidateStruct(s interface{}) error {
 	err := validate.Struct(s)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+func DecodeParams(params map[string]interface{}, result interface{}) error {
+	// Decode parameters into the struct
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		TagName: "mapstructure",
+		Result:  result,
+	})
+	if err != nil {
+		return fmt.Errorf("error creating decoder: %w", err)
+	}
+	if err := decoder.Decode(params); err != nil {
+		return fmt.Errorf("error decoding parameters: %w", err)
 	}
 	return nil
 }

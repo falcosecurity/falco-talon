@@ -3,14 +3,12 @@ package lambda
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/Falco-Talon/falco-talon/internal/aws/client"
 	"github.com/Falco-Talon/falco-talon/internal/events"
 	"github.com/Falco-Talon/falco-talon/internal/rules"
 	"github.com/Falco-Talon/falco-talon/utils"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
-	"github.com/mitchellh/mapstructure"
 	"net/http"
 )
 
@@ -25,7 +23,9 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	lambdaClient := client.GetAWSClient().GetLambdaClient()
 	parameters := action.GetParameters()
 
-	lambdaConfig, err := CreateLambdaConfigFromParameters(parameters)
+	var lambdaConfig LambdaConfig
+
+	err := utils.DecodeParams(parameters, &lambdaConfig)
 	if err != nil {
 		return utils.LogLine{
 				Objects: nil,
@@ -55,7 +55,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		ClientContext:  nil,
 		InvocationType: getInvocationType(lambdaConfig.AWSLambdaInvocationType),
 		Payload:        payload,
-		Qualifier:      &lambdaConfig.AWSLambdaAliasOrVersion,
+		Qualifier:      getLambdaVersion(&lambdaConfig.AWSLambdaAliasOrVersion),
 	}
 
 	lambdaOutput, err := lambdaClient.Invoke(context.Background(), input)
@@ -69,7 +69,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	}
 
 	status := "success"
-	if lambdaOutput.StatusCode != http.StatusOK {
+	if lambdaOutput.StatusCode != http.StatusOK && lambdaOutput.StatusCode != http.StatusNoContent {
 		status = "failure"
 	}
 	return utils.LogLine{
@@ -80,35 +80,16 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		nil
 }
 
-func CreateLambdaConfigFromParameters(params map[string]interface{}) (*LambdaConfig, error) {
-	var config LambdaConfig
-
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		TagName: "mapstructure",
-		Result:  &config,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error creating decoder: %w", err)
-	}
-
-	if err := decoder.Decode(params); err != nil {
-		return nil, fmt.Errorf("error decoding parameters: %w", err)
-	}
-
-	if config.AWSLambdaAliasOrVersion == "" {
-		config.AWSLambdaAliasOrVersion = "$LATEST"
-	}
-	return &config, nil
-}
-
 func CheckParameters(action *rules.Action) error {
 	parameters := action.GetParameters()
 
-	lambdaConfig, err := CreateLambdaConfigFromParameters(parameters)
+	var config LambdaConfig
+	err := utils.DecodeParams(parameters, &config)
 	if err != nil {
 		return err
 	}
-	err = utils.ValidateStruct(*lambdaConfig)
+
+	err = utils.ValidateStruct(config)
 	if err != nil {
 		return err
 	}
@@ -126,4 +107,12 @@ func getInvocationType(invocationType string) types.InvocationType {
 	default:
 		return types.InvocationTypeRequestResponse // Default
 	}
+}
+
+func getLambdaVersion(qualifier *string) *string {
+	if qualifier == nil || *qualifier == "" {
+		defaultVal := "$LATEST"
+		return &defaultVal
+	}
+	return qualifier
 }
