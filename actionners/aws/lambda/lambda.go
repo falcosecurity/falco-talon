@@ -3,13 +3,14 @@ package lambda
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+
 	"github.com/Falco-Talon/falco-talon/internal/aws/client"
 	"github.com/Falco-Talon/falco-talon/internal/events"
 	"github.com/Falco-Talon/falco-talon/internal/rules"
 	"github.com/Falco-Talon/falco-talon/utils"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
-	"net/http"
 )
 
 type LambdaConfig struct {
@@ -24,7 +25,6 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	parameters := action.GetParameters()
 
 	var lambdaConfig LambdaConfig
-
 	err := utils.DecodeParams(parameters, &lambdaConfig)
 	if err != nil {
 		return utils.LogLine{
@@ -40,7 +40,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		"version": lambdaConfig.AWSLambdaAliasOrVersion,
 	}
 
-	payload, err := json.Marshal(event.OutputFields)
+	payload, err := json.Marshal(event)
 	if err != nil {
 		return utils.LogLine{
 				Objects: objects,

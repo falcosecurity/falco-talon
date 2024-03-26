@@ -2,6 +2,7 @@ package checks
 
 import (
 	"context"
+
 	lambdaActionner "github.com/Falco-Talon/falco-talon/actionners/aws/lambda"
 	"github.com/Falco-Talon/falco-talon/internal/aws/client"
 	"github.com/Falco-Talon/falco-talon/internal/events"
@@ -16,7 +17,7 @@ func CheckLambdaExist(event *events.Event, action *rules.Action) error {
 	parameters := action.GetParameters()
 
 	var lambdaConfig lambdaActionner.LambdaConfig
-	err := utils.DecodeParams(parameters, lambdaConfig)
+	err := utils.DecodeParams(parameters, &lambdaConfig)
 	if err != nil {
 		return err
 	}
