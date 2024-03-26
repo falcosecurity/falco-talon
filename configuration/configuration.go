@@ -33,6 +33,7 @@ type Configuration struct {
 	PrintAllEvents                 bool                              `mapstructure:"print_all_events"`
 	DeduplicationLeaderLease       bool                              `mapstructure:"deduplication_leader_lease"`
 	DeduplicationTimeWindowSeconds int                               `mapstructure:"deduplication_time_window_seconds"`
+	AwsConfig                      AwsConfig                         `mapstructure:"aws"`
 }
 
 var config *Configuration
@@ -53,7 +54,6 @@ func CreateConfiguration(configFile string) *Configuration {
 	v.SetDefault("print_all_events", defaultPrintAllEvents)
 	v.SetDefault("deduplication_leader_lease", defaultDeduplicationLeaderLease)
 	v.SetDefault("deduplication_time_window_seconds", defaultDeduplicationTimeWindow)
-
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
@@ -83,4 +83,12 @@ func GetConfiguration() *Configuration {
 
 func (c *Configuration) GetDefaultNotifiers() []string {
 	return c.DefaultNotifiers
+}
+
+type AwsConfig struct {
+	Region     string `mapstructure:"region"`
+	AccessKey  string `mapstructure:"access_key"`
+	SecretKey  string `mapstructure:"secret_key"`
+	RoleArn    string `mapstructure:"role_arn"`
+	ExternalId string `mapstructure:"external_id"`
 }

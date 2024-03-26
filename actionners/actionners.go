@@ -3,6 +3,7 @@ package actionners
 import (
 	"encoding/json"
 	"fmt"
+	lambdaInvoke "github.com/Falco-Talon/falco-talon/actionners/aws/lambda"
 
 	calicoNetworkpolicy "github.com/Falco-Talon/falco-talon/actionners/calico/networkpolicy"
 	k8sDelete "github.com/Falco-Talon/falco-talon/actionners/kubernetes/delete"
@@ -13,6 +14,8 @@ import (
 	k8sScript "github.com/Falco-Talon/falco-talon/actionners/kubernetes/script"
 	k8sTerminate "github.com/Falco-Talon/falco-talon/actionners/kubernetes/terminate"
 	"github.com/Falco-Talon/falco-talon/configuration"
+	awsChecks "github.com/Falco-Talon/falco-talon/internal/aws/checks"
+	aws "github.com/Falco-Talon/falco-talon/internal/aws/client"
 	calico "github.com/Falco-Talon/falco-talon/internal/calico/client"
 	"github.com/Falco-Talon/falco-talon/internal/events"
 	k8sChecks "github.com/Falco-Talon/falco-talon/internal/kubernetes/checks"
@@ -33,7 +36,8 @@ type Actionner struct {
 	DefaultContinue bool
 }
 
-type checkActionner func(event *events.Event) error
+// type checkActionner func(event *events.Event, actions ...rules.Action) error
+type checkActionner func(event *events.Event, action *rules.Action) error
 
 type Actionners []*Actionner
 
@@ -130,6 +134,17 @@ func GetDefaultActionners() *Actionners {
 				Action:          k8sDelete.Action,
 			},
 			&Actionner{
+				Category:        "aws",
+				Name:            "lambda",
+				DefaultContinue: false,
+				Init:            aws.Init,
+				Checks: []checkActionner{
+					awsChecks.CheckLambdaExist,
+				},
+				CheckParameters: lambdaInvoke.CheckParameters,
+				Action:          lambdaInvoke.Action,
+			},
+			&Actionner{
 				Category:        "calico",
 				Name:            "networkpolicy",
 				DefaultContinue: true,
@@ -158,6 +173,7 @@ func Init() error {
 		for _, j := range i.Actions {
 			categories[j.GetActionnerCategory()] = true
 		}
+
 	}
 
 	for category := range categories {
@@ -257,7 +273,7 @@ func runAction(rule *rules.Rule, action *rules.Action, event *events.Event) erro
 
 	if checks := actionner.Checks; len(checks) != 0 {
 		for _, i := range checks {
-			if err := i(event); err != nil {
+			if err := i(event, action); err != nil {
 				log.Error = err.Error()
 				utils.PrintLog("error", log)
 				return err
