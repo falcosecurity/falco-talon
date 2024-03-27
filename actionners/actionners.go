@@ -351,7 +351,10 @@ func StartConsumer(eventsC <-chan string) {
 			metrics.IncreaseCounter(log)
 
 			for _, a := range i.GetActions() {
-				if err := runAction(i, a, event); err != nil && a.IgnoreErrors == falseStr {
+				e := new(events.Event)
+				*e = *event
+				i.ExtendOutputFields(e, a)
+				if err := runAction(i, a, e); err != nil && a.IgnoreErrors == falseStr {
 					break
 				}
 				if a.Continue == falseStr || a.Continue != trueStr && !GetDefaultActionners().FindActionner(a.GetActionner()).MustDefaultContinue() {

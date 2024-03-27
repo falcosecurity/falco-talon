@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -50,8 +51,9 @@ type outputfield struct {
 }
 
 const (
-	trueStr  string = "true"
-	falseStr string = "false"
+	trueStr               string = "true"
+	falseStr              string = "false"
+	falcoTalonOutputField string = "falco-talon."
 )
 
 var rules *[]*Rule
@@ -526,4 +528,24 @@ func (rule *Rule) comparePriority(event *events.Event) bool {
 		}
 	}
 	return false
+}
+
+func (rule *Rule) ExtendOutputFields(event *events.Event, action *Action) {
+	event.OutputFields[falcoTalonOutputField+"rule"] = rule.Name
+	if rule.Continue != "" {
+		event.OutputFields[falcoTalonOutputField+"rule.continue"] = rule.Continue
+	}
+	if rule.DryRun != "" {
+		event.OutputFields[falcoTalonOutputField+"rule.dry_run"] = rule.DryRun
+	}
+	event.OutputFields[falcoTalonOutputField+"action"] = action.Name
+	if action.Continue != "" {
+		event.OutputFields[falcoTalonOutputField+"action.continue"] = action.Continue
+	}
+	if action.IgnoreErrors != "" {
+		event.OutputFields[falcoTalonOutputField+"action.ignore_errors"] = action.IgnoreErrors
+	}
+	j, _ := json.Marshal(action.Parameters)
+	event.OutputFields[falcoTalonOutputField+"action.parameters"] = string(j)
+	event.OutputFields[falcoTalonOutputField+"actionner"] = action.Actionner
 }

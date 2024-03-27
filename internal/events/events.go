@@ -43,7 +43,7 @@ func DecodeEvent(payload io.Reader) (*Event, error) {
 	}
 
 	if event.Source == "" {
-		event.Source = "syscalls"
+		event.Source = "syscall"
 	}
 
 	if event.TraceID == "" {
