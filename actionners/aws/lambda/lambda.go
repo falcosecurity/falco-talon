@@ -5,26 +5,26 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/aws/aws-sdk-go-v2/service/lambda"
+	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
+
 	"github.com/Falco-Talon/falco-talon/internal/aws/client"
 	"github.com/Falco-Talon/falco-talon/internal/events"
 	"github.com/Falco-Talon/falco-talon/internal/rules"
 	"github.com/Falco-Talon/falco-talon/utils"
-	"github.com/aws/aws-sdk-go-v2/service/lambda"
-	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
 )
 
-type LambdaConfig struct {
+type Config struct {
 	AWSLambdaName           string `mapstructure:"aws_lambda_name" validate:"required"`
 	AWSLambdaAliasOrVersion string `mapstructure:"aws_lambda_alias_or_version" validate:"omitempty"`
 	AWSLambdaInvocationType string `mapstructure:"aws_lambda_invocation_type" validate:"omitempty,oneof=RequestResponse Event DryRun"`
 }
 
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
-
 	lambdaClient := client.GetAWSClient().GetLambdaClient()
 	parameters := action.GetParameters()
 
-	var lambdaConfig LambdaConfig
+	var lambdaConfig Config
 	err := utils.DecodeParams(parameters, &lambdaConfig)
 	if err != nil {
 		return utils.LogLine{
@@ -83,7 +83,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 func CheckParameters(action *rules.Action) error {
 	parameters := action.GetParameters()
 
-	var config LambdaConfig
+	var config Config
 	err := utils.DecodeParams(parameters, &config)
 	if err != nil {
 		return err

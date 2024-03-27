@@ -2,15 +2,16 @@ package checks
 
 import (
 	"errors"
-	"github.com/Falco-Talon/falco-talon/internal/rules"
 	"net"
 	"strconv"
+
+	"github.com/Falco-Talon/falco-talon/internal/rules"
 
 	"github.com/Falco-Talon/falco-talon/internal/events"
 	kubernetes "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
 )
 
-func CheckPodName(event *events.Event, action *rules.Action) error {
+func CheckPodName(event *events.Event, _ *rules.Action) error {
 	pod := event.GetPodName()
 	if pod == "" {
 		return errors.New("missing pod name")
@@ -18,7 +19,7 @@ func CheckPodName(event *events.Event, action *rules.Action) error {
 	return nil
 }
 
-func CheckNamespace(event *events.Event, action *rules.Action) error {
+func CheckNamespace(event *events.Event, _ *rules.Action) error {
 	namespace := event.GetNamespaceName()
 	if namespace == "" {
 		return errors.New("missing namespace")
@@ -26,7 +27,7 @@ func CheckNamespace(event *events.Event, action *rules.Action) error {
 	return nil
 }
 
-func CheckPodExist(event *events.Event, action *rules.Action) error {
+func CheckPodExist(event *events.Event, _ *rules.Action) error {
 	if err := CheckPodName(event, nil); err != nil {
 		return err
 	}
@@ -42,21 +43,21 @@ func CheckPodExist(event *events.Event, action *rules.Action) error {
 	return err
 }
 
-func CheckTargetName(event *events.Event, action *rules.Action) error {
+func CheckTargetName(event *events.Event, _ *rules.Action) error {
 	if event.OutputFields["ka.target.name"] == nil {
 		return errors.New("missing target name (ka.target.name)")
 	}
 	return nil
 }
 
-func CheckTargetResource(event *events.Event, action *rules.Action) error {
+func CheckTargetResource(event *events.Event, _ *rules.Action) error {
 	if event.OutputFields["ka.target.resource"] == nil {
 		return errors.New("missing target resource (ka.target.resource)")
 	}
 	return nil
 }
 
-func CheckTargetNamespace(event *events.Event, action *rules.Action) error {
+func CheckTargetNamespace(event *events.Event, _ *rules.Action) error {
 	if event.OutputFields["ka.target.resource"] == "namespaces" {
 		return nil
 	}
@@ -66,7 +67,7 @@ func CheckTargetNamespace(event *events.Event, action *rules.Action) error {
 	return nil
 }
 
-func CheckRemoteIP(event *events.Event, action *rules.Action) error {
+func CheckRemoteIP(event *events.Event, _ *rules.Action) error {
 	if event.OutputFields["fd.sip"] == nil &&
 		event.OutputFields["fd.rip"] == nil {
 		return errors.New("missing IP field(s) (fd.sip or fd.rip)")
@@ -85,7 +86,7 @@ func CheckRemoteIP(event *events.Event, action *rules.Action) error {
 	return nil
 }
 
-func CheckRemotePort(event *events.Event, action *rules.Action) error {
+func CheckRemotePort(event *events.Event, _ *rules.Action) error {
 	if event.OutputFields["fd.sport"] == nil &&
 		event.OutputFields["fd.rport"] == nil {
 		return errors.New("missing Port field(s) (fd.sport or fd.port)")
@@ -104,7 +105,7 @@ func CheckRemotePort(event *events.Event, action *rules.Action) error {
 	return nil
 }
 
-func CheckTargetExist(event *events.Event, action *rules.Action) error {
+func CheckTargetExist(event *events.Event, _ *rules.Action) error {
 	if err := CheckTargetResource(event, nil); err != nil {
 		return err
 	}

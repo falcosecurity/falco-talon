@@ -2,24 +2,25 @@ package client
 
 import (
 	"context"
+	"sync"
+
 	"github.com/Falco-Talon/falco-talon/configuration"
 	"github.com/Falco-Talon/falco-talon/utils"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
-	"github.com/aws/aws-sdk-go-v2/service/sts"
-	"sync"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
 type AWSClient struct {
+	lambdaClient *lambda.Client
+	// s3Client     *s3.Client
 	cfg aws.Config
 
-	mu           sync.Mutex // Protects the fields below
-	lambdaClient *lambda.Client
-	//s3Client     *s3.Client
+	mu sync.Mutex // Protects the fields below
 }
 
 var (
@@ -53,8 +54,8 @@ func Init() error {
 		if awsConfig.RoleArn != "" {
 			stsClient := sts.NewFromConfig(cfg)
 			assumeRoleOptions := func(o *stscreds.AssumeRoleOptions) {
-				if awsConfig.ExternalId != "" {
-					o.ExternalID = aws.String(awsConfig.ExternalId)
+				if awsConfig.ExternalID != "" {
+					o.ExternalID = aws.String(awsConfig.ExternalID)
 				}
 			}
 			provider := stscreds.NewAssumeRoleProvider(stsClient, awsConfig.RoleArn, assumeRoleOptions)
@@ -93,7 +94,7 @@ func (c *AWSClient) GetLambdaClient() *lambda.Client {
 	return c.lambdaClient
 }
 
-//func (c *AWSClient) S3Client() *s3.Client {
+// func (c *AWSClient) S3Client() *s3.Client {
 //	c.mu.Lock()
 //	defer c.mu.Unlock()
 //

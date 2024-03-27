@@ -3,8 +3,6 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"github.com/go-playground/validator/v10"
-	"github.com/mitchellh/mapstructure"
 	"net"
 	"os"
 	"reflect"
@@ -13,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-playground/validator/v10"
+	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog"
 )
 

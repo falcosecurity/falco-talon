@@ -3,6 +3,7 @@ package actionners
 import (
 	"encoding/json"
 	"fmt"
+
 	lambdaInvoke "github.com/Falco-Talon/falco-talon/actionners/aws/lambda"
 
 	calicoNetworkpolicy "github.com/Falco-Talon/falco-talon/actionners/calico/networkpolicy"
@@ -173,7 +174,6 @@ func Init() error {
 		for _, j := range i.Actions {
 			categories[j.GetActionnerCategory()] = true
 		}
-
 	}
 
 	for category := range categories {

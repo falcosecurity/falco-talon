@@ -23,17 +23,17 @@ const (
 
 type Configuration struct {
 	Notifiers                      map[string]map[string]interface{} `mapstructure:"notifiers"`
+	AwsConfig                      AwsConfig                         `mapstructure:"aws"`
 	LogFormat                      string                            `mapstructure:"log_format"`
 	KubeConfig                     string                            `mapstructure:"kubeconfig"`
 	ListenAddress                  string                            `mapstructure:"listen_address"`
 	RulesFiles                     []string                          `mapstructure:"rules_files"`
 	DefaultNotifiers               []string                          `mapstructure:"default_notifiers"`
 	ListenPort                     int                               `mapstructure:"listen_port"`
+	DeduplicationTimeWindowSeconds int                               `mapstructure:"deduplication_time_window_seconds"`
 	WatchRules                     bool                              `mapstructure:"watch_rules"`
 	PrintAllEvents                 bool                              `mapstructure:"print_all_events"`
 	DeduplicationLeaderLease       bool                              `mapstructure:"deduplication_leader_lease"`
-	DeduplicationTimeWindowSeconds int                               `mapstructure:"deduplication_time_window_seconds"`
-	AwsConfig                      AwsConfig                         `mapstructure:"aws"`
 }
 
 var config *Configuration
@@ -90,5 +90,5 @@ type AwsConfig struct {
 	AccessKey  string `mapstructure:"access_key"`
 	SecretKey  string `mapstructure:"secret_key"`
 	RoleArn    string `mapstructure:"role_arn"`
-	ExternalId string `mapstructure:"external_id"`
+	ExternalID string `mapstructure:"external_id"`
 }

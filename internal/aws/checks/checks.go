@@ -8,15 +8,15 @@ import (
 	"github.com/Falco-Talon/falco-talon/internal/events"
 	"github.com/Falco-Talon/falco-talon/internal/rules"
 	"github.com/Falco-Talon/falco-talon/utils"
+
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 )
 
-func CheckLambdaExist(event *events.Event, action *rules.Action) error {
-
+func CheckLambdaExist(_ *events.Event, action *rules.Action) error {
 	lambdaClient := client.GetAWSClient().GetLambdaClient()
 	parameters := action.GetParameters()
 
-	var lambdaConfig lambdaActionner.LambdaConfig
+	var lambdaConfig lambdaActionner.Config
 	err := utils.DecodeParams(parameters, &lambdaConfig)
 	if err != nil {
 		return err
