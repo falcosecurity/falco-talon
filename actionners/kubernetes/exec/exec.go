@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/remotecommand"
@@ -37,6 +38,9 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	if parameters["command"] != nil {
 		*command = parameters["command"].(string)
 	}
+
+	event.ExportEnvVars()
+	*command = os.ExpandEnv(*command)
 
 	client := kubernetes.GetClient()
 
