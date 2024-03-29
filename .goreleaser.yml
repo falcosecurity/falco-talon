@@ -48,6 +48,6 @@ kos:
 
 release:
   github:
-    owner: issif
+    owner: falco-talon
     name: falco-talon
   prerelease: auto
