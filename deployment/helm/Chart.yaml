@@ -8,9 +8,9 @@ keywords:
   - monitoring
   - security
   - response-engine
-home: https://github.com/Falco-Talon/falco-talon
+home: https://github.com/falco-talon/falco-talon
 sources:
-  - https://github.com/Falco-Talon/falco-talon
+  - https://github.com/falco-talon/falco-talon
 maintainers:
   - name: Issif
     email: issif+github@gadz.org

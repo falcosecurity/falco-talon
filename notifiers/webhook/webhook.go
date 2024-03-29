@@ -3,8 +3,8 @@ package webhook
 import (
 	"errors"
 
-	"github.com/Falco-Talon/falco-talon/notifiers/http"
-	"github.com/Falco-Talon/falco-talon/utils"
+	"github.com/falco-talon/falco-talon/notifiers/http"
+	"github.com/falco-talon/falco-talon/utils"
 )
 
 type Configuration struct {
@@ -12,7 +12,7 @@ type Configuration struct {
 	URL           string            `field:"url"`
 	HTTPMethod    string            `field:"http_method" default:"POST"`
 	ContentType   string            `field:"content_type" default:"application/json; charset=utf-8"`
-	UserAgent     string            `field:"user_agent" default:"Falco-Talon"`
+	UserAgent     string            `field:"user_agent" default:"falco-talon"`
 }
 
 var config *Configuration

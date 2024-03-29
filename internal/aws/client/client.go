@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/Falco-Talon/falco-talon/configuration"
-	"github.com/Falco-Talon/falco-talon/utils"
+	"github.com/falco-talon/falco-talon/configuration"
+	"github.com/falco-talon/falco-talon/utils"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"

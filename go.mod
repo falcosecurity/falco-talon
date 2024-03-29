@@ -1,6 +1,6 @@
-module github.com/Falco-Talon/falco-talon
+module github.com/falco-talon/falco-talon
 
-go 1.21.3
+go 1.22
 
 toolchain go1.22.0
 
@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.53.3
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.5
 	github.com/emersion/go-sasl v0.0.0-20231106173351-e73c9f7bad43
-	github.com/emersion/go-smtp v0.20.2
+	github.com/emersion/go-smtp v0.21.0
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/go-playground/validator/v10 v10.19.0
 	github.com/google/uuid v1.6.0

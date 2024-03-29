@@ -13,11 +13,11 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 
-	"github.com/Falco-Talon/falco-talon/configuration"
-	"github.com/Falco-Talon/falco-talon/utils"
+	"github.com/falco-talon/falco-talon/configuration"
+	"github.com/falco-talon/falco-talon/utils"
 )
 
-const meterName = "github.com/Falco-Talon/falco-talon"
+const meterName = "github.com/falco-talon/falco-talon"
 
 var (
 	eventCounter        metric.Int64Counter

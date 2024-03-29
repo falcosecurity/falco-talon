@@ -5,8 +5,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/Falco-Talon/falco-talon/configuration"
-	kubernetes "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
+	"github.com/falco-talon/falco-talon/configuration"
+	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 )
 
 type Client struct {

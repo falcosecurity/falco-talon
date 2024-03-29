@@ -10,8 +10,8 @@ import (
 
 	textTemplate "text/template"
 
-	kubernetes "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
-	"github.com/Falco-Talon/falco-talon/utils"
+	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	"github.com/falco-talon/falco-talon/utils"
 )
 
 const (

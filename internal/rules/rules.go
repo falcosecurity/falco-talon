@@ -11,8 +11,8 @@ import (
 
 	yaml "gopkg.in/yaml.v3"
 
-	"github.com/Falco-Talon/falco-talon/internal/events"
-	"github.com/Falco-Talon/falco-talon/utils"
+	"github.com/falco-talon/falco-talon/internal/events"
+	"github.com/falco-talon/falco-talon/utils"
 )
 
 type Action struct {

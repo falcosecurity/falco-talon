@@ -8,12 +8,12 @@ import (
 	"github.com/jinzhu/copier"
 	"gopkg.in/yaml.v2"
 
-	"github.com/Falco-Talon/falco-talon/configuration"
-	"github.com/Falco-Talon/falco-talon/internal/events"
-	"github.com/Falco-Talon/falco-talon/internal/nats"
-	"github.com/Falco-Talon/falco-talon/internal/rules"
-	"github.com/Falco-Talon/falco-talon/metrics"
-	"github.com/Falco-Talon/falco-talon/utils"
+	"github.com/falco-talon/falco-talon/configuration"
+	"github.com/falco-talon/falco-talon/internal/events"
+	"github.com/falco-talon/falco-talon/internal/nats"
+	"github.com/falco-talon/falco-talon/internal/rules"
+	"github.com/falco-talon/falco-talon/metrics"
+	"github.com/falco-talon/falco-talon/utils"
 )
 
 func MainHandler(w http.ResponseWriter, r *http.Request) {

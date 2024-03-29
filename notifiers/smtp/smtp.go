@@ -13,7 +13,7 @@ import (
 	sasl "github.com/emersion/go-sasl"
 	gosmtp "github.com/emersion/go-smtp"
 
-	"github.com/Falco-Talon/falco-talon/utils"
+	"github.com/falco-talon/falco-talon/utils"
 )
 
 const (
