@@ -2,7 +2,9 @@ package events
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -15,6 +17,7 @@ type Event struct {
 	Output       string                 `json:"output"`
 	Priority     string                 `json:"priority"`
 	Rule         string                 `json:"rule"`
+	Hostname     string                 `json:"hostname"`
 	Time         time.Time              `json:"time"`
 	Source       string                 `json:"source"`
 	OutputFields map[string]interface{} `json:"output_fields"`
@@ -119,6 +122,24 @@ func (event *Event) GetRemoteProtocol() string {
 		return i.(string)
 	}
 	return ""
+}
+
+func (event *Event) ExportEnvVars() {
+	for i, j := range event.OutputFields {
+		key := strings.ReplaceAll(strings.ToUpper(i), ".", "_")
+		key = strings.ReplaceAll(key, "[", "_")
+		key = strings.ReplaceAll(key, "]", "")
+		os.Setenv(key, fmt.Sprintf("%v", j))
+	}
+	os.Setenv("PRIORITY", event.Priority)
+	os.Setenv("HOSTNAME", event.Hostname)
+	os.Setenv("RULE", event.Rule)
+	os.Setenv("SOURCE", event.Source)
+	var tags []string
+	for _, i := range event.Tags {
+		tags = append(tags, fmt.Sprintf("%v", i))
+	}
+	os.Setenv("TAGS", strings.Join(tags, ","))
 }
 
 func (event *Event) String() string {

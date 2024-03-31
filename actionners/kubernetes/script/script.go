@@ -52,6 +52,9 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		*script = string(fileContent)
 	}
 
+	event.ExportEnvVars()
+	*script = os.ExpandEnv(*script)
+
 	reader := strings.NewReader(*script)
 
 	client := kubernetes.GetClient()

@@ -40,6 +40,9 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		if fmt.Sprintf("%v", j) == "" {
 			continue
 		}
+		if fmt.Sprintf("%v", j) == "-" {
+			continue
+		}
 		payload = append(payload, patch{
 			Op:    "replace",
 			Path:  metadataLabels + i,
@@ -63,7 +66,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	payload = make([]patch, 0)
 	action.GetParameters()
 	for i, j := range parameters["labels"].(map[string]interface{}) {
-		if fmt.Sprintf("%v", j) != "" {
+		if fmt.Sprintf("%v", j) != "-" {
 			continue
 		}
 		payload = append(payload, patch{
