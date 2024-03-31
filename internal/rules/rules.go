@@ -122,8 +122,8 @@ func ParseRules(files []string) *[]*Rule {
 							for s, t := range v.(map[string]interface{}) {
 								if rule.Actions[n].Parameters[k] == nil {
 									rule.Actions[n].Parameters[k] = make(map[string]interface{})
-									rule.Actions[n].Parameters[k].(map[string]interface{})[s] = t
 								}
+								rule.Actions[n].Parameters[k].(map[string]interface{})[s] = t
 							}
 						default:
 							if rule.Actions[n].Parameters[k] == nil {
