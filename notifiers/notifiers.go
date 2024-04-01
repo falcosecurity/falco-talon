@@ -14,6 +14,8 @@ import (
 	"github.com/falco-talon/falco-talon/notifiers/smtp"
 	"github.com/falco-talon/falco-talon/notifiers/webhook"
 	"github.com/falco-talon/falco-talon/utils"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type Notifier struct {
@@ -129,6 +131,12 @@ func Notify(rule *rules.Rule, action *rules.Action, event *events.Event, log uti
 		Actionner: action.GetActionner(),
 		TraceID:   event.TraceID,
 	}
+
+	obj := make(map[string]string, len(log.Objects))
+	for i, j := range log.Objects {
+		obj[cases.Title(language.Und, cases.NoLower).String(strings.ToLower(i))] = j
+	}
+	log.Objects = obj
 
 	for i := range enabledNotifiers {
 		if n := GetNotifiers().FindNotifier(i); n != nil {
