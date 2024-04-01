@@ -35,8 +35,7 @@ Error: {{ .Error }}
 Result: {{ .Result }}
 {{- end }}
 {{- if .Output }}
-Output: 
-{{ .Output }}
+Output: {{ .Output }}
 {{- end }}
 TraceID: {{ .TraceID }}
 `
