@@ -14,6 +14,7 @@ import (
 	"github.com/falco-talon/falco-talon/notifiers/smtp"
 	"github.com/falco-talon/falco-talon/notifiers/webhook"
 	"github.com/falco-talon/falco-talon/utils"
+
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
