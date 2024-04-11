@@ -57,12 +57,14 @@ type LogLine struct {
 	Status            string            `json:"status,omitempty"`
 }
 
+var validate *validator.Validate
 var localIP *string
 var logFormat *string
 
 func init() {
 	logFormat = new(string)
 	*logFormat = colorStr
+	validate = validator.New(validator.WithRequiredStructEnabled())
 }
 
 func SetLogFormat(format string) {
@@ -210,8 +212,15 @@ func SetFields(structure interface{}, fields map[string]interface{}) interface{}
 }
 
 func ValidateStruct(s interface{}) error {
-	validate := validator.New()
 	err := validate.Struct(s)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func AddCustomValidation(tag string, fn validator.Func) error {
+	err := validate.RegisterValidation(tag, fn)
 	if err != nil {
 		return err
 	}

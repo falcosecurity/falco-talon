@@ -4,3 +4,5 @@ config.yaml
 falco-talon
 dist/
 Memory
+.idea/**
+DO-NOT-COMMIT-local-setup.yaml

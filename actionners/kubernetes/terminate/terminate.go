@@ -9,11 +9,14 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/falco-talon/falco-talon/internal/events"
-	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
-	"github.com/falco-talon/falco-talon/internal/rules"
-	"github.com/falco-talon/falco-talon/utils"
+	"github.com/Falco-Talon/falco-talon/internal/events"
+	kubernetes "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
+	"github.com/Falco-Talon/falco-talon/internal/rules"
+	"github.com/Falco-Talon/falco-talon/utils"
+	"github.com/go-playground/validator/v10"
 )
+
+const validatorName = "is_absolut_or_percent"
 
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	podName := event.GetPodName()
@@ -127,22 +130,37 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 func CheckParameters(action *rules.Action) error {
 	parameters := action.GetParameters()
-	err := utils.CheckParameters(parameters, "grace_period_seconds", utils.IntStr, nil, false)
+
+	var config Config
+	err := utils.DecodeParams(parameters, &config)
 	if err != nil {
 		return err
 	}
-	err = utils.CheckParameters(parameters, "ignore_daemonsets", utils.BoolStr, nil, false)
+
+	err = utils.AddCustomValidation(validatorName, ValidateMinHealthyReplicas)
 	if err != nil {
 		return err
 	}
-	err = utils.CheckParameters(parameters, "ignore_statefulsets", utils.BoolStr, nil, false)
+
+	err = utils.ValidateStruct(config)
 	if err != nil {
 		return err
 	}
-	reg := regexp.MustCompile(`\d+(%)?`)
-	err = utils.CheckParameters(parameters, "min_healthy_replicas", utils.StringStr, reg, false)
-	if err != nil {
-		return err
-	}
+
 	return nil
+}
+
+func ValidateMinHealthyReplicas(fl validator.FieldLevel) bool {
+	minHealthyReplicas := fl.Field().String()
+
+	reg := regexp.MustCompile(`\d+(%)?`)
+	result := reg.MatchString(minHealthyReplicas)
+	return result
+}
+
+type Config struct {
+	GracePeriodSeconds int    `mapstructure:"grace_period_seconds" validate:"omitempty"`
+	IgnoreDaemonsets   bool   `mapstructure:"ignore_daemonsets" validate:"omitempty"`
+	IgnoreStatefulSets bool   `mapstructure:"ignore_statefulsets" validate:"omitempty"`
+	MinHealthyReplicas string `mapstructure:"min_healthy_replicas" validate:"omitempty,is_absolut_or_percent"`
 }
