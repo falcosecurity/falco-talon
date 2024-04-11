@@ -7,16 +7,23 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/go-playground/validator/v10"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/Falco-Talon/falco-talon/internal/events"
-	kubernetes "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
-	"github.com/Falco-Talon/falco-talon/internal/rules"
-	"github.com/Falco-Talon/falco-talon/utils"
-	"github.com/go-playground/validator/v10"
+	"github.com/falco-talon/falco-talon/internal/events"
+	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	"github.com/falco-talon/falco-talon/internal/rules"
+	"github.com/falco-talon/falco-talon/utils"
 )
 
 const validatorName = "is_absolut_or_percent"
+
+type Config struct {
+	MinHealthyReplicas string `mapstructure:"min_healthy_replicas" validate:"omitempty,is_absolut_or_percent"`
+	IgnoreDaemonsets   bool   `mapstructure:"ignore_daemonsets" validate:"omitempty"`
+	IgnoreStatefulSets bool   `mapstructure:"ignore_statefulsets" validate:"omitempty"`
+	GracePeriodSeconds int    `mapstructure:"grace_period_seconds" validate:"omitempty"`
+}
 
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	podName := event.GetPodName()
@@ -156,11 +163,4 @@ func ValidateMinHealthyReplicas(fl validator.FieldLevel) bool {
 	reg := regexp.MustCompile(`\d+(%)?`)
 	result := reg.MatchString(minHealthyReplicas)
 	return result
-}
-
-type Config struct {
-	GracePeriodSeconds int    `mapstructure:"grace_period_seconds" validate:"omitempty"`
-	IgnoreDaemonsets   bool   `mapstructure:"ignore_daemonsets" validate:"omitempty"`
-	IgnoreStatefulSets bool   `mapstructure:"ignore_statefulsets" validate:"omitempty"`
-	MinHealthyReplicas string `mapstructure:"min_healthy_replicas" validate:"omitempty,is_absolut_or_percent"`
 }
