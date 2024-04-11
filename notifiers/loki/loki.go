@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Falco-Talon/falco-talon/notifiers/http"
-	"github.com/Falco-Talon/falco-talon/utils"
+	"github.com/falco-talon/falco-talon/notifiers/http"
+	"github.com/falco-talon/falco-talon/utils"
 )
 
 type Settings struct {

@@ -12,10 +12,10 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 	"k8s.io/kubectl/pkg/scheme"
 
-	"github.com/Falco-Talon/falco-talon/internal/events"
-	kubernetes "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
-	"github.com/Falco-Talon/falco-talon/internal/rules"
-	"github.com/Falco-Talon/falco-talon/utils"
+	"github.com/falco-talon/falco-talon/internal/events"
+	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	"github.com/falco-talon/falco-talon/internal/rules"
+	"github.com/falco-talon/falco-talon/utils"
 )
 
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
@@ -51,6 +51,9 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		}
 		*script = string(fileContent)
 	}
+
+	event.ExportEnvVars()
+	*script = os.ExpandEnv(*script)
 
 	reader := strings.NewReader(*script)
 

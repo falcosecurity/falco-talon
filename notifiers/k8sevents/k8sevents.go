@@ -10,8 +10,8 @@ import (
 
 	textTemplate "text/template"
 
-	kubernetes "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
-	"github.com/Falco-Talon/falco-talon/utils"
+	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	"github.com/falco-talon/falco-talon/utils"
 )
 
 const (
@@ -35,8 +35,7 @@ Error: {{ .Error }}
 Result: {{ .Result }}
 {{- end }}
 {{- if .Output }}
-Output: 
-{{ .Output }}
+Output: {{ .Output }}
 {{- end }}
 TraceID: {{ .TraceID }}
 `
@@ -63,8 +62,8 @@ func Notify(log utils.LogLine) error {
 
 	client := kubernetes.GetClient()
 
-	namespace := log.Objects["namespace"]
-	ns, err := client.GetNamespace(log.Objects["namespace"])
+	namespace := log.Objects["Namespace"]
+	ns, err := client.GetNamespace(log.Objects["Namespace"])
 	if err != nil {
 		namespace = defaultStr
 	}

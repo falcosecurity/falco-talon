@@ -11,8 +11,8 @@ import (
 
 	yaml "gopkg.in/yaml.v3"
 
-	"github.com/Falco-Talon/falco-talon/internal/events"
-	"github.com/Falco-Talon/falco-talon/utils"
+	"github.com/falco-talon/falco-talon/internal/events"
+	"github.com/falco-talon/falco-talon/utils"
 )
 
 type Action struct {
@@ -122,8 +122,8 @@ func ParseRules(files []string) *[]*Rule {
 							for s, t := range v.(map[string]interface{}) {
 								if rule.Actions[n].Parameters[k] == nil {
 									rule.Actions[n].Parameters[k] = make(map[string]interface{})
-									rule.Actions[n].Parameters[k].(map[string]interface{})[s] = t
 								}
+								rule.Actions[n].Parameters[k].(map[string]interface{})[s] = t
 							}
 						default:
 							if rule.Actions[n].Parameters[k] == nil {

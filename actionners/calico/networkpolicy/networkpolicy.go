@@ -10,12 +10,12 @@ import (
 	errorsv1 "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	calico "github.com/Falco-Talon/falco-talon/internal/calico/client"
+	calico "github.com/falco-talon/falco-talon/internal/calico/client"
 
-	"github.com/Falco-Talon/falco-talon/internal/events"
-	kubernetes "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
-	"github.com/Falco-Talon/falco-talon/internal/rules"
-	"github.com/Falco-Talon/falco-talon/utils"
+	"github.com/falco-talon/falco-talon/internal/events"
+	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	"github.com/falco-talon/falco-talon/internal/rules"
+	"github.com/falco-talon/falco-talon/utils"
 )
 
 const mask32 string = "/32"

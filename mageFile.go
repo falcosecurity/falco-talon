@@ -11,6 +11,10 @@ import (
 	"github.com/magefile/mage/sh"
 )
 
+const (
+	repoURL string = "github.com/falco-talon/falco-talon"
+)
+
 func Lint() error {
 	if err := sh.RunV("golangci-lint", "--version"); err != nil {
 		return err
@@ -52,7 +56,7 @@ func BuildLocaleImages() error {
 	os.Setenv("KO_DOCKER_REPO", "ko.local/falco-talon")
 
 	return sh.RunV("ko", "build", "--bare", "--sbom=none", "--tags", getVersion(), "--tags", getCommit(), "--tags", "latest",
-		"github.com/Falco-Talon/falco-talon")
+		repoURL)
 }
 
 func BuildImages() error {
@@ -60,7 +64,7 @@ func BuildImages() error {
 	os.Setenv("KO_DOCKER_REPO", "issif/falco-talon")
 
 	return sh.RunV("ko", "build", "--bare", "--sbom=none", "--tags", getVersion(), "--tags", getCommit(), "--tags", "latest",
-		"github.com/Falco-Talon/falco-talon")
+		repoURL)
 }
 
 func PushImages() error {
@@ -68,7 +72,7 @@ func PushImages() error {
 	os.Setenv("KO_DOCKER_REPO", "issif/falco-talon")
 
 	return sh.RunV("ko", "build", "--bare", "--sbom=none", "--tags", getVersion(), "--tags", getCommit(), "--tags", "latest",
-		"github.com/Falco-Talon/falco-talon")
+		repoURL)
 }
 
 func Build() error {
@@ -139,6 +143,6 @@ func getBuildDateTime() string {
 }
 
 func generateLDFlags() string {
-	pkg := "github.com/Falco-Talon/falco-talon/configuration"
+	pkg := repoURL + "/configuration"
 	return fmt.Sprintf("-X %[1]s.GitVersion=%[2]s -X %[1]s.gitCommit=%[3]s -X %[1]s.gitTreeState=%[4]s -X %[1]s.buildDate=%[5]s", pkg, getVersion(), getCommit(), getGitState(), getBuildDateTime())
 }

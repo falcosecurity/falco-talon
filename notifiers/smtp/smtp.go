@@ -13,7 +13,7 @@ import (
 	sasl "github.com/emersion/go-sasl"
 	gosmtp "github.com/emersion/go-smtp"
 
-	"github.com/Falco-Talon/falco-talon/utils"
+	"github.com/falco-talon/falco-talon/utils"
 )
 
 const (
@@ -155,18 +155,19 @@ func Send(payload Payload) error {
 	to := strings.Split(strings.ReplaceAll(settings.To, " ", ""), ",")
 	auth := sasl.NewPlainClient("", settings.User, settings.Password)
 
-	smtpClient, err := gosmtp.Dial(settings.HostPort)
-	if err != nil {
-		return err
-	}
+	var smtpClient *gosmtp.Client
+	var err error
 	if settings.TLS {
 		tlsCfg := &tls.Config{
 			ServerName: strings.Split(settings.HostPort, ":")[0],
 			MinVersion: tls.VersionTLS12,
 		}
-		if err = smtpClient.StartTLS(tlsCfg); err != nil {
-			return err
-		}
+		smtpClient, err = gosmtp.DialStartTLS(settings.HostPort, tlsCfg)
+	} else {
+		smtpClient, err = gosmtp.Dial(settings.HostPort)
+	}
+	if err != nil {
+		return err
 	}
 
 	err = smtpClient.Auth(auth)

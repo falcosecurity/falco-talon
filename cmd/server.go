@@ -7,15 +7,15 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 
-	"github.com/Falco-Talon/falco-talon/actionners"
-	"github.com/Falco-Talon/falco-talon/configuration"
-	"github.com/Falco-Talon/falco-talon/internal/handler"
-	k8s "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
-	"github.com/Falco-Talon/falco-talon/internal/nats"
-	ruleengine "github.com/Falco-Talon/falco-talon/internal/rules"
-	"github.com/Falco-Talon/falco-talon/metrics"
-	"github.com/Falco-Talon/falco-talon/notifiers"
-	"github.com/Falco-Talon/falco-talon/utils"
+	"github.com/falco-talon/falco-talon/actionners"
+	"github.com/falco-talon/falco-talon/configuration"
+	"github.com/falco-talon/falco-talon/internal/handler"
+	k8s "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	"github.com/falco-talon/falco-talon/internal/nats"
+	ruleengine "github.com/falco-talon/falco-talon/internal/rules"
+	"github.com/falco-talon/falco-talon/metrics"
+	"github.com/falco-talon/falco-talon/notifiers"
+	"github.com/falco-talon/falco-talon/utils"
 
 	"github.com/spf13/cobra"
 )

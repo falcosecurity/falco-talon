@@ -5,10 +5,10 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/Falco-Talon/falco-talon/internal/rules"
+	"github.com/falco-talon/falco-talon/internal/rules"
 
-	"github.com/Falco-Talon/falco-talon/internal/events"
-	kubernetes "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
+	"github.com/falco-talon/falco-talon/internal/events"
+	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 )
 
 func CheckPodName(event *events.Event, _ *rules.Action) error {

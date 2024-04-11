@@ -8,10 +8,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
 
-	"github.com/Falco-Talon/falco-talon/internal/aws/client"
-	"github.com/Falco-Talon/falco-talon/internal/events"
-	"github.com/Falco-Talon/falco-talon/internal/rules"
-	"github.com/Falco-Talon/falco-talon/utils"
+	"github.com/falco-talon/falco-talon/internal/aws/client"
+	"github.com/falco-talon/falco-talon/internal/events"
+	"github.com/falco-talon/falco-talon/internal/rules"
+	"github.com/falco-talon/falco-talon/utils"
 )
 
 type Config struct {

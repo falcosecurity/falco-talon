@@ -3,11 +3,11 @@ package checks
 import (
 	"context"
 
-	lambdaActionner "github.com/Falco-Talon/falco-talon/actionners/aws/lambda"
-	"github.com/Falco-Talon/falco-talon/internal/aws/client"
-	"github.com/Falco-Talon/falco-talon/internal/events"
-	"github.com/Falco-Talon/falco-talon/internal/rules"
-	"github.com/Falco-Talon/falco-talon/utils"
+	lambdaActionner "github.com/falco-talon/falco-talon/actionners/aws/lambda"
+	"github.com/falco-talon/falco-talon/internal/aws/client"
+	"github.com/falco-talon/falco-talon/internal/events"
+	"github.com/falco-talon/falco-talon/internal/rules"
+	"github.com/falco-talon/falco-talon/utils"
 
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 )

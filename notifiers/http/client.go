@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"regexp"
 
-	"github.com/Falco-Talon/falco-talon/utils"
+	"github.com/falco-talon/falco-talon/utils"
 )
 
 var ErrHeaderMissing = errors.New("header missing")                   // ErrHeaderMissing = 400
@@ -23,7 +23,7 @@ var ErrTooManyRequest = errors.New("exceeding post rate limit")       // ErrTooM
 
 const DefaultContentType = "application/json; charset=utf-8"
 const DefaultHTTPMethod = "POST"
-const DefaultUserAgent = "Falco-Talon"
+const DefaultUserAgent = "falco-talon"
 
 type Client struct {
 	Headers    http.Header

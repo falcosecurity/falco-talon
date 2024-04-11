@@ -8,10 +8,10 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/Falco-Talon/falco-talon/internal/events"
-	kubernetes "github.com/Falco-Talon/falco-talon/internal/kubernetes/client"
-	"github.com/Falco-Talon/falco-talon/internal/rules"
-	"github.com/Falco-Talon/falco-talon/utils"
+	"github.com/falco-talon/falco-talon/internal/events"
+	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	"github.com/falco-talon/falco-talon/internal/rules"
+	"github.com/falco-talon/falco-talon/utils"
 )
 
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
