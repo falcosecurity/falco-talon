@@ -16,7 +16,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-const validatorName = "is_percentage"
+const validatorName = "is_absolut_or_percent"
 
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	podName := event.GetPodName()
@@ -162,5 +162,5 @@ type Config struct {
 	GracePeriodSeconds int    `mapstructure:"grace_period_seconds" validate:"omitempty"`
 	IgnoreDaemonsets   bool   `mapstructure:"ignore_daemonsets" validate:"omitempty"`
 	IgnoreStatefulSets bool   `mapstructure:"ignore_statefulsets" validate:"omitempty"`
-	MinHealthyReplicas string `mapstructure:"min_healthy_replicas" validate:"omitempty,is_percentage"`
+	MinHealthyReplicas string `mapstructure:"min_healthy_replicas" validate:"omitempty,is_absolut_or_percent"`
 }
