@@ -1,8 +1,7 @@
 module github.com/falco-talon/falco-talon
 
 go 1.22
-
-toolchain go1.22.0
+toolchain go1.22.2
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.26.1
@@ -33,9 +32,9 @@ require (
 	golang.org/x/text v0.14.0
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.29.3
-	k8s.io/apimachinery v0.29.3
-	k8s.io/client-go v0.29.3
+	k8s.io/api v0.30.0
+	k8s.io/apimachinery v0.30.0
+	k8s.io/client-go v0.30.0
 	k8s.io/klog/v2 v2.120.1
 	k8s.io/kubectl v0.29.3
 )
