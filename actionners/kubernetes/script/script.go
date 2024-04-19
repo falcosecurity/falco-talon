@@ -184,6 +184,11 @@ func CheckParameters(action *rules.Action) error {
 		return err
 	}
 
+	err = utils.ValidateStruct(config)
+	if err != nil {
+		return err
+	}
+
 	err = validateConfig(config)
 	if err != nil {
 		return err
