@@ -62,8 +62,8 @@ func Notify(log utils.LogLine) error {
 
 	client := kubernetes.GetClient()
 
-	namespace := log.Objects["Namespace"]
-	ns, err := client.GetNamespace(log.Objects["Namespace"])
+	namespace := log.Objects["namespace"]
+	ns, err := client.GetNamespace(namespace)
 	if err != nil {
 		namespace = defaultStr
 	}
