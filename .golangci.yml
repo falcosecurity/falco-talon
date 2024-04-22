@@ -13,7 +13,7 @@ linters-settings:
   golint:
     min-confidence: 0
   govet:
-    check-shadowing: true
+    shadow: true
     enable-all: true
   misspell:
     locale: US
