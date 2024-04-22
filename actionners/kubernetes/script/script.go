@@ -18,6 +18,12 @@ import (
 	"github.com/falco-talon/falco-talon/utils"
 )
 
+type Config struct {
+	Script string `mapstructure:"script" validate:"omitempty"`
+	File   string `mapstructure:"file" validate:"omitempty"`
+	Shell  string `mapstructure:"shell" validate:"omitempty"`
+}
+
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	pod := event.GetPodName()
 	namespace := event.GetNamespaceName()
@@ -170,31 +176,38 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 func CheckParameters(action *rules.Action) error {
 	parameters := action.GetParameters()
-	var err error
-	err = utils.CheckParameters(parameters, "shell", utils.StringStr, nil, false)
+
+	var config Config
+
+	err := utils.DecodeParams(parameters, &config)
 	if err != nil {
 		return err
 	}
-	if parameters["script"] == nil && parameters["file"] == nil {
+
+	err = utils.ValidateStruct(config)
+	if err != nil {
+		return err
+	}
+
+	err = validateConfig(config)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateConfig(config Config) error {
+	if config.Script == "" && config.File == "" {
 		return errors.New("missing parameter 'script' or 'file'")
 	}
-	if parameters["script"] != nil && parameters["file"] != nil {
+	if config.Script != "" && config.File != "" {
 		return errors.New("'script' and 'file' parameters can't be set at the same time")
 	}
-	err = utils.CheckParameters(parameters, "script", utils.StringStr, nil, false)
-	if err != nil {
-		return err
-	}
-	err = utils.CheckParameters(parameters, "file", utils.StringStr, nil, false)
-	if err != nil {
-		return err
-	}
-	if parameters["file"] != nil {
-		_, err = os.Stat(parameters["file"].(string))
+	if config.File != "" {
+		_, err := os.Stat(config.File)
 		if os.IsNotExist(err) {
 			return err
 		}
 	}
-
 	return nil
 }

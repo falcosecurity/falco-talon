@@ -15,6 +15,10 @@ import (
 	"github.com/falco-talon/falco-talon/utils"
 )
 
+type Config struct {
+	Allow []string `mapstructure:"allow" validate:"omitempty"`
+}
+
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
@@ -169,18 +173,27 @@ func createEgressRule(action *rules.Action) (*networkingv1.NetworkPolicyEgressRu
 
 func CheckParameters(action *rules.Action) error {
 	parameters := action.GetParameters()
-	if err := utils.CheckParameters(parameters, "allow", utils.SliceInterfaceStr, nil, false); err != nil {
+
+	var config Config
+
+	err := utils.DecodeParams(parameters, &config)
+	if err != nil {
 		return err
 	}
-	if parameters["allow"] == nil {
+
+	err = utils.ValidateStruct(config)
+	if err != nil {
+		return err
+	}
+
+	if config.Allow == nil {
 		return nil
 	}
-	if p := parameters["allow"].([]interface{}); len(p) != 0 {
-		for _, i := range p {
-			if _, _, err := net.ParseCIDR(i.(string)); err != nil {
-				return fmt.Errorf("wrong CIDR '%v'", i)
-			}
+	for _, i := range config.Allow {
+		if _, _, err := net.ParseCIDR(i); err != nil {
+			return fmt.Errorf("wrong CIDR '%v'", i)
 		}
 	}
+
 	return nil
 }
