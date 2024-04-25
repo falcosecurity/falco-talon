@@ -19,6 +19,7 @@ import (
 )
 
 const mask32 string = "/32"
+const managedByStr string = "app.kubernetes.io/managed-by"
 
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	podName := event.GetPodName()
@@ -33,6 +34,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	k8sClient := kubernetes.GetClient()
 	calicoClient := calico.GetClient()
 
+	var err error
 	pod, err := k8sClient.GetPod(podName, namespace)
 	if err != nil {
 		return utils.LogLine{
@@ -101,6 +103,9 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	}
 
 	delete(labels, "pod-template-hash")
+	delete(labels, "pod-template-generation")
+	delete(labels, "controller-revision-hash")
+	labels[managedByStr] = utils.FalcoTalonStr
 
 	payload := networkingv3.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
@@ -120,10 +125,12 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 	var selector string
 	for i, j := range labels {
-		selector += fmt.Sprintf(`%v == "%v" &&`, i, j)
+		if i != managedByStr {
+			selector += fmt.Sprintf(`%v == "%v" && `, i, j)
+		}
 	}
 
-	payload.Spec.Selector = strings.TrimSuffix(selector, " &&")
+	payload.Spec.Selector = strings.TrimSuffix(selector, " && ")
 
 	allowRule := createAllowEgressRule(action)
 	denyRule := createDenyEgressRule([]string{event.GetRemoteIP() + mask32})
@@ -138,30 +145,31 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	}
 
 	var output string
-	netpol, err := calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Get(context.Background(), owner, metav1.GetOptions{})
+	var netpol *networkingv3.NetworkPolicy
+	netpol, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Get(context.Background(), owner, metav1.GetOptions{})
 	if errorsv1.IsNotFound(err) {
 		payload.Spec.Egress = []networkingv3.Rule{*denyRule}
 		payload.Spec.Egress = append(payload.Spec.Egress, *allowRule)
-		_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Create(context.Background(), &payload, metav1.CreateOptions{})
-		if errorsv1.IsAlreadyExists(err) {
-			netpol, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Get(context.Background(), owner, metav1.GetOptions{}) //nolint:golint,staticcheck
-		}
-		output = fmt.Sprintf("the networkpolicy '%v' in the namespace '%v' has been created", owner, namespace)
-	} else if err == nil {
-		payload.ObjectMeta.ResourceVersion = netpol.ObjectMeta.ResourceVersion
-		var denyCIDR []string
-		for _, i := range netpol.Spec.Egress {
-			if i.Action == "Deny" {
-				denyCIDR = append(denyCIDR, i.Destination.Nets...)
+		_, err2 := calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Create(context.Background(), &payload, metav1.CreateOptions{})
+		if err2 != nil {
+			if !errorsv1.IsAlreadyExists(err2) {
+				return utils.LogLine{
+						Objects: objects,
+						Error:   err2.Error(),
+						Status:  "failure",
+					},
+					err2
 			}
+			netpol, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Get(context.Background(), owner, metav1.GetOptions{})
+		} else {
+			output = fmt.Sprintf("the caliconetworkpolicy '%v' in the namespace '%v' has been created", owner, namespace)
+			return utils.LogLine{
+					Objects: objects,
+					Output:  output,
+					Status:  "success",
+				},
+				nil
 		}
-		denyCIDR = append(denyCIDR, event.GetRemoteIP()+mask32)
-		denyCIDR = utils.Deduplicate(denyCIDR)
-		denyRule = createDenyEgressRule(denyCIDR)
-		payload.Spec.Egress = []networkingv3.Rule{*denyRule}
-		payload.Spec.Egress = append(payload.Spec.Egress, *allowRule)
-		_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Update(context.Background(), &payload, metav1.UpdateOptions{})
-		output = fmt.Sprintf("the networkpolicy '%v' in the namespace '%v' has been updated", owner, namespace)
 	}
 	if err != nil {
 		return utils.LogLine{
@@ -171,7 +179,30 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			},
 			err
 	}
+	payload.ObjectMeta.ResourceVersion = netpol.ObjectMeta.ResourceVersion
+	var denyCIDR []string
+	for _, i := range netpol.Spec.Egress {
+		if i.Action == "Deny" {
+			denyCIDR = append(denyCIDR, i.Destination.Nets...)
+		}
+	}
+	denyCIDR = append(denyCIDR, event.GetRemoteIP()+mask32)
+	denyCIDR = utils.Deduplicate(denyCIDR)
+	denyRule = createDenyEgressRule(denyCIDR)
+	payload.Spec.Egress = []networkingv3.Rule{*denyRule}
+	payload.Spec.Egress = append(payload.Spec.Egress, *allowRule)
+	_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Update(context.Background(), &payload, metav1.UpdateOptions{})
+	if err != nil {
+		return utils.LogLine{
+				Objects: objects,
+				Error:   err.Error(),
+				Status:  "failure",
+			},
+			err
+	}
+	output = fmt.Sprintf("the caliconetworkpolicy '%v' in the namespace '%v' has been updated", owner, namespace)
 	objects["NetworkPolicy"] = owner
+
 	return utils.LogLine{
 			Objects: objects,
 			Output:  output,

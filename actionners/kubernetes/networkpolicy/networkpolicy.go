@@ -97,6 +97,11 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	}
 
 	delete(labels, "pod-template-hash")
+	delete(labels, "pod-template-generation")
+	delete(labels, "controller-revision-hash")
+
+	labelsSelector := labels
+	labelsSelector["app.kubernetes.io/managed-by"] = utils.FalcoTalonStr
 
 	payload := networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
@@ -107,7 +112,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		Spec: networkingv1.NetworkPolicySpec{
 			PolicyTypes: []networkingv1.PolicyType{"Egress"},
 			PodSelector: metav1.LabelSelector{
-				MatchLabels: labels,
+				MatchLabels: labelsSelector,
 			},
 		},
 	}
