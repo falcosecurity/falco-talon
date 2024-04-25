@@ -101,6 +101,9 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	}
 
 	delete(labels, "pod-template-hash")
+	delete(labels, "pod-template-generation")
+	delete(labels, "controller-revision-hash")
+	labels["app.kubernetes.io/managed-by"] = utils.FalcoTalonStr
 
 	payload := networkingv3.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
@@ -120,10 +123,10 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 	var selector string
 	for i, j := range labels {
-		selector += fmt.Sprintf(`%v == "%v" &&`, i, j)
+		selector += fmt.Sprintf(`%v == "%v" && `, i, j)
 	}
 
-	payload.Spec.Selector = strings.TrimSuffix(selector, " &&")
+	payload.Spec.Selector = strings.TrimSuffix(selector, " && ")
 
 	allowRule := createAllowEgressRule(action)
 	denyRule := createDenyEgressRule([]string{event.GetRemoteIP() + mask32})

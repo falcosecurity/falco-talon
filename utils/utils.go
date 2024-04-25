@@ -17,6 +17,8 @@ import (
 )
 
 const (
+	FalcoTalonStr string = "falco-talon"
+
 	BoolStr           string = "bool"
 	FloatStr          string = "float"
 	Float64Str        string = "float64"
