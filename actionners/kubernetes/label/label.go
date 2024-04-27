@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -23,19 +24,52 @@ type patch struct {
 
 const (
 	metadataLabels = "/metadata/labels/"
+	podStr         = "pod"
+	nodeStr        = "node"
 )
 
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
-	pod := event.GetPodName()
+	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
-	objects := map[string]string{
-		"pod":       pod,
-		"namespace": namespace,
-	}
+	objects := map[string]string{}
 
 	payload := make([]patch, 0)
 	parameters := action.GetParameters()
+
+	client := kubernetes.GetClient()
+
+	var err error
+	var kind string
+	var node *corev1.Node
+
+	if parameters["level"] == nodeStr {
+		kind = parameters["level"].(string)
+		pod, err2 := client.GetPod(podName, namespace)
+		if err2 != nil {
+			return utils.LogLine{
+					Objects: objects,
+					Error:   err2.Error(),
+					Status:  "failure",
+				},
+				err2
+		}
+		node, err = client.GetNodeFromPod(pod)
+		if err != nil {
+			return utils.LogLine{
+					Objects: objects,
+					Error:   err.Error(),
+					Status:  "failure",
+				},
+				err
+		}
+		objects[nodeStr] = node.Name
+	} else {
+		kind = podStr
+		objects[podStr] = podName
+		objects["namespace"] = namespace
+	}
+
 	for i, j := range parameters["labels"].(map[string]interface{}) {
 		if fmt.Sprintf("%v", j) == "" {
 			continue
@@ -47,10 +81,13 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		})
 	}
 
-	client := kubernetes.GetClient()
-
 	payloadBytes, _ := json.Marshal(payload)
-	_, err := client.Clientset.CoreV1().Pods(namespace).Patch(context.Background(), pod, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
+	if kind == podStr {
+		_, err = client.Clientset.CoreV1().Pods(namespace).Patch(context.Background(), podName, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
+	}
+	if kind == nodeStr {
+		_, err = client.Clientset.CoreV1().Nodes().Patch(context.Background(), node.Name, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
+	}
 	if err != nil {
 		return utils.LogLine{
 				Objects: objects,
@@ -73,7 +110,11 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	}
 
 	payloadBytes, _ = json.Marshal(payload)
-	_, err = client.Clientset.CoreV1().Pods(namespace).Patch(context.Background(), pod, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
+	if kind == nodeStr {
+		_, err = client.Clientset.CoreV1().Nodes().Patch(context.Background(), node.Name, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
+	} else {
+		_, err = client.Clientset.CoreV1().Pods(namespace).Patch(context.Background(), podName, types.JSONPatchType, payloadBytes, metav1.PatchOptions{})
+	}
 	if err != nil {
 		if err.Error() != "the server rejected our request due to an error in our request" {
 			return utils.LogLine{
@@ -84,9 +125,15 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 				err
 		}
 	}
+	var output string
+	if kind == nodeStr {
+		output = fmt.Sprintf("the node '%v' has been labelized", node.Name)
+	} else {
+		output = fmt.Sprintf("the pod '%v' in the namespace '%v' has been labelized", podName, namespace)
+	}
 	return utils.LogLine{
 			Objects: objects,
-			Output:  fmt.Sprintf("the pod '%v' in the namespace '%v' has been labelled", pod, namespace),
+			Output:  output,
 			Status:  "success",
 		},
 		nil
