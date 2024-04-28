@@ -7,6 +7,7 @@ import (
 	lambdaInvoke "github.com/falco-talon/falco-talon/actionners/aws/lambda"
 
 	calicoNetworkpolicy "github.com/falco-talon/falco-talon/actionners/calico/networkpolicy"
+	k8sCordon "github.com/falco-talon/falco-talon/actionners/kubernetes/cordon"
 	k8sDelete "github.com/falco-talon/falco-talon/actionners/kubernetes/delete"
 	k8sExec "github.com/falco-talon/falco-talon/actionners/kubernetes/exec"
 	k8sLabel "github.com/falco-talon/falco-talon/actionners/kubernetes/label"
@@ -133,6 +134,17 @@ func GetDefaultActionners() *Actionners {
 				},
 				CheckParameters: nil,
 				Action:          k8sDelete.Action,
+			},
+			&Actionner{
+				Category:        "kubernetes",
+				Name:            "cordon",
+				DefaultContinue: true,
+				Init:            k8s.Init,
+				Checks: []checkActionner{
+					k8sChecks.CheckPodExist,
+				},
+				CheckParameters: nil,
+				Action:          k8sCordon.Action,
 			},
 			&Actionner{
 				Category:        "aws",
