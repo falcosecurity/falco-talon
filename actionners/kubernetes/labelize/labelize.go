@@ -22,7 +22,7 @@ type patch struct {
 }
 
 type Config struct {
-	Labels map[string]string `mapstructure:"labels" validate:"omitempty,required"`
+	Labels map[string]string `mapstructure:"labels" validate:"required,omitempty"`
 }
 
 const (

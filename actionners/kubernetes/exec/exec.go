@@ -17,7 +17,7 @@ import (
 )
 
 type Config struct {
-	File  string `mapstructure:"command" validate:"omitempty,required"`
+	File  string `mapstructure:"command" validate:"required,omitempty"`
 	Shell string `mapstructure:"shell" validate:"omitempty"`
 }
 
@@ -131,8 +131,5 @@ func CheckParameters(action *rules.Action) error {
 		return err
 	}
 
-	if err != nil {
-		return err
-	}
 	return nil
 }
