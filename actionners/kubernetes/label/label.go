@@ -1,4 +1,4 @@
-package labelize
+package label
 
 import (
 	"context"
@@ -86,7 +86,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	}
 	return utils.LogLine{
 			Objects: objects,
-			Output:  fmt.Sprintf("the pod '%v' in the namespace '%v' has been labelized", pod, namespace),
+			Output:  fmt.Sprintf("the pod '%v' in the namespace '%v' has been labelled", pod, namespace),
 			Status:  "success",
 		},
 		nil
