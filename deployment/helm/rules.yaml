@@ -4,8 +4,8 @@
 - action: Disable outbound connections with Calico
   actionner: calico:networkpolicy
 
-- action: Labelize Pod as Suspicious
-  actionner: kubernetes:labelize
+- action: Label Pod as Suspicious
+  actionner: kubernetes:label
   parameters:
     labels:
       suspicious: true
@@ -27,4 +27,4 @@
     output_fields:
       - k8s.ns.name!=kube-system, k8s.ns.name!=falco
   actions:
-    - action: Labelize Pod as Suspicious
+    - action: Label Pod as Suspicious

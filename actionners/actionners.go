@@ -9,7 +9,7 @@ import (
 	calicoNetworkpolicy "github.com/falco-talon/falco-talon/actionners/calico/networkpolicy"
 	k8sDelete "github.com/falco-talon/falco-talon/actionners/kubernetes/delete"
 	k8sExec "github.com/falco-talon/falco-talon/actionners/kubernetes/exec"
-	k8sLabelize "github.com/falco-talon/falco-talon/actionners/kubernetes/labelize"
+	k8sLabel "github.com/falco-talon/falco-talon/actionners/kubernetes/label"
 	k8sLog "github.com/falco-talon/falco-talon/actionners/kubernetes/log"
 	k8sNetworkpolicy "github.com/falco-talon/falco-talon/actionners/kubernetes/networkpolicy"
 	k8sScript "github.com/falco-talon/falco-talon/actionners/kubernetes/script"
@@ -72,12 +72,12 @@ func GetDefaultActionners() *Actionners {
 			},
 			&Actionner{
 				Category:        "kubernetes",
-				Name:            "labelize",
+				Name:            "label",
 				DefaultContinue: true,
 				Init:            k8s.Init,
 				Checks:          []checkActionner{k8sChecks.CheckPodExist},
-				CheckParameters: k8sLabelize.CheckParameters,
-				Action:          k8sLabelize.Action,
+				CheckParameters: k8sLabel.CheckParameters,
+				Action:          k8sLabel.Action,
 			},
 			&Actionner{
 				Category:        "kubernetes",

@@ -8,8 +8,8 @@
       - "192.168.1.0/24"
       - "172.17.0.0/16"
 
-- action: Labelize Pod as Suspicious
-  actionner: kubernetes:labelize
+- action: Label Pod as Suspicious
+  actionner: kubernetes:label
   parameters:
     labels:
       suspicious: true
@@ -28,7 +28,7 @@
     output_fields:
       - k8s.ns.name!=kube-system
   actions:
-    - action: Labelize Pod as Suspicious
+    - action: Label Pod as Suspicious
 
 - rule: Terminal shell in container 
   match:
@@ -37,7 +37,7 @@
     output_fields:
       - k8s.ns.name!=kube-system, k8s.ns.name!=falco
   actions:
-    - action: Labelize Pod as Suspicious
+    - action: Label Pod as Suspicious
 
 # - rule: Test invoke lambda
 #   match:
