@@ -122,6 +122,14 @@ func (client Client) GetReplicaSet(name, namespace string) (*appsv1.ReplicaSet, 
 	return p, nil
 }
 
+func (client Client) GetNode(name string) (*corev1.Node, error) {
+	p, err := client.Clientset.CoreV1().Nodes().Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("the node '%v' doesn't exist", name)
+	}
+	return p, nil
+}
+
 func (client Client) GetDeploymentFromPod(pod *corev1.Pod) (*appsv1.Deployment, error) {
 	podName := pod.OwnerReferences[0].Name
 	namespace := pod.ObjectMeta.Namespace
@@ -130,7 +138,7 @@ func (client Client) GetDeploymentFromPod(pod *corev1.Pod) (*appsv1.Deployment, 
 		return nil, err
 	}
 	if r == nil {
-		return nil, fmt.Errorf("can't find the deployment for the pod'%v' in namespace '%v'", pod, namespace)
+		return nil, fmt.Errorf("can't find the deployment for the pod'%v' in namespace '%v'", podName, namespace)
 	}
 	return r, nil
 }
@@ -143,7 +151,7 @@ func (client Client) GetDaemonsetFromPod(pod *corev1.Pod) (*appsv1.DaemonSet, er
 		return nil, err
 	}
 	if r == nil {
-		return nil, fmt.Errorf("can't find the daemonset for the pod'%v' in namespace '%v'", pod, namespace)
+		return nil, fmt.Errorf("can't find the daemonset for the pod'%v' in namespace '%v'", podName, namespace)
 	}
 	return r, nil
 }
@@ -156,7 +164,7 @@ func (client Client) GetStatefulsetFromPod(pod *corev1.Pod) (*appsv1.StatefulSet
 		return nil, err
 	}
 	if r == nil {
-		return nil, fmt.Errorf("can't find the statefulset for the pod'%v' in namespace '%v'", pod, namespace)
+		return nil, fmt.Errorf("can't find the statefulset for the pod'%v' in namespace '%v'", podName, namespace)
 	}
 	return r, nil
 }
@@ -169,7 +177,21 @@ func (client Client) GetReplicasetFromPod(pod *corev1.Pod) (*appsv1.ReplicaSet, 
 		return nil, err
 	}
 	if r == nil {
-		return nil, fmt.Errorf("can't find the replicaset for the pod'%v' in namespace '%v'", pod, namespace)
+		return nil, fmt.Errorf("can't find the replicaset for the pod'%v' in namespace '%v'", podName, namespace)
+	}
+	return r, nil
+}
+
+func (client Client) GetNodeFromPod(pod *corev1.Pod) (*corev1.Node, error) {
+	podName := pod.OwnerReferences[0].Name
+	namespace := pod.ObjectMeta.Namespace
+	nodeName := pod.Spec.NodeName
+	r, err := client.GetNode(nodeName)
+	if err != nil {
+		return nil, err
+	}
+	if r == nil {
+		return nil, fmt.Errorf("can't find the node for the pod'%v' in namespace '%v'", podName, namespace)
 	}
 	return r, nil
 }
