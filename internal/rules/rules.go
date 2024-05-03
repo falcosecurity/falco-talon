@@ -16,12 +16,13 @@ import (
 )
 
 type Action struct {
-	Name         string                 `yaml:"action"`
-	Description  string                 `yaml:"description"`
-	Actionner    string                 `yaml:"actionner"`
-	Parameters   map[string]interface{} `yaml:"parameters,omitempty"`
-	Continue     string                 `yaml:"continue,omitempty"`      // can't be a bool because an omitted value == false by default
-	IgnoreErrors string                 `yaml:"ignore_errors,omitempty"` // can't be a bool because an omitted value == false by default
+	Name               string                 `yaml:"action"`
+	Description        string                 `yaml:"description"`
+	Actionner          string                 `yaml:"actionner"`
+	Parameters         map[string]interface{} `yaml:"parameters,omitempty"`
+	Continue           string                 `yaml:"continue,omitempty"`      // can't be a bool because an omitted value == false by default
+	IgnoreErrors       string                 `yaml:"ignore_errors,omitempty"` // can't be a bool because an omitted value == false by default
+	AdditionalContexts []string               `yaml:"additional_contexts,omitempty"`
 }
 
 type Rule struct {
@@ -53,9 +54,9 @@ type outputfield struct {
 }
 
 const (
-	trueStr               string = "true"
-	falseStr              string = "false"
-	falcoTalonOutputField string = "falco-talon."
+	trueStr                 string = "true"
+	falseStr                string = "false"
+	falcoTalonContextPrefix string = "falco-talon."
 )
 
 var rules *[]*Rule
@@ -100,6 +101,10 @@ func ParseRules(files []string) *[]*Rule {
 					}
 					if rule.Actions[n].Continue == "" && action.Continue != "" {
 						rule.Actions[n].Continue = action.Continue
+					}
+					if len(rule.Actions[n].AdditionalContexts) == 0 && len(action.AdditionalContexts) != 0 {
+						rule.Actions[n].AdditionalContexts = make([]string, len(action.AdditionalContexts))
+						rule.Actions[n].AdditionalContexts = append(rule.Actions[n].AdditionalContexts, action.AdditionalContexts...)
 					}
 					if rule.Actions[n].Parameters == nil && len(action.Parameters) != 0 {
 						rule.Actions[n].Parameters = make(map[string]interface{})
@@ -231,6 +236,7 @@ func extractActionsRules(files []string) (*[]*Action, *[]*Rule, error) {
 				if i.Parameters == nil && len(l.Parameters) != 0 {
 					i.Parameters = make(map[string]interface{})
 				}
+				i.AdditionalContexts = append(i.AdditionalContexts, l.AdditionalContexts...)
 				for k, v := range l.Parameters {
 					rt := reflect.TypeOf(v)
 					ru := reflect.TypeOf(i.Parameters[k])
@@ -288,7 +294,6 @@ func extractActionsRules(files []string) (*[]*Action, *[]*Rule, error) {
 				i.Match.Rules = append(i.Match.Rules, l.Match.Rules...)
 				i.Match.Tags = append(i.Match.Tags, l.Match.Tags...)
 				i.Actions = append(i.Actions, l.Actions...)
-
 				l.Name = ""
 			}
 		}
@@ -426,6 +431,10 @@ func (action *Action) GetParameters() map[string]interface{} {
 	return action.Parameters
 }
 
+func (action *Action) GetAdditionalContexts() []string {
+	return action.AdditionalContexts
+}
+
 func (rule *Rule) CompareRule(event *events.Event) bool {
 	if !rule.compareRules(event) {
 		return false
@@ -541,26 +550,25 @@ func (rule *Rule) comparePriority(event *events.Event) bool {
 	return false
 }
 
-func (rule *Rule) AddContext(event *events.Event, action *Action) {
-	if event.Context == nil {
-		event.Context = make(map[string]interface{})
-	}
-
-	event.Context[falcoTalonOutputField+"rule"] = rule.Name
+func (rule *Rule) AddFalcoTalonContext(event *events.Event, action *Action) {
+	elements := make(map[string]interface{})
+	elements[falcoTalonContextPrefix+"rule"] = rule.Name
 	if rule.Continue != "" {
-		event.Context[falcoTalonOutputField+"rule.continue"] = rule.Continue
+		elements[falcoTalonContextPrefix+"rule.continue"] = rule.Continue
 	}
 	if rule.DryRun != "" {
-		event.Context[falcoTalonOutputField+"rule.dry_run"] = rule.DryRun
+		elements[falcoTalonContextPrefix+"rule.dry_run"] = rule.DryRun
 	}
-	event.Context[falcoTalonOutputField+"action"] = action.Name
+	elements[falcoTalonContextPrefix+"action"] = action.Name
 	if action.Continue != "" {
-		event.Context[falcoTalonOutputField+"action.continue"] = action.Continue
+		elements[falcoTalonContextPrefix+"action.continue"] = action.Continue
 	}
 	if action.IgnoreErrors != "" {
-		event.Context[falcoTalonOutputField+"action.ignore_errors"] = action.IgnoreErrors
+		elements[falcoTalonContextPrefix+"action.ignore_errors"] = action.IgnoreErrors
 	}
 	j, _ := json.Marshal(action.Parameters)
-	event.Context[falcoTalonOutputField+"action.parameters"] = string(j)
-	event.Context[falcoTalonOutputField+"actionner"] = action.Actionner
+	elements[falcoTalonContextPrefix+"action.parameters"] = string(j)
+	elements[falcoTalonContextPrefix+"actionner"] = action.Actionner
+
+	event.AddContext(elements)
 }
