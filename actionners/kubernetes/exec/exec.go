@@ -3,7 +3,6 @@ package exec
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"os"
 
@@ -16,6 +15,11 @@ import (
 	"github.com/falco-talon/falco-talon/internal/rules"
 	"github.com/falco-talon/falco-talon/utils"
 )
+
+type Config struct {
+	File  string `mapstructure:"command" validate:"required"`
+	Shell string `mapstructure:"shell" validate:"omitempty"`
+}
 
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	pod := event.GetPodName()
@@ -114,17 +118,18 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 func CheckParameters(action *rules.Action) error {
 	parameters := action.GetParameters()
-	var err error
-	err = utils.CheckParameters(parameters, "shell", utils.StringStr, nil, false)
+
+	var config Config
+
+	err := utils.DecodeParams(parameters, &config)
 	if err != nil {
 		return err
 	}
-	if parameters["command"] == nil {
-		return errors.New("missing parameter 'command'")
-	}
-	err = utils.CheckParameters(parameters, "command", utils.StringStr, nil, true)
+
+	err = utils.ValidateStruct(config)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }

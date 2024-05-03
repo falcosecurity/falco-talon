@@ -22,6 +22,10 @@ type patch struct {
 	Value string `json:"value,omitempty"`
 }
 
+type Config struct {
+	Labels map[string]string `mapstructure:"labels" validate:"required"`
+}
+
 const (
 	metadataLabels = "/metadata/labels/"
 	podStr         = "pod"
@@ -141,11 +145,21 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 func CheckParameters(action *rules.Action) error {
 	parameters := action.GetParameters()
-	if err := utils.CheckParameters(parameters, "labels", utils.MapInterfaceStr, nil, true); err != nil {
+
+	var config Config
+
+	err := utils.DecodeParams(parameters, &config)
+	if err != nil {
 		return err
 	}
-	if len(parameters["labels"].(map[string]interface{})) == 0 {
-		return errors.New("missing parameter 'labels'")
+
+	err = utils.ValidateStruct(config)
+	if err != nil {
+		return err
+	}
+
+	if len(config.Labels) == 0 {
+		return errors.New("parameter 'labels' should have at least one label.")
 	}
 	return nil
 }
