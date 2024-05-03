@@ -17,6 +17,7 @@ import (
 
 type Action struct {
 	Name         string                 `yaml:"action"`
+	Description  string                 `yaml:"description"`
 	Actionner    string                 `yaml:"actionner"`
 	Parameters   map[string]interface{} `yaml:"parameters,omitempty"`
 	Continue     string                 `yaml:"continue,omitempty"`      // can't be a bool because an omitted value == false by default
@@ -24,12 +25,13 @@ type Action struct {
 }
 
 type Rule struct {
-	Name      string    `yaml:"rule"`
-	Continue  string    `yaml:"continue"`          // can't be a bool because an omitted value == false by default
-	DryRun    string    `yaml:"dry_run,omitempty"` // can't be a bool because an omitted value == false by default
-	Actions   []*Action `yaml:"actions"`
-	Notifiers []string  `yaml:"notifiers"`
-	Match     Match     `yaml:"match"`
+	Name        string    `yaml:"rule"`
+	Description string    `yaml:"description"`
+	Continue    string    `yaml:"continue"`          // can't be a bool because an omitted value == false by default
+	DryRun      string    `yaml:"dry_run,omitempty"` // can't be a bool because an omitted value == false by default
+	Actions     []*Action `yaml:"actions"`
+	Notifiers   []string  `yaml:"notifiers"`
+	Match       Match     `yaml:"match"`
 }
 
 type Match struct {
@@ -87,6 +89,9 @@ func ParseRules(files []string) *[]*Rule {
 		for n := range rule.Actions {
 			for _, action := range *a {
 				if rule.Actions[n].Name == action.Name {
+					if rule.Actions[n].Description == "" && action.Description != "" {
+						rule.Actions[n].Description = action.Description
+					}
 					if rule.Actions[n].Actionner == "" && action.Actionner != "" {
 						rule.Actions[n].Actionner = action.Actionner
 					}
@@ -217,6 +222,9 @@ func extractActionsRules(files []string) (*[]*Action, *[]*Rule, error) {
 				if l.Continue != "" {
 					i.Continue = l.Continue
 				}
+				if l.Description != "" {
+					i.Description = l.Description
+				}
 				if l.IgnoreErrors != "" {
 					i.IgnoreErrors = l.IgnoreErrors
 				}
@@ -269,6 +277,9 @@ func extractActionsRules(files []string) (*[]*Action, *[]*Rule, error) {
 				}
 				if l.DryRun != "" {
 					i.DryRun = l.DryRun
+				}
+				if l.Description != "" {
+					i.Description = l.Description
 				}
 				i.Notifiers = append(i.Notifiers, l.Notifiers...)
 				i.Match.OutputFields = append(i.Match.OutputFields, l.Match.OutputFields...)

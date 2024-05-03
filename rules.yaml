@@ -9,6 +9,7 @@
       - "172.17.0.0/16"
 
 - action: Label Pod as Suspicious
+  description: "Add the label suspicious=true"
   actionner: kubernetes:label
   parameters:
     labels:
@@ -22,6 +23,7 @@
     aws_lambda_invocation_type: RequestResponse
 
 - rule: Suspicious outbound connection
+  description: "Label pods with suspicious outbound connections if not in the kube-system"
   match:
     rules:
       - Unexpected outbound connection destination
@@ -30,7 +32,9 @@
   actions:
     - action: Label Pod as Suspicious
 
-- rule: Terminal shell in container 
+- rule: Terminal shell in container
+  description: >
+    Label the pod outside kube-system and falco namespaces if a shell is started inside
   match:
     rules:
       - Terminal shell in container
