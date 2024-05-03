@@ -17,7 +17,7 @@ import (
 )
 
 type Config struct {
-	File  string `mapstructure:"command" validate:"required,omitempty"`
+	File  string `mapstructure:"command" validate:"required"`
 	Shell string `mapstructure:"shell" validate:"omitempty"`
 }
 
