@@ -67,12 +67,14 @@ func HealthHandler(w http.ResponseWriter, _ *http.Request) {
 func RulesHandler(w http.ResponseWriter, _ *http.Request) {
 	r := rules.GetRules()
 	type yamlFile struct {
-		Name      string   `yaml:"rule,omitempty"`
-		Continue  string   `yaml:"continue,omitempty"`
-		DryRun    string   `yaml:"dry_run,omitempty"`
-		Notifiers []string `yaml:"notifiers"`
-		Actions   []struct {
+		Name        string   `yaml:"rule,omitempty"`
+		Description string   `yaml:"description,omitempty"`
+		Continue    string   `yaml:"continue,omitempty"`
+		DryRun      string   `yaml:"dry_run,omitempty"`
+		Notifiers   []string `yaml:"notifiers"`
+		Actions     []struct {
 			Name         string                 `yaml:"action,omitempty"`
+			Description  string                 `yaml:"description,omitempty"`
 			Actionner    string                 `yaml:"actionner,omitempty"`
 			Parameters   map[string]interface{} `yaml:"parameters,omitempty"`
 			Continue     string                 `yaml:"continue,omitempty"`
