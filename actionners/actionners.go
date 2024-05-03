@@ -9,6 +9,7 @@ import (
 	calicoNetworkpolicy "github.com/falco-talon/falco-talon/actionners/calico/networkpolicy"
 	k8sCordon "github.com/falco-talon/falco-talon/actionners/kubernetes/cordon"
 	k8sDelete "github.com/falco-talon/falco-talon/actionners/kubernetes/delete"
+	k8sDrain "github.com/falco-talon/falco-talon/actionners/kubernetes/drain"
 	k8sExec "github.com/falco-talon/falco-talon/actionners/kubernetes/exec"
 	k8sLabel "github.com/falco-talon/falco-talon/actionners/kubernetes/label"
 	k8sLog "github.com/falco-talon/falco-talon/actionners/kubernetes/log"
@@ -145,6 +146,17 @@ func GetDefaultActionners() *Actionners {
 				},
 				CheckParameters: nil,
 				Action:          k8sCordon.Action,
+			},
+			&Actionner{
+				Category:        "kubernetes",
+				Name:            "drain",
+				DefaultContinue: true,
+				Init:            k8s.Init,
+				Checks: []checkActionner{
+					k8sChecks.CheckPodExist,
+				},
+				CheckParameters: k8sDrain.CheckParameters,
+				Action:          k8sDrain.Action,
 			},
 			&Actionner{
 				Category:        "aws",
