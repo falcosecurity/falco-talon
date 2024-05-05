@@ -159,7 +159,7 @@ func CheckParameters(action *rules.Action) error {
 	}
 
 	if len(config.Labels) == 0 {
-		return errors.New("parameter 'labels' should have at least one label.")
+		return errors.New("parameter 'labels' should have at least one label")
 	}
 	return nil
 }
