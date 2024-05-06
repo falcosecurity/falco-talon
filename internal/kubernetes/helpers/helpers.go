@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func LogIgnoredPods(parameters map[string]interface{}, client *kubernetes.Client, pod corev1.Pod, objects map[string]string) (utils.LogLine, error, bool) {
+func VerifyIfPodWillBeIgnored(parameters map[string]interface{}, client *kubernetes.Client, pod corev1.Pod, objects map[string]string) (utils.LogLine, error, bool) {
 	if parameters["ignore_daemonsets"] != nil || parameters["ignore_statefulsets"] != nil || parameters["min_healthy_replicas"] != nil {
 		if len(pod.OwnerReferences) != 0 {
 			switch pod.OwnerReferences[0].Kind {
