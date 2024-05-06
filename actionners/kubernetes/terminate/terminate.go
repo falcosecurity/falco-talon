@@ -49,7 +49,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			err
 	}
 
-	line, err, ignored := helpers.LogIgnoredPods(parameters, client, *pod, objects)
+	line, err, ignored := helpers.VerifyIfPodWillBeIgnored(parameters, client, *pod, objects)
 	if err != nil {
 		return utils.LogLine{
 			Objects: objects,

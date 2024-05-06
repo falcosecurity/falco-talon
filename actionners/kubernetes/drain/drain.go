@@ -82,7 +82,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	var ignoredPods []string
 
 	for _, p := range pods.Items {
-		line, err, ignored := helpers.LogIgnoredPods(parameters, client, p, objects)
+		line, err, ignored := helpers.VerifyIfPodWillBeIgnored(parameters, client, p, objects)
 		if ignored {
 			// Append ignored pods info
 			aggregatedLog.Output += line.Output + "; "
