@@ -33,15 +33,16 @@ func VerifyIfPodWillBeIgnored(parameters map[string]interface{}, client *kuberne
 	var result, status string
 	var ignore bool
 
+	// Safe type assertion with check for existence
 	switch kind {
 	case "DaemonSet":
-		if parameters["ignore_daemonsets"].(bool) {
+		if ignoreDaemonsets, ok := parameters["ignore_daemonsets"].(bool); ok && ignoreDaemonsets {
 			result = fmt.Sprintf("The pod %v in namespace %v belongs to a DaemonSet and will be ignored.", pod.Name, pod.Namespace)
 			status = "ignored"
 			ignore = true
 		}
 	case "StatefulSet":
-		if parameters["ignore_statefulsets"].(bool) {
+		if ignoreStatefulsets, ok := parameters["ignore_statefulsets"].(bool); ok && ignoreStatefulsets {
 			result = fmt.Sprintf("The pod %v in namespace %v belongs to a StatefulSet and will be ignored.", pod.Name, pod.Namespace)
 			status = "ignored"
 			ignore = true
@@ -62,31 +63,32 @@ func VerifyIfPodWillBeIgnored(parameters map[string]interface{}, client *kuberne
 }
 
 func checkReplicaSet(parameters map[string]interface{}, client *kubernetes.Client, pod corev1.Pod, objects map[string]string) (utils.LogLine, error, bool) {
-	if parameters["min_healthy_replicas"] == nil {
-		return utils.LogLine{}, nil, false
+	// Safely assert the existence and type of "min_healthy_replicas"
+	minHealthyParam, ok := parameters["min_healthy_replicas"]
+	if !ok {
+		return utils.LogLine{}, nil, false // Early return if parameter does not exist
+	}
+
+	minHealthy, err := parseMinHealthyReplicas(minHealthyParam)
+	if err != nil {
+		return utils.LogLine{}, err, false // Return error if parsing fails
 	}
 
 	replicaset, err := client.GetReplicasetFromPod(&pod)
 	if err != nil {
-		return utils.LogLine{}, err, false
-	}
-
-	minHealthy, err := parseMinHealthyReplicas(parameters["min_healthy_replicas"])
-	if err != nil {
-		return utils.LogLine{}, err, false
+		return utils.LogLine{}, err, false // Return error if unable to get ReplicaSet
 	}
 
 	healthyReplicas := int64(replicaset.Status.ReadyReplicas)
-
 	if minHealthy > healthyReplicas {
 		return utils.LogLine{
 			Objects: objects,
 			Result:  fmt.Sprintf("Not enough healthy pods: %v required, %v available in ReplicaSet of pod %v in namespace %v.", minHealthy, healthyReplicas, pod.Name, pod.Namespace),
 			Status:  "ignored",
-		}, nil, true
+		}, nil, true // Indicate that the ReplicaSet is ignored due to not meeting the health criteria
 	}
 
-	return utils.LogLine{}, nil, false
+	return utils.LogLine{}, nil, false // Return default case with no errors and not ignored
 }
 
 func parseMinHealthyReplicas(value interface{}) (int64, error) {
