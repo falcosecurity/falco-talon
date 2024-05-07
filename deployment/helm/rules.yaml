@@ -8,7 +8,7 @@
   actionner: kubernetes:label
   parameters:
     labels:
-      suspicious: true
+      suspicious: "true"
 
 - rule: Suspicious outbound connection
   match:
