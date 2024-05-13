@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.26.1
 	github.com/aws/aws-sdk-go-v2/config v1.27.11
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.13
-	github.com/aws/aws-sdk-go-v2/service/lambda v1.54.0
+	github.com/aws/aws-sdk-go-v2/service/lambda v1.54.1
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.7
 	github.com/emersion/go-sasl v0.0.0-20231106173351-e73c9f7bad43
 	github.com/emersion/go-smtp v0.21.2
