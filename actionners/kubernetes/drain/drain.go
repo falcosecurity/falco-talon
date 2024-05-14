@@ -54,6 +54,8 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		}, err
 	}
 
+	objects["node"] = node.Name
+
 	node, err := client.GetNodeFromPod(pod)
 	if err != nil {
 		return utils.LogLine{
@@ -62,8 +64,6 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			Status:  "failure",
 		}, err
 	}
-
-	objects["node"] = node.Name
 
 	pods, err := client.Clientset.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{
 		FieldSelector: fmt.Sprintf("spec.nodeName=%s", node.GetName()),
