@@ -14,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 const (
@@ -81,25 +82,36 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	var allErrors []string
 	var ignoredPods []string
 
-	for _, p := range pods.Items {
-		line, err, ignored := helpers.VerifyIfPodWillBeIgnored(parameters, client, p, objects)
-		if ignored {
-			// Append ignored pods info
-			aggregatedLog.Output += line.Output + "; "
-			ignoredPods = append(ignoredPods, p.Name)
-			continue
-		}
-		if err != nil {
-			allErrors = append(allErrors, err.Error())
-			continue
-		}
+	var mu sync.Mutex
+	var wg sync.WaitGroup
 
-		// Eviction logic if the pod is not ignored
-		err = performEviction(client, p, gracePeriodSeconds)
-		if err != nil {
-			allErrors = append(allErrors, err.Error())
-		}
+	for _, p := range pods.Items {
+		wg.Add(1)
+
+		go func(p corev1.Pod) {
+			defer wg.Done()
+			line, err, ignored := helpers.VerifyIfPodWillBeIgnored(parameters, client, p, objects)
+
+			mu.Lock()
+			defer mu.Unlock()
+
+			if ignored {
+				aggregatedLog.Output += line.Output + "; "
+				ignoredPods = append(ignoredPods, p.Name)
+				return
+			}
+			if err != nil {
+				allErrors = append(allErrors, err.Error())
+				return
+			}
+
+			err = performEviction(client, p, gracePeriodSeconds)
+			if err != nil {
+				allErrors = append(allErrors, err.Error())
+			}
+		}(p)
 	}
+	wg.Wait()
 
 	if len(allErrors) > 0 {
 		aggregatedLog.Error = strings.Join(allErrors, "; ")
@@ -121,6 +133,8 @@ func performEviction(client *kubernetes.Client, pod corev1.Pod, gracePeriodSecon
 		},
 		DeleteOptions: &delOpts,
 	}
+
+	utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("Evicting pod: %v.", pod.Name)})
 	return client.PolicyV1().Evictions(eviction.Namespace).Evict(context.Background(), eviction)
 }
 
