@@ -47,6 +47,8 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	client := kubernetes.GetClient()
 	pod, err := client.GetPod(podName, namespace)
 	if err != nil {
+		objects["pod"] = podName
+		objects["namespace"] = namespace
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
