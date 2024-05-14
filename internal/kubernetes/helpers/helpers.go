@@ -63,20 +63,19 @@ func VerifyIfPodWillBeIgnored(parameters map[string]interface{}, client *kuberne
 }
 
 func checkReplicaSet(parameters map[string]interface{}, client *kubernetes.Client, pod corev1.Pod, objects map[string]string) (utils.LogLine, error, bool) {
-	// Safely assert the existence and type of "min_healthy_replicas"
 	minHealthyParam, ok := parameters["min_healthy_replicas"]
 	if !ok {
-		return utils.LogLine{}, nil, false // Early return if parameter does not exist
+		return utils.LogLine{}, nil, false
 	}
 
 	minHealthy, err := parseMinHealthyReplicas(minHealthyParam)
 	if err != nil {
-		return utils.LogLine{}, err, false // Return error if parsing fails
+		return utils.LogLine{}, err, false
 	}
 
 	replicaset, err := client.GetReplicasetFromPod(&pod)
 	if err != nil {
-		return utils.LogLine{}, err, false // Return error if unable to get ReplicaSet
+		return utils.LogLine{}, err, false
 	}
 
 	healthyReplicas := int64(replicaset.Status.ReadyReplicas)
@@ -85,10 +84,10 @@ func checkReplicaSet(parameters map[string]interface{}, client *kubernetes.Clien
 			Objects: objects,
 			Result:  fmt.Sprintf("Not enough healthy pods: %v required, %v available in ReplicaSet of pod %v in namespace %v.", minHealthy, healthyReplicas, pod.Name, pod.Namespace),
 			Status:  "ignored",
-		}, nil, true // Indicate that the ReplicaSet is ignored due to not meeting the health criteria
+		}, nil, true
 	}
 
-	return utils.LogLine{}, nil, false // Return default case with no errors and not ignored
+	return utils.LogLine{}, nil, false
 }
 
 func parseMinHealthyReplicas(value interface{}) (int64, error) {
