@@ -12,7 +12,7 @@ import (
 
 func GetOwnerKind(pod corev1.Pod) (string, error) {
 	if len(pod.OwnerReferences) == 0 {
-		return "", fmt.Errorf("no owner references found")
+		return "", fmt.Errorf("no owner reference found")
 	}
 	return pod.OwnerReferences[0].Kind, nil
 }
