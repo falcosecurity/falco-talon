@@ -11,9 +11,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
-	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"regexp"
 	"strings"
 )
@@ -116,31 +114,14 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 func performEviction(client *kubernetes.Client, pod corev1.Pod, gracePeriodSeconds *int64) error {
 	delOpts := metav1.DeleteOptions{GracePeriodSeconds: gracePeriodSeconds}
-	evictionGroupVersion, err := CheckEvictionSupport(client)
-	if err != nil {
-		return err
+	eviction := &policyv1.Eviction{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      pod.Name,
+			Namespace: pod.Namespace,
+		},
+		DeleteOptions: &delOpts,
 	}
-
-	switch evictionGroupVersion {
-	case policyv1.SchemeGroupVersion:
-		eviction := &policyv1.Eviction{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      pod.Name,
-				Namespace: pod.Namespace,
-			},
-			DeleteOptions: &delOpts,
-		}
-		return client.PolicyV1().Evictions(eviction.Namespace).Evict(context.TODO(), eviction)
-	default:
-		eviction := &policyv1beta1.Eviction{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      pod.Name,
-				Namespace: pod.Namespace,
-			},
-			DeleteOptions: &delOpts,
-		}
-		return client.Clientset.PolicyV1beta1().Evictions(pod.Namespace).Evict(context.Background(), eviction)
-	}
+	return client.PolicyV1().Evictions(eviction.Namespace).Evict(context.Background(), eviction)
 }
 
 func CheckParameters(action *rules.Action) error {
@@ -171,20 +152,4 @@ func ValidateMinHealthyReplicas(fl validator.FieldLevel) bool {
 	reg := regexp.MustCompile(`\d+(%)?`)
 	result := reg.MatchString(minHealthyReplicas)
 	return result
-}
-
-func CheckEvictionSupport(client *kubernetes.Client) (schema.GroupVersion, error) {
-	discoveryClient := client.Clientset.Discovery()
-
-	// version info available in subresources since v1.8.0 in https://github.com/kubernetes/kubernetes/pull/49971
-	resourceList, err := discoveryClient.ServerResourcesForGroupVersion("v1")
-	if err != nil {
-		return schema.GroupVersion{}, err
-	}
-	for _, resource := range resourceList.APIResources {
-		if resource.Name == EvictionSubresource && resource.Kind == EvictionKind && len(resource.Group) > 0 && len(resource.Version) > 0 {
-			return schema.GroupVersion{Group: resource.Group, Version: resource.Version}, nil
-		}
-	}
-	return schema.GroupVersion{}, nil
 }
