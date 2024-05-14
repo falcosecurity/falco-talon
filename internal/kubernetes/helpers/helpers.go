@@ -37,7 +37,7 @@ func VerifyIfPodWillBeIgnored(parameters map[string]interface{}, client *kuberne
 	switch kind {
 	case "DaemonSet":
 		if ignoreDaemonsets, ok := parameters["ignore_daemonsets"].(bool); ok && ignoreDaemonsets {
-			result = fmt.Sprintf("The pod %v in namespace %v belongs to a DaemonSet and will be ignored.", pod.Name, pod.Namespace)
+			result = fmt.Sprintf("the pod %v in namespace %v belongs to a DaemonSet and will be ignored.", pod.Name, pod.Namespace)
 			status = "ignored"
 			ignore = true
 		}
