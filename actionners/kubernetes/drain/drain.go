@@ -56,9 +56,9 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		}, err
 	}
 
+	node, err := client.GetNodeFromPod(pod)
 	objects["node"] = node.Name
 
-	node, err := client.GetNodeFromPod(pod)
 	if err != nil {
 		return utils.LogLine{
 			Objects: objects,
