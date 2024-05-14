@@ -43,7 +43,7 @@ func VerifyIfPodWillBeIgnored(parameters map[string]interface{}, client *kuberne
 		}
 	case "StatefulSet":
 		if ignoreStatefulsets, ok := parameters["ignore_statefulsets"].(bool); ok && ignoreStatefulsets {
-			result = fmt.Sprintf("The pod %v in namespace %v belongs to a StatefulSet and will be ignored.", pod.Name, pod.Namespace)
+			result = fmt.Sprintf("the pod %v in namespace %v belongs to a StatefulSet and will be ignored.", pod.Name, pod.Namespace)
 			status = "ignored"
 			ignore = true
 		}
