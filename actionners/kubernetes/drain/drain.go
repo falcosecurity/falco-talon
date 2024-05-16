@@ -11,7 +11,6 @@ import (
 	helpers "github.com/falco-talon/falco-talon/actionners/kubernetes/helpers"
 	"github.com/falco-talon/falco-talon/internal/events"
 	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
-	"github.com/falco-talon/falco-talon/internal/kubernetes/helpers"
 	"github.com/falco-talon/falco-talon/internal/rules"
 	"github.com/falco-talon/falco-talon/utils"
 )
@@ -55,6 +54,15 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	}
 
 	node, err := client.GetNodeFromPod(pod)
+	if err != nil {
+		objects["pod"] = podName
+		objects["namespace"] = namespace
+		return utils.LogLine{
+			Objects: objects,
+			Error:   err.Error(),
+			Status:  "failure",
+		}, err
+	}
 	objects["node"] = node.Name
 
 	if err != nil {
@@ -103,7 +111,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 			ownerKind, err := kubernetes.GetOwnerKind(p)
 			if err != nil {
-				utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("error getting pod '%v' owner kind: %v", p.Name, err)})
+				utils.PrintLog("warn", utils.LogLine{Message: fmt.Sprintf("error getting pod '%v' owner kind: %v", p.Name, err)})
 				otherErrorsCount++
 				return
 			}
@@ -122,19 +130,19 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			case "ReplicaSet":
 				replicaSetName, err := kubernetes.GetOwnerName(p)
 				if err != nil {
-					utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("error getting pod owner name: %v", err)})
+					utils.PrintLog("warn", utils.LogLine{Message: fmt.Sprintf("error getting pod owner name: %v", err)})
 					otherErrorsCount++
 				}
 				if minHealthyReplicas, ok := parameters["min_healthy_replicas"].(string); ok && minHealthyReplicas != "" {
 					replicaSet, err := client.GetReplicaSet(replicaSetName, p.Namespace)
 					if err != nil {
-						utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("error getting replica set for pod '%v': %v", p.Name, err)})
+						utils.PrintLog("warn", utils.LogLine{Message: fmt.Sprintf("error getting replica set for pod '%v': %v", p.Name, err)})
 						otherErrorsCount++
 						return
 					}
 					minHealthyReplicasValue, kind, err := helpers.ParseMinHealthyReplicas(minHealthyReplicas)
 					if err != nil {
-						utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("error parsing min_healthy_replicas: %v", err)})
+						utils.PrintLog("warn", utils.LogLine{Message: fmt.Sprintf("error parsing min_healthy_replicas: %v", err)})
 						otherErrorsCount++
 						return
 					}
@@ -142,7 +150,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 					case "absolut":
 						healthyReplicasCount, err := kubernetes.GetHealthyReplicasCount(replicaSet)
 						if err != nil {
-							utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
+							utils.PrintLog("warn", utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
 							otherErrorsCount++
 							return
 						}
@@ -154,7 +162,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 						healthyReplicasValue, err := kubernetes.GetHealthyReplicasCount(replicaSet)
 						minHealthyReplicasAbsoluteValue := int64(float64(minHealthyReplicasValue) / 100.0 * float64(healthyReplicasValue))
 						if err != nil {
-							utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
+							utils.PrintLog("warn", utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
 							otherErrorsCount++
 							return
 						}
@@ -178,12 +186,13 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 					},
 				}
 				if err := client.PolicyV1().Evictions(pod.GetNamespace()).Evict(context.Background(), eviction); err != nil {
-					utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("error evicting pod '%v': %v", p.Name, err)})
+					utils.PrintLog("warn", utils.LogLine{Message: fmt.Sprintf("error evicting pod '%v': %v", p.Name, err)})
 					evictionErrorsCount++
 				}
 			}
 		}()
 	}
+
 	wg.Wait()
 
 	if ignoreErrors, ok := parameters["ignore_errors"].(bool); ok && (ignoreErrors || (evictionErrorsCount == 0 && otherErrorsCount == 0)) {
@@ -222,4 +231,4 @@ func CheckParameters(action *rules.Action) error {
 	}
 
 	return nil
-}<
+}

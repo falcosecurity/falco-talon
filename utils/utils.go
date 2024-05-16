@@ -33,7 +33,6 @@ const (
 	errorStr   string = "error"
 	warningStr string = "warning"
 	fatalStr   string = "fatal"
-	debugStr   string = "debug"
 
 	textStr  string = "text"
 	colorStr string = "color"
@@ -99,8 +98,6 @@ func PrintLog(level string, line LogLine) {
 		l = log.Warn()
 	case errorStr:
 		l = log.Error()
-	case debugStr:
-		l = log.Debug()
 	case fatalStr:
 		l = log.Fatal()
 	default:
