@@ -3,6 +3,8 @@ package lambda
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 	"net/http"
 
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
@@ -18,6 +20,7 @@ type Config struct {
 	AWSLambdaName           string `mapstructure:"aws_lambda_name" validate:"required"`
 	AWSLambdaAliasOrVersion string `mapstructure:"aws_lambda_alias_or_version" validate:"omitempty"`
 	AWSLambdaInvocationType string `mapstructure:"aws_lambda_invocation_type" validate:"omitempty,oneof=RequestResponse Event DryRun"`
+	SendEC2NodeMetadata     bool   `mapstructure:"aws_send_ec2_node_metadata" validate:"omitempty"`
 }
 
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
@@ -38,6 +41,17 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	objects := map[string]string{
 		"name":    lambdaConfig.AWSLambdaName,
 		"version": lambdaConfig.AWSLambdaAliasOrVersion,
+	}
+
+	kubernetesClient := kubernetes.GetClient()
+
+	if lambdaConfig.SendEC2NodeMetadata {
+		podName := event.GetPodName()
+		namespace := event.GetNamespaceName()
+		err = event.AddWorkerNodeInstanceIdAsOutput(podName, namespace, kubernetesClient)
+		if err != nil {
+			utils.PrintLog("warn", utils.LogLine{Message: fmt.Sprintf("%v", err)})
+		}
 	}
 
 	payload, err := json.Marshal(event)
