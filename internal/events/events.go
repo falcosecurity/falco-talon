@@ -70,7 +70,7 @@ func (event *Event) AddWorkerNodeInstanceIdAsOutput(podName string, namespaceNam
 		if err != nil {
 			return fmt.Errorf("error getting pod from the kube api server, not populating instance_id in output_fields event forwarded. error: %v", err)
 		}
-		event.OutputFields["instance_id"] = node.Spec.ProviderID
+		event.OutputFields["instance.id"] = node.Spec.ProviderID
 		return nil
 	} else {
 		return fmt.Errorf("k8s.pod.name and k8s.ns.name not present, not populating instance_id in output_fields event forwarded")
