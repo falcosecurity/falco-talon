@@ -56,6 +56,13 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	}
 
 	node, err := client.GetNodeFromPod(pod)
+	if err != nil {
+		return utils.LogLine{
+			Objects: objects,
+			Error:   err.Error(),
+			Status:  "failure",
+		}, err
+	}
 	objects["node"] = node.Name
 
 	if err != nil {
@@ -135,7 +142,12 @@ func performEviction(client *kubernetes.Client, pod corev1.Pod, gracePeriodSecon
 	}
 
 	utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("Evicting pod: %v.", pod.Name)})
-	return client.PolicyV1().Evictions(eviction.Namespace).Evict(context.Background(), eviction)
+
+	if pod.Namespace != "falco" {
+		return client.PolicyV1().Evictions(eviction.Namespace).Evict(context.Background(), eviction)
+	} else {
+		return nil
+	}
 }
 
 func CheckParameters(action *rules.Action) error {
