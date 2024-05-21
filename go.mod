@@ -18,7 +18,7 @@ require (
 	github.com/jinzhu/copier v0.4.0
 	github.com/magefile/mage v1.15.0
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/nats-io/nats-server/v2 v2.10.15
+	github.com/nats-io/nats-server/v2 v2.10.16
 	github.com/nats-io/nats.go v1.35.0
 	github.com/projectcalico/api v0.0.0-20231218190037-9183ab93f33e
 	github.com/prometheus/client_golang v1.19.1
@@ -87,7 +87,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
-	github.com/nats-io/jwt/v2 v2.5.6 // indirect
+	github.com/nats-io/jwt/v2 v2.5.7 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.1 // indirect
