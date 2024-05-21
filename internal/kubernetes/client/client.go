@@ -125,8 +125,7 @@ func (client Client) GetReplicaSet(name, namespace string) (*appsv1.ReplicaSet, 
 func (client Client) GetNode(name string) (*corev1.Node, error) {
 	p, err := client.Clientset.CoreV1().Nodes().Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
-		utils.PrintLog("error", utils.LogLine{Message: fmt.Sprintf("%v", err)})
-		return nil, fmt.Errorf("the node '%v' doesn't exist", name)
+		return nil, fmt.Errorf("error getting node '%v': %v", name, err)
 	}
 	return p, nil
 }
