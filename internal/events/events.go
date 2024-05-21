@@ -21,6 +21,7 @@ type Event struct {
 	Time         time.Time              `json:"time"`
 	Source       string                 `json:"source"`
 	OutputFields map[string]interface{} `json:"output_fields"`
+	Context      map[string]interface{} `json:"context"`
 	Tags         []interface{}          `json:"tags"`
 }
 
@@ -129,6 +130,10 @@ func (event *Event) ExportEnvVars() {
 		key := strings.ReplaceAll(strings.ToUpper(i), ".", "_")
 		key = strings.ReplaceAll(key, "[", "_")
 		key = strings.ReplaceAll(key, "]", "")
+		os.Setenv(key, fmt.Sprintf("%v", j))
+	}
+	for i, j := range event.Context {
+		key := strings.ReplaceAll(strings.ToUpper(i), ".", "_")
 		os.Setenv(key, fmt.Sprintf("%v", j))
 	}
 	os.Setenv("PRIORITY", event.Priority)
