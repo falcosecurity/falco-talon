@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/falco-talon/falco-talon/internal/events"
 	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
-	"github.com/falco-talon/falco-talon/internal/kubernetes/helpers"
 	"github.com/falco-talon/falco-talon/internal/rules"
 	"github.com/falco-talon/falco-talon/utils"
 	"github.com/go-playground/validator/v10"
@@ -97,7 +96,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 		go func(p corev1.Pod) {
 			defer wg.Done()
-			line, err, ignored := helpers.VerifyIfPodWillBeIgnored(parameters, client, p, objects)
+			line, err, ignored := client.VerifyIfPodWillBeIgnored(parameters, p, objects)
 
 			mu.Lock()
 			defer mu.Unlock()
