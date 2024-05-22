@@ -124,7 +124,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		aggregatedLog.Status = "failure"
 	} else {
 		aggregatedLog.Status = "success"
-		aggregatedLog.Output = fmt.Sprintf("Node '%v' drained, ignored pods: %v", node.Name, strings.Join(ignoredPods, ", "))
+		aggregatedLog.Output = fmt.Sprintf("Node '%v' drained, %v ignored pods.", node.Name, len(ignoredPods))
 	}
 
 	return aggregatedLog, nil
