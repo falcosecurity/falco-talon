@@ -3,7 +3,6 @@ package terminate
 import (
 	"context"
 	"fmt"
-	"github.com/falco-talon/falco-talon/internal/kubernetes/helpers"
 	"github.com/go-playground/validator/v10"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"regexp"
@@ -49,7 +48,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			err
 	}
 
-	line, err, ignored := helpers.VerifyIfPodWillBeIgnored(parameters, client, *pod, objects)
+	line, err, ignored := client.VerifyIfPodWillBeIgnored(parameters, *pod, objects)
 	if err != nil {
 		return utils.LogLine{
 			Objects: objects,
