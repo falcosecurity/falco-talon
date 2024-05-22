@@ -6,9 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"reflect"
-	"strconv"
-	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -123,44 +120,6 @@ func (client Client) GetReplicaSet(name, namespace string) (*appsv1.ReplicaSet, 
 		return nil, fmt.Errorf("the replicaset '%v' in the namespace '%v' doesn't exist", name, namespace)
 	}
 	return p, nil
-}
-
-func (client Client) VerifyIfPodWillBeIgnored(parameters map[string]interface{}, pod corev1.Pod, objects map[string]string) (utils.LogLine, error, bool) {
-
-	kind, err := getOwnerKind(pod)
-	if err != nil {
-		return utils.LogLine{}, err, false
-	}
-
-	var result, status string
-	var ignore bool
-
-	switch kind {
-	case "DaemonSet":
-		if ignoreDaemonsets, ok := parameters["ignore_daemonsets"].(bool); ok && ignoreDaemonsets {
-			result = fmt.Sprintf("the pod %v in namespace %v belongs to a DaemonSet and will be ignored.", pod.Name, pod.Namespace)
-			status = "ignored"
-			ignore = true
-		}
-	case "StatefulSet":
-		if ignoreStatefulsets, ok := parameters["ignore_statefulsets"].(bool); ok && ignoreStatefulsets {
-			result = fmt.Sprintf("the pod %v in namespace %v belongs to a StatefulSet and will be ignored.", pod.Name, pod.Namespace)
-			status = "ignored"
-			ignore = true
-		}
-	case "ReplicaSet":
-		return checkReplicaSet(parameters, client, pod, objects)
-	}
-
-	if result == "" {
-		return utils.LogLine{}, nil, false
-	}
-
-	return utils.LogLine{
-		Objects: objects,
-		Result:  result,
-		Status:  status,
-	}, nil, ignore
 }
 
 func (client Client) GetNode(name string) (*corev1.Node, error) {
@@ -387,55 +346,33 @@ func (client Client) GetLeaseHolder() (<-chan string, error) {
 	return leaseHolderChan, nil
 }
 
-func getOwnerKind(pod corev1.Pod) (string, error) {
+func GetOwnerName(pod *corev1.Pod) (string, error) {
+	if len(pod.OwnerReferences) == 0 {
+		return "", fmt.Errorf("no owner reference found")
+	}
+	return pod.OwnerReferences[0].Name, nil
+}
+
+func GetOwnerKind(pod corev1.Pod) (string, error) {
 	if len(pod.OwnerReferences) == 0 {
 		return "", fmt.Errorf("no owner reference found")
 	}
 	return pod.OwnerReferences[0].Kind, nil
 }
 
-func checkReplicaSet(parameters map[string]interface{}, client Client, pod corev1.Pod, objects map[string]string) (utils.LogLine, error, bool) {
-	minHealthyParam, ok := parameters["min_healthy_replicas"]
-	if !ok {
-		return utils.LogLine{}, nil, false
+func GetHealthyReplicasCount(replicaset *appsv1.ReplicaSet) (int64, error) {
+	if replicaset == nil {
+		return 0, fmt.Errorf("no replicaset found")
 	}
-
-	minHealthy, err := parseMinHealthyReplicas(minHealthyParam)
-	if err != nil {
-		return utils.LogLine{}, err, false
-	}
-
-	replicaset, err := client.GetReplicasetFromPod(&pod)
-	if err != nil {
-		return utils.LogLine{}, err, false
-	}
-
 	healthyReplicas := int64(replicaset.Status.ReadyReplicas)
-	if minHealthy > healthyReplicas {
-		return utils.LogLine{
-			Objects: objects,
-			Result:  fmt.Sprintf("Not enough healthy pods: %v required, %v available in ReplicaSet of pod %v in namespace %v.", minHealthy, healthyReplicas, pod.Name, pod.Namespace),
-			Status:  "ignored",
-		}, nil, true
-	}
-
-	return utils.LogLine{}, nil, false
+	return healthyReplicas, nil
 }
 
-func parseMinHealthyReplicas(value interface{}) (int64, error) {
-	switch v := value.(type) {
-	case string:
-		if strings.HasSuffix(v, "%") {
-			percentage, err := strconv.ParseInt(strings.TrimSuffix(v, "%"), 10, 64)
-			if err != nil {
-				return 0, fmt.Errorf("invalid percentage format: %v", err)
-			}
-			return percentage, nil
-		}
-		return strconv.ParseInt(v, 10, 64)
-	case int, int64:
-		return reflect.ValueOf(v).Int(), nil
-	default:
-		return 0, fmt.Errorf("invalid type for min_healthy_replicas")
+func GetHealthyReplicasPercent(replicaset *appsv1.ReplicaSet) (int64, error) {
+	if replicaset == nil {
+		return 0, fmt.Errorf("no replicaset found")
 	}
+	healthyReplicas := int64(replicaset.Status.ReadyReplicas)
+	totalReplicas := int64(replicaset.Status.Replicas)
+	return 100 * (healthyReplicas / totalReplicas), nil
 }
