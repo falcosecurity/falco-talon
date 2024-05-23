@@ -387,55 +387,33 @@ func (client Client) GetLeaseHolder() (<-chan string, error) {
 	return leaseHolderChan, nil
 }
 
-func getOwnerKind(pod corev1.Pod) (string, error) {
+func GetOwnerName(pod *corev1.Pod) (string, error) {
+	if len(pod.OwnerReferences) == 0 {
+		return "", fmt.Errorf("no owner reference found")
+	}
+	return pod.OwnerReferences[0].Name, nil
+}
+
+func GetOwnerKind(pod corev1.Pod) (string, error) {
 	if len(pod.OwnerReferences) == 0 {
 		return "", fmt.Errorf("no owner reference found")
 	}
 	return pod.OwnerReferences[0].Kind, nil
 }
 
-func checkReplicaSet(parameters map[string]interface{}, client Client, pod corev1.Pod, objects map[string]string) (utils.LogLine, error, bool) {
-	minHealthyParam, ok := parameters["min_healthy_replicas"]
-	if !ok {
-		return utils.LogLine{}, nil, false
+func GetHealthyReplicasCount(replicaset *appsv1.ReplicaSet) (int64, error) {
+	if replicaset == nil {
+		return 0, fmt.Errorf("no replicaset found")
 	}
-
-	minHealthy, err := parseMinHealthyReplicas(minHealthyParam)
-	if err != nil {
-		return utils.LogLine{}, err, false
-	}
-
-	replicaset, err := client.GetReplicasetFromPod(&pod)
-	if err != nil {
-		return utils.LogLine{}, err, false
-	}
-
 	healthyReplicas := int64(replicaset.Status.ReadyReplicas)
-	if minHealthy > healthyReplicas {
-		return utils.LogLine{
-			Objects: objects,
-			Result:  fmt.Sprintf("Not enough healthy pods: %v required, %v available in ReplicaSet of pod %v in namespace %v.", minHealthy, healthyReplicas, pod.Name, pod.Namespace),
-			Status:  "ignored",
-		}, nil, true
-	}
-
-	return utils.LogLine{}, nil, false
+	return healthyReplicas, nil
 }
 
-func parseMinHealthyReplicas(value interface{}) (int64, error) {
-	switch v := value.(type) {
-	case string:
-		if strings.HasSuffix(v, "%") {
-			percentage, err := strconv.ParseInt(strings.TrimSuffix(v, "%"), 10, 64)
-			if err != nil {
-				return 0, fmt.Errorf("invalid percentage format: %v", err)
-			}
-			return percentage, nil
-		}
-		return strconv.ParseInt(v, 10, 64)
-	case int, int64:
-		return reflect.ValueOf(v).Int(), nil
-	default:
-		return 0, fmt.Errorf("invalid type for min_healthy_replicas")
+func GetHealthyReplicasPercent(replicaset *appsv1.ReplicaSet) (int64, error) {
+	if replicaset == nil {
+		return 0, fmt.Errorf("no replicaset found")
 	}
+	healthyReplicas := int64(replicaset.Status.ReadyReplicas)
+	totalReplicas := int64(replicaset.Status.Replicas)
+	return 100 * (healthyReplicas / totalReplicas), nil
 }
