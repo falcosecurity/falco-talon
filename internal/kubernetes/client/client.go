@@ -6,9 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"reflect"
-	"strconv"
-	"strings"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -123,44 +120,6 @@ func (client Client) GetReplicaSet(name, namespace string) (*appsv1.ReplicaSet, 
 		return nil, fmt.Errorf("the replicaset '%v' in the namespace '%v' doesn't exist", name, namespace)
 	}
 	return p, nil
-}
-
-func (client Client) VerifyIfPodWillBeIgnored(parameters map[string]interface{}, pod corev1.Pod, objects map[string]string) (utils.LogLine, error, bool) {
-
-	kind, err := getOwnerKind(pod)
-	if err != nil {
-		return utils.LogLine{}, err, false
-	}
-
-	var result, status string
-	var ignore bool
-
-	switch kind {
-	case "DaemonSet":
-		if ignoreDaemonsets, ok := parameters["ignore_daemonsets"].(bool); ok && ignoreDaemonsets {
-			result = fmt.Sprintf("the pod %v in namespace %v belongs to a DaemonSet and will be ignored.", pod.Name, pod.Namespace)
-			status = "ignored"
-			ignore = true
-		}
-	case "StatefulSet":
-		if ignoreStatefulsets, ok := parameters["ignore_statefulsets"].(bool); ok && ignoreStatefulsets {
-			result = fmt.Sprintf("the pod %v in namespace %v belongs to a StatefulSet and will be ignored.", pod.Name, pod.Namespace)
-			status = "ignored"
-			ignore = true
-		}
-	case "ReplicaSet":
-		return checkReplicaSet(parameters, client, pod, objects)
-	}
-
-	if result == "" {
-		return utils.LogLine{}, nil, false
-	}
-
-	return utils.LogLine{
-		Objects: objects,
-		Result:  result,
-		Status:  status,
-	}, nil, ignore
 }
 
 func (client Client) GetNode(name string) (*corev1.Node, error) {
@@ -385,13 +344,6 @@ func (client Client) GetLeaseHolder() (<-chan string, error) {
 	}()
 
 	return leaseHolderChan, nil
-}
-
-func GetOwnerName(pod *corev1.Pod) (string, error) {
-	if len(pod.OwnerReferences) == 0 {
-		return "", fmt.Errorf("no owner reference found")
-	}
-	return pod.OwnerReferences[0].Name, nil
 }
 
 func GetOwnerKind(pod corev1.Pod) (string, error) {

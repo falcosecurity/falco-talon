@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"regexp"
 
 	helpers "github.com/falco-talon/falco-talon/actionners/kubernetes/helpers"
 	"github.com/falco-talon/falco-talon/internal/events"
