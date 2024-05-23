@@ -125,7 +125,7 @@ func (client Client) GetReplicaSet(name, namespace string) (*appsv1.ReplicaSet, 
 func (client Client) GetNode(name string) (*corev1.Node, error) {
 	p, err := client.Clientset.CoreV1().Nodes().Get(context.Background(), name, metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("the node '%v' doesn't exist", name)
+		return nil, fmt.Errorf("error getting node '%v': %v", name, err)
 	}
 	return p, nil
 }
@@ -344,4 +344,28 @@ func (client Client) GetLeaseHolder() (<-chan string, error) {
 	}()
 
 	return leaseHolderChan, nil
+}
+
+func GetOwnerKind(pod corev1.Pod) (string, error) {
+	if len(pod.OwnerReferences) == 0 {
+		return "", fmt.Errorf("no owner reference found")
+	}
+	return pod.OwnerReferences[0].Kind, nil
+}
+
+func GetHealthyReplicasCount(replicaset *appsv1.ReplicaSet) (int64, error) {
+	if replicaset == nil {
+		return 0, fmt.Errorf("no replicaset found")
+	}
+	healthyReplicas := int64(replicaset.Status.ReadyReplicas)
+	return healthyReplicas, nil
+}
+
+func GetHealthyReplicasPercent(replicaset *appsv1.ReplicaSet) (int64, error) {
+	if replicaset == nil {
+		return 0, fmt.Errorf("no replicaset found")
+	}
+	healthyReplicas := int64(replicaset.Status.ReadyReplicas)
+	totalReplicas := int64(replicaset.Status.Replicas)
+	return 100 * (healthyReplicas / totalReplicas), nil
 }

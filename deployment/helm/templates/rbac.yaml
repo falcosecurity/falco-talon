@@ -27,10 +27,28 @@ rules:
       - update
       - patch
       - delete
+      - list
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - get
+      - watch
+      - create
+      - update
+      - patch
   - apiGroups:
       - ""
     resources:
       - pods/exec
+    verbs:
+      - get
+      - create
+  - apiGroups:
+      - ""
+    resources:
+      - pods/eviction
     verbs:
       - get
       - create

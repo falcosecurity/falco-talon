@@ -3,22 +3,19 @@ package drain
 import (
 	"context"
 	"fmt"
-	"github.com/falco-talon/falco-talon/internal/events"
-	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
-	"github.com/falco-talon/falco-talon/internal/kubernetes/helpers"
-	"github.com/falco-talon/falco-talon/internal/rules"
-	"github.com/falco-talon/falco-talon/utils"
-	"github.com/go-playground/validator/v10"
-	corev1 "k8s.io/api/core/v1"
+	"sync"
+
 	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"regexp"
-	"strings"
-	"sync"
+
+	helpers "github.com/falco-talon/falco-talon/actionners/kubernetes/helpers"
+	"github.com/falco-talon/falco-talon/internal/events"
+	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	"github.com/falco-talon/falco-talon/internal/rules"
+	"github.com/falco-talon/falco-talon/utils"
 )
 
 const (
-	validatorName = "is_absolut_or_percent"
 	// EvictionKind represents the kind of evictions object
 	EvictionKind = "Eviction"
 	// EvictionSubresource represents the kind of evictions object as pod's subresource
@@ -27,6 +24,7 @@ const (
 
 type Config struct {
 	MinHealthyReplicas string `mapstructure:"min_healthy_replicas" validate:"omitempty,is_absolut_or_percent"`
+	IgnoreErrors       bool   `mapstructure:"ignore_errors" validate:"omitempty"`
 	IgnoreDaemonsets   bool   `mapstructure:"ignore_daemonsets" validate:"omitempty"`
 	IgnoreStatefulSets bool   `mapstructure:"ignore_statefulsets" validate:"omitempty"`
 	GracePeriodSeconds int    `mapstructure:"grace_period_seconds" validate:"omitempty"`
@@ -56,18 +54,20 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	}
 
 	node, err := client.GetNodeFromPod(pod)
-	objects["node"] = node.Name
-
 	if err != nil {
+		objects["pod"] = podName
+		objects["namespace"] = namespace
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
 			Status:  "failure",
 		}, err
 	}
+	nodeName := node.GetName()
+	objects["node"] = nodeName
 
 	pods, err := client.Clientset.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{
-		FieldSelector: fmt.Sprintf("spec.nodeName=%s", node.GetName()),
+		FieldSelector: fmt.Sprintf("spec.nodeName=%s", nodeName),
 	})
 	if err != nil {
 		return utils.LogLine{
@@ -77,65 +77,108 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		}, err
 	}
 
-	var aggregatedLog utils.LogLine
-	aggregatedLog.Objects = make(map[string]string)
-	var allErrors []string
-	var ignoredPods []string
+	var ignoredNodesCount, evictionErrorsCount, otherErrorsCount int
 
-	var mu sync.Mutex
 	var wg sync.WaitGroup
 
 	for _, p := range pods.Items {
 		wg.Add(1)
-
-		go func(p corev1.Pod) {
+		go func() {
 			defer wg.Done()
-			line, err, ignored := helpers.VerifyIfPodWillBeIgnored(parameters, client, p, objects)
+			var ignored bool
 
-			mu.Lock()
-			defer mu.Unlock()
-
-			if ignored {
-				aggregatedLog.Output += line.Output + "; "
-				ignoredPods = append(ignoredPods, p.Name)
-				return
-			}
+			ownerKind, err := kubernetes.GetOwnerKind(p)
 			if err != nil {
-				allErrors = append(allErrors, err.Error())
+				utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("error getting pod '%v' owner kind: %v", p.Name, err)})
+				otherErrorsCount++
 				return
 			}
 
-			err = performEviction(client, p, gracePeriodSeconds)
-			if err != nil {
-				allErrors = append(allErrors, err.Error())
+			switch ownerKind {
+			case "DaemonSet":
+				if ignoreDaemonsets, ok := parameters["ignore_daemonsets"].(bool); ok && ignoreDaemonsets {
+					ignored = true
+					ignoredNodesCount++
+				}
+			case "StatefulSet":
+				if ignoreStatefulsets, ok := parameters["ignore_statefulsets"].(bool); ok && ignoreStatefulsets {
+					ignored = true
+					ignoredNodesCount++
+				}
+			case "ReplicaSet":
+				if minHealthyReplicas, ok := parameters["min_healthy_replicas"].(string); ok && minHealthyReplicas != "" {
+					replicaSet, err := client.GetReplicaSet(podName, namespace)
+					if err != nil {
+						utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("error getting replica set for pod '%v': %v", p.Name, err)})
+						otherErrorsCount++
+						return
+					}
+					minHealthyReplicasValue, kind, err := helpers.ParseMinHealthyReplicas(minHealthyReplicas)
+					if err != nil {
+						utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("error parsing min_healthy_replicas: %v", err)})
+						otherErrorsCount++
+						return
+					}
+					switch kind {
+					case "absolut":
+						healthyReplicasCount, err := kubernetes.GetHealthyReplicasCount(replicaSet)
+						if err != nil {
+							utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
+							otherErrorsCount++
+							return
+						}
+						if healthyReplicasCount < minHealthyReplicasValue {
+							ignored = true
+						}
+					case "percent":
+						healthyReplicasPercent, err := kubernetes.GetHealthyReplicasCount(replicaSet)
+						if err != nil {
+							utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
+							otherErrorsCount++
+							return
+						}
+						if healthyReplicasPercent < minHealthyReplicasValue {
+							ignored = true
+							ignoredNodesCount++
+						}
+					}
+				}
 			}
-		}(p)
+
+			if !ignored {
+				eviction := &policyv1.Eviction{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      p.GetName(),
+						Namespace: p.GetNamespace(),
+					},
+					DeleteOptions: &metav1.DeleteOptions{
+						GracePeriodSeconds: gracePeriodSeconds,
+					},
+				}
+				if err := client.PolicyV1().Evictions(pod.GetNamespace()).Evict(context.Background(), eviction); err != nil {
+					utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("error evicting pod '%v': %v", p.Name, err)})
+					evictionErrorsCount++
+				}
+			}
+		}()
 	}
+
 	wg.Wait()
 
-	if len(allErrors) > 0 {
-		aggregatedLog.Error = strings.Join(allErrors, "; ")
-		aggregatedLog.Status = "failure"
-	} else {
-		aggregatedLog.Status = "success"
-		aggregatedLog.Output = fmt.Sprintf("Node '%v' drained, ignored pods: %v", node.Name, strings.Join(ignoredPods, ", "))
+	if ignoreErrors, ok := parameters["ignore_errors"].(bool); ok && (ignoreErrors || (evictionErrorsCount == 0 && otherErrorsCount == 0)) {
+		return utils.LogLine{
+				Objects: objects,
+				Output:  fmt.Sprintf("the node '%v' has been drained, errors are ignored: %v ignored pods, %v eviction errors, %v other errors", nodeName, ignoredNodesCount, evictionErrorsCount, otherErrorsCount),
+				Status:  "success",
+			},
+			nil
 	}
-
-	return aggregatedLog, nil
-}
-
-func performEviction(client *kubernetes.Client, pod corev1.Pod, gracePeriodSeconds *int64) error {
-	delOpts := metav1.DeleteOptions{GracePeriodSeconds: gracePeriodSeconds}
-	eviction := &policyv1.Eviction{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      pod.Name,
-			Namespace: pod.Namespace,
+	return utils.LogLine{
+			Objects: objects,
+			Error:   fmt.Sprintf("the node '%v' has not been fully drained: %v eviction errors, %v other errors", nodeName, evictionErrorsCount, otherErrorsCount),
+			Status:  "failure",
 		},
-		DeleteOptions: &delOpts,
-	}
-
-	utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("Evicting pod: %v.", pod.Name)})
-	return client.PolicyV1().Evictions(eviction.Namespace).Evict(context.Background(), eviction)
+		fmt.Errorf("the node '%v' has not been fully drained: %v eviction errors, %v other errors", nodeName, evictionErrorsCount, otherErrorsCount)
 }
 
 func CheckParameters(action *rules.Action) error {
@@ -147,7 +190,7 @@ func CheckParameters(action *rules.Action) error {
 		return err
 	}
 
-	err = utils.AddCustomValidation(validatorName, ValidateMinHealthyReplicas)
+	err = utils.AddCustomValidation(helpers.ValidatorMinHealthyReplicas, helpers.ValidateMinHealthyReplicas)
 	if err != nil {
 		return err
 	}
@@ -158,12 +201,4 @@ func CheckParameters(action *rules.Action) error {
 	}
 
 	return nil
-}
-
-func ValidateMinHealthyReplicas(fl validator.FieldLevel) bool {
-	minHealthyReplicas := fl.Field().String()
-
-	reg := regexp.MustCompile(`\d+(%)?`)
-	result := reg.MatchString(minHealthyReplicas)
-	return result
 }
