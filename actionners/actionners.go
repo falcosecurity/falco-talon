@@ -365,7 +365,7 @@ func StartConsumer(eventsC <-chan string) {
 			for _, a := range i.GetActions() {
 				e := new(events.Event)
 				*e = *event
-				i.ExtendOutputFields(e, a)
+				i.AddContext(e, a)
 				if err := runAction(i, a, e); err != nil && a.IgnoreErrors == falseStr {
 					break
 				}
