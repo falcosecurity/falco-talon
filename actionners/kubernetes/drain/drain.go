@@ -83,12 +83,13 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 	for _, p := range pods.Items {
 		wg.Add(1)
-		defer wg.Done()
 		go func() {
+			defer wg.Done()
 			var ignored bool
 
 			ownerKind, err := kubernetes.GetOwnerKind(p)
 			if err != nil {
+				utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("error getting pod '%v' owner kind: %v", p.Name, err)})
 				otherErrorsCount++
 				return
 			}
@@ -108,11 +109,13 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 				if minHealthyReplicas, ok := parameters["min_healthy_replicas"].(string); ok && minHealthyReplicas != "" {
 					replicaSet, err := client.GetReplicaSet(podName, namespace)
 					if err != nil {
+						utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("error getting replica set for pod '%v': %v", p.Name, err)})
 						otherErrorsCount++
 						return
 					}
 					minHealthyReplicasValue, kind, err := helpers.ParseMinHealthyReplicas(minHealthyReplicas)
 					if err != nil {
+						utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("error parsing min_healthy_replicas: %v", err)})
 						otherErrorsCount++
 						return
 					}
@@ -120,6 +123,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 					case "absolut":
 						healthyReplicasCount, err := kubernetes.GetHealthyReplicasCount(replicaSet)
 						if err != nil {
+							utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
 							otherErrorsCount++
 							return
 						}
@@ -129,6 +133,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 					case "percent":
 						healthyReplicasPercent, err := kubernetes.GetHealthyReplicasCount(replicaSet)
 						if err != nil {
+							utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
 							otherErrorsCount++
 							return
 						}
@@ -143,14 +148,15 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			if !ignored {
 				eviction := &policyv1.Eviction{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      pod.GetName(),
-						Namespace: pod.GetNamespace(),
+						Name:      p.GetName(),
+						Namespace: p.GetNamespace(),
 					},
 					DeleteOptions: &metav1.DeleteOptions{
 						GracePeriodSeconds: gracePeriodSeconds,
 					},
 				}
 				if err := client.PolicyV1().Evictions(pod.GetNamespace()).Evict(context.Background(), eviction); err != nil {
+					utils.PrintLog("debug", utils.LogLine{Message: fmt.Sprintf("error evicting pod '%v': %v", p.Name, err)})
 					evictionErrorsCount++
 				}
 			}
@@ -159,7 +165,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 	wg.Wait()
 
-	if parameters["ignore_errors"].(bool) || evictionErrorsCount == 0 && otherErrorsCount == 0 {
+	if ignoreErrors, ok := parameters["ignore_errors"].(bool); ok && (ignoreErrors || (evictionErrorsCount == 0 && otherErrorsCount == 0)) {
 		return utils.LogLine{
 				Objects: objects,
 				Output:  fmt.Sprintf("the node '%v' has been drained, errors are ignored: %v ignored pods, %v eviction errors, %v other errors", nodeName, ignoredNodesCount, evictionErrorsCount, otherErrorsCount),
