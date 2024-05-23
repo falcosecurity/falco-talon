@@ -14,6 +14,10 @@ import (
 	"github.com/falco-talon/falco-talon/utils"
 )
 
+type Config struct {
+	TailLines int `mapstructure:"tail_lines" validate:"omitempty"`
+}
+
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	pod := event.GetPodName()
 	namespace := event.GetNamespaceName()
@@ -98,7 +102,15 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 func CheckParameters(action *rules.Action) error {
 	parameters := action.GetParameters()
-	err := utils.CheckParameters(parameters, "tail_lines", utils.IntStr, nil, false)
+
+	var config Config
+
+	err := utils.DecodeParams(parameters, &config)
+	if err != nil {
+		return err
+	}
+
+	err = utils.ValidateStruct(config)
 	if err != nil {
 		return err
 	}
