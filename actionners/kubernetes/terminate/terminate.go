@@ -3,17 +3,16 @@ package terminate
 import (
 	"context"
 	"fmt"
-	"github.com/go-playground/validator/v10"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"regexp"
 
+	helpers "github.com/falco-talon/falco-talon/actionners/kubernetes/helpers"
 	"github.com/falco-talon/falco-talon/internal/events"
 	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 	"github.com/falco-talon/falco-talon/internal/rules"
 	"github.com/falco-talon/falco-talon/utils"
 )
-
-const validatorName = "is_absolut_or_percent"
 
 type Config struct {
 	MinHealthyReplicas string `mapstructure:"min_healthy_replicas" validate:"omitempty,is_absolut_or_percent"`
@@ -48,16 +47,86 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			err
 	}
 
-	line, err, ignored := client.VerifyIfPodWillBeIgnored(parameters, *pod, objects)
+	ownerKind, err := kubernetes.GetOwnerKind(*pod)
 	if err != nil {
 		return utils.LogLine{
-			Objects: objects,
-			Status:  "failure",
-			Error:   err.Error(),
-		}, err
+				Objects: objects,
+				Error:   err.Error(),
+				Status:  "failure",
+			},
+			err
 	}
-	if ignored {
-		return line, nil
+
+	switch ownerKind {
+	case "DaemonSet":
+		if ignoreDaemonsets, ok := parameters["ignore_daemonsets"].(bool); ok && ignoreDaemonsets {
+			return utils.LogLine{
+				Objects: objects,
+				Status:  "ignored",
+				Result:  fmt.Sprintf("the pod '%v' in the namespace '%v' belongs to a DaemonSet and will be ignored.", podName, namespace),
+			}, nil
+		}
+	case "StatefulSet":
+		if ignoreStatefulsets, ok := parameters["ignore_statefulsets"].(bool); ok && ignoreStatefulsets {
+			return utils.LogLine{
+				Objects: objects,
+				Status:  "ignored",
+				Result:  fmt.Sprintf("the pod '%v' in the namespace '%v' belongs to a StatefulSet and will be ignored.", podName, namespace),
+			}, nil
+		}
+	case "ReplicaSet":
+		if minHealthyReplicas, ok := parameters["min_healthy_replicas"].(string); ok && minHealthyReplicas != "" {
+			replicaSet, err2 := client.GetReplicaSet(podName, namespace)
+			if err2 != nil {
+				return utils.LogLine{
+					Objects: objects,
+					Status:  "failure",
+					Error:   err2.Error(),
+				}, nil
+			}
+			minHealthyReplicasValue, kind, err2 := helpers.ParseMinHealthyReplicas(minHealthyReplicas)
+			if err2 != nil {
+				return utils.LogLine{
+					Objects: objects,
+					Status:  "failure",
+					Error:   err2.Error(),
+				}, nil
+			}
+			switch kind {
+			case "absolut":
+				healthyReplicasCount, err2 := kubernetes.GetHealthyReplicasCount(replicaSet)
+				if err2 != nil {
+					return utils.LogLine{
+						Objects: objects,
+						Status:  "failure",
+						Error:   err2.Error(),
+					}, nil
+				}
+				if healthyReplicasCount < minHealthyReplicasValue {
+					return utils.LogLine{
+						Objects: objects,
+						Status:  "ignored",
+						Result:  fmt.Sprintf("the pod '%v' in the namespace '%v' belongs to a ReplicaSet without enough healthy replicas and will be ignored.", podName, namespace),
+					}, nil
+				}
+			case "percent":
+				healthyReplicasPercent, err2 := kubernetes.GetHealthyReplicasCount(replicaSet)
+				if err2 != nil {
+					return utils.LogLine{
+						Objects: objects,
+						Status:  "failure",
+						Error:   err2.Error(),
+					}, nil
+				}
+				if healthyReplicasPercent < minHealthyReplicasValue {
+					return utils.LogLine{
+						Objects: objects,
+						Status:  "ignored",
+						Result:  fmt.Sprintf("the pod '%v' in the namespace '%v' belongs to a ReplicaSet without enough healthy replicas and will be ignored.", podName, namespace),
+					}, nil
+				}
+			}
+		}
 	}
 
 	err = client.Clientset.CoreV1().Pods(namespace).Delete(context.Background(), podName, metav1.DeleteOptions{GracePeriodSeconds: gracePeriodSeconds})
@@ -86,7 +155,7 @@ func CheckParameters(action *rules.Action) error {
 		return err
 	}
 
-	err = utils.AddCustomValidation(validatorName, ValidateMinHealthyReplicas)
+	err = utils.AddCustomValidation(helpers.ValidatorMinHealthyReplicas, helpers.ValidateMinHealthyReplicas)
 	if err != nil {
 		return err
 	}
@@ -97,12 +166,4 @@ func CheckParameters(action *rules.Action) error {
 	}
 
 	return nil
-}
-
-func ValidateMinHealthyReplicas(fl validator.FieldLevel) bool {
-	minHealthyReplicas := fl.Field().String()
-
-	reg := regexp.MustCompile(`\d+(%)?`)
-	result := reg.MatchString(minHealthyReplicas)
-	return result
 }
