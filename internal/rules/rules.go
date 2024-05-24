@@ -542,7 +542,6 @@ func (rule *Rule) comparePriority(event *events.Event) bool {
 }
 
 func (rule *Rule) AddContext(event *events.Event, action *Action) {
-
 	if event.Context == nil {
 		event.Context = make(map[string]interface{})
 	}
