@@ -9,8 +9,6 @@ import (
 	"strings"
 	"time"
 
-	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
-
 	"github.com/google/uuid"
 )
 
@@ -60,29 +58,6 @@ func DecodeEvent(payload io.Reader) (*Event, error) {
 	event.Output = strings.TrimPrefix(event.Output, " ")
 
 	return &event, nil
-}
-
-func (event *Event) AddWorkerNodeInstanceIdAsOutput(podName string, namespaceName string, client *kubernetes.Client) error {
-
-	if event.Context == nil {
-		event.Context = make(map[string]interface{})
-	}
-
-	if podName != "" && namespaceName != "" {
-		pod, err := client.GetPod(podName, namespaceName)
-		if err != nil {
-			return fmt.Errorf("error getting pod from the kube api server, not populating instance_id in output_fields event forwarded. error: %v", err)
-		}
-		node, err := client.GetNodeFromPod(pod)
-		if err != nil {
-			return fmt.Errorf("error getting pod from the kube api server, not populating instance_id in output_fields event forwarded. error: %v", err)
-		}
-		event.Context["instance.id"] = node.Spec.ProviderID
-		event.Context["instance.region"] = node.Labels["topology.kubernetes.io/region"]
-		return nil
-	} else {
-		return fmt.Errorf("k8s.pod.name and k8s.ns.name not present, not populating instance_id in output_fields event forwarded")
-	}
 }
 
 func (event *Event) GetPodName() string {
