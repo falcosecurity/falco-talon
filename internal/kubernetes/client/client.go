@@ -183,8 +183,8 @@ func (client Client) GetReplicasetFromPod(pod *corev1.Pod) (*appsv1.ReplicaSet, 
 }
 
 func (client Client) GetNodeFromPod(pod *corev1.Pod) (*corev1.Node, error) {
-	podName := pod.Name
-	namespace := pod.ObjectMeta.Namespace
+	podName := pod.GetName()
+	namespace := pod.GetNamespace()
 	nodeName := pod.Spec.NodeName
 	r, err := client.GetNode(nodeName)
 	if err != nil {
