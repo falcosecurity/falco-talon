@@ -13,7 +13,7 @@
   actionner: kubernetes:label
   parameters:
     labels:
-      suspicious: true
+      suspicious: "true"
 
 - action: Invoke Lambda function
   actionner: aws:lambda
@@ -82,3 +82,16 @@
     - action: Delete the resource
       actionner: kubernetes:delete
 
+- rule: Test exec
+  match:
+    rules:
+      - Test exec
+    output_fields:
+      - k8s.ns.name!=kube-system
+  actions:
+    - action: Test exec
+      actionner: kubernetes:exec
+      additional_contexts:
+        - k8snode
+      parameters:
+        command: echo "${NODE_HOSTNAME}"

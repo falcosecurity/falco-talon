@@ -125,6 +125,23 @@ func (event *Event) GetRemoteProtocol() string {
 	return ""
 }
 
+func (event *Event) AddContext(elements map[string]interface{}) {
+	if event.Context == nil {
+		event.Context = make(map[string]interface{})
+	}
+	if len(elements) == 0 {
+		return
+	}
+	for i, j := range elements {
+		if fmt.Sprintf("%v", j) == "" {
+			delete(elements, i)
+		}
+	}
+	for i, j := range elements {
+		event.Context[i] = j
+	}
+}
+
 func (event *Event) ExportEnvVars() {
 	for i, j := range event.OutputFields {
 		key := strings.ReplaceAll(strings.ToUpper(i), ".", "_")

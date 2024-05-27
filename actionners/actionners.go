@@ -20,6 +20,7 @@ import (
 	awsChecks "github.com/falco-talon/falco-talon/internal/aws/checks"
 	aws "github.com/falco-talon/falco-talon/internal/aws/client"
 	calico "github.com/falco-talon/falco-talon/internal/calico/client"
+	"github.com/falco-talon/falco-talon/internal/context"
 	"github.com/falco-talon/falco-talon/internal/events"
 	k8sChecks "github.com/falco-talon/falco-talon/internal/kubernetes/checks"
 	k8s "github.com/falco-talon/falco-talon/internal/kubernetes/client"
@@ -30,13 +31,14 @@ import (
 )
 
 type Actionner struct {
-	Name            string
-	Category        string
-	Action          func(action *rules.Action, event *events.Event) (utils.LogLine, error)
-	CheckParameters func(action *rules.Action) error
-	Init            func() error
-	Checks          []checkActionner
-	DefaultContinue bool
+	Name                    string
+	Category                string
+	Action                  func(action *rules.Action, event *events.Event) (utils.LogLine, error)
+	CheckParameters         func(action *rules.Action) error
+	Init                    func() error
+	Checks                  []checkActionner
+	DefaultContinue         bool
+	AllowAdditionalContexts bool
 }
 
 // type checkActionner func(event *events.Event, actions ...rules.Action) error
@@ -100,8 +102,9 @@ func GetDefaultActionners() *Actionners {
 				Checks: []checkActionner{
 					k8sChecks.CheckPodExist,
 				},
-				CheckParameters: k8sExec.CheckParameters,
-				Action:          k8sExec.Action,
+				CheckParameters:         k8sExec.CheckParameters,
+				Action:                  k8sExec.Action,
+				AllowAdditionalContexts: true,
 			},
 			&Actionner{
 				Category:        "kubernetes",
@@ -111,8 +114,9 @@ func GetDefaultActionners() *Actionners {
 				Checks: []checkActionner{
 					k8sChecks.CheckPodExist,
 				},
-				CheckParameters: k8sScript.CheckParameters,
-				Action:          k8sScript.Action,
+				CheckParameters:         k8sScript.CheckParameters,
+				Action:                  k8sScript.Action,
+				AllowAdditionalContexts: true,
 			},
 			&Actionner{
 				Category:        "kubernetes",
@@ -166,8 +170,9 @@ func GetDefaultActionners() *Actionners {
 				Checks: []checkActionner{
 					awsChecks.CheckLambdaExist,
 				},
-				CheckParameters: lambdaInvoke.CheckParameters,
-				Action:          lambdaInvoke.Action,
+				CheckParameters:         lambdaInvoke.CheckParameters,
+				Action:                  lambdaInvoke.Action,
+				AllowAdditionalContexts: true,
 			},
 			&Actionner{
 				Category:        "calico",
@@ -265,6 +270,10 @@ func (actionner *Actionner) GetCategory() string {
 
 func (actionner *Actionner) MustDefaultContinue() bool {
 	return actionner.DefaultContinue
+}
+
+func (actionner *Actionner) AllowAdditionalContext() bool {
+	return actionner.AllowAdditionalContexts
 }
 
 func runAction(rule *rules.Rule, action *rules.Action, event *events.Event) error {
@@ -377,7 +386,26 @@ func StartConsumer(eventsC <-chan string) {
 			for _, a := range i.GetActions() {
 				e := new(events.Event)
 				*e = *event
-				i.AddContext(e, a)
+				i.AddFalcoTalonContext(e, a)
+				if GetDefaultActionners().FindActionner(a.GetActionner()).AllowAdditionalContext() &&
+					len(a.GetAdditionalContexts()) != 0 {
+					for _, i := range a.GetAdditionalContexts() {
+						elements, err := context.GetContext(i, e)
+						if err != nil {
+							log := utils.LogLine{
+								Message:   "context",
+								Rule:      e.Rule,
+								Action:    a.GetName(),
+								Actionner: a.GetActionner(),
+								TraceID:   e.TraceID,
+								Error:     err.Error(),
+							}
+							utils.PrintLog("error", log)
+						} else {
+							e.AddContext(elements)
+						}
+					}
+				}
 				if err := runAction(i, a, e); err != nil && a.IgnoreErrors == falseStr {
 					break
 				}

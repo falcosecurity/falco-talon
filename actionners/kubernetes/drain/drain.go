@@ -63,28 +63,6 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			Status:  "failure",
 		}, err
 	}
-	objects["node"] = node.Name
-
-	if err != nil {
-		objects["pod"] = podName
-		objects["namespace"] = namespace
-		return utils.LogLine{
-			Objects: objects,
-			Error:   err.Error(),
-			Status:  "failure",
-		}, err
-	}
-	objects["node"] = node.Name
-
-	if err != nil {
-		objects["pod"] = podName
-		objects["namespace"] = namespace
-		return utils.LogLine{
-			Objects: objects,
-			Error:   err.Error(),
-			Status:  "failure",
-		}, err
-	}
 	nodeName := node.GetName()
 	objects["node"] = nodeName
 
@@ -107,7 +85,6 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			var ignored bool
 
 			ownerKind, err := kubernetes.GetOwnerKind(p)
 			if err != nil {
@@ -119,12 +96,10 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			switch ownerKind {
 			case "DaemonSet":
 				if ignoreDaemonsets, ok := parameters["ignore_daemonsets"].(bool); ok && ignoreDaemonsets {
-					ignored = true
 					ignoredPodsCount++
 				}
 			case "StatefulSet":
 				if ignoreStatefulsets, ok := parameters["ignore_statefulsets"].(bool); ok && ignoreStatefulsets {
-					ignored = true
 					ignoredPodsCount++
 				}
 			case "ReplicaSet":
@@ -155,7 +130,6 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 							return
 						}
 						if healthyReplicasCount < minHealthyReplicasValue {
-							ignored = true
 							return
 						}
 					case "percent":
@@ -167,7 +141,6 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 							return
 						}
 						if healthyReplicasValue < minHealthyReplicasAbsoluteValue {
-							ignored = true
 							ignoredPodsCount++
 							return
 						}
@@ -175,20 +148,18 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 				}
 			}
 
-			if !ignored {
-				eviction := &policyv1.Eviction{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      p.GetName(),
-						Namespace: p.GetNamespace(),
-					},
-					DeleteOptions: &metav1.DeleteOptions{
-						GracePeriodSeconds: gracePeriodSeconds,
-					},
-				}
-				if err := client.PolicyV1().Evictions(pod.GetNamespace()).Evict(context.Background(), eviction); err != nil {
-					utils.PrintLog("warn", utils.LogLine{Message: fmt.Sprintf("error evicting pod '%v': %v", p.Name, err)})
-					evictionErrorsCount++
-				}
+			eviction := &policyv1.Eviction{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      p.GetName(),
+					Namespace: p.GetNamespace(),
+				},
+				DeleteOptions: &metav1.DeleteOptions{
+					GracePeriodSeconds: gracePeriodSeconds,
+				},
+			}
+			if err := client.PolicyV1().Evictions(pod.GetNamespace()).Evict(context.Background(), eviction); err != nil {
+				utils.PrintLog("warn", utils.LogLine{Message: fmt.Sprintf("error evicting pod '%v': %v", p.Name, err)})
+				evictionErrorsCount++
 			}
 		}()
 	}
