@@ -19,8 +19,9 @@ import (
 )
 
 type Config struct {
-	Allow []string `mapstructure:"allow" validate:"omitempty"`
-	Order int      `mapstructure:"order" validate:"omitempty"`
+	AllowCIDR       []string `mapstructure:"allow_cidr" validate:"omitempty"`
+	AllowNamespaces []string `mapstructure:"allow_namespaces" validate:"omitempty"`
+	Order           int      `mapstructure:"order" validate:"omitempty"`
 }
 
 const mask32 string = "/32"
@@ -137,7 +138,21 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 	payload.Spec.Selector = strings.TrimSuffix(selector, " && ")
 
-	allowRule := createAllowEgressRule(action)
+	var allowCIDRRule, allowNamespacesRule *networkingv3.Rule
+
+	if parameters["allow_cidr"] == nil && parameters["allow_namespaces"] == nil {
+		allowCIDRRule = &networkingv3.Rule{
+			Action: "Allow",
+			Destination: networkingv3.EntityRule{
+				Nets: []string{"0.0.0.0/0"},
+			},
+		}
+		allowNamespacesRule = nil
+	} else {
+		allowCIDRRule = createAllowCIDREgressRule(action)
+		allowNamespacesRule = createAllowNamespaceEgressRule(action)
+	}
+
 	denyRule := createDenyEgressRule([]string{event.GetRemoteIP() + mask32})
 	if denyRule == nil {
 		err2 := fmt.Errorf("can't create the rule for the networkpolicy '%v' in the namespace '%v'", owner, namespace)
@@ -154,7 +169,12 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	netpol, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Get(context.Background(), owner, metav1.GetOptions{})
 	if errorsv1.IsNotFound(err) {
 		payload.Spec.Egress = []networkingv3.Rule{*denyRule}
-		payload.Spec.Egress = append(payload.Spec.Egress, *allowRule)
+		if allowCIDRRule != nil {
+			payload.Spec.Egress = append(payload.Spec.Egress, *allowCIDRRule)
+		}
+		if allowNamespacesRule != nil {
+			payload.Spec.Egress = append(payload.Spec.Egress, *allowNamespacesRule)
+		}
 		_, err2 := calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Create(context.Background(), &payload, metav1.CreateOptions{})
 		if err2 != nil {
 			if !errorsv1.IsAlreadyExists(err2) {
@@ -195,7 +215,12 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	denyCIDR = utils.Deduplicate(denyCIDR)
 	denyRule = createDenyEgressRule(denyCIDR)
 	payload.Spec.Egress = []networkingv3.Rule{*denyRule}
-	payload.Spec.Egress = append(payload.Spec.Egress, *allowRule)
+	if allowCIDRRule != nil {
+		payload.Spec.Egress = append(payload.Spec.Egress, *allowCIDRRule)
+	}
+	if allowNamespacesRule != nil {
+		payload.Spec.Egress = append(payload.Spec.Egress, *allowNamespacesRule)
+	}
 	_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Update(context.Background(), &payload, metav1.UpdateOptions{})
 	if err != nil {
 		return utils.LogLine{
@@ -216,28 +241,53 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		nil
 }
 
-func createAllowEgressRule(action *rules.Action) *networkingv3.Rule {
-	var allowCIDR []string
-	if action.GetParameters()["allow"] != nil {
-		if allowedCidr := action.GetParameters()["allow"].([]interface{}); len(allowedCidr) != 0 {
-			for _, i := range allowedCidr {
-				allowedCidr = append(allowedCidr, i.(string))
-			}
-		} else {
-			allowCIDR = append(allowCIDR, "0.0.0.0/0")
-		}
-	} else {
-		allowCIDR = append(allowCIDR, "0.0.0.0/0")
+func createAllowCIDREgressRule(action *rules.Action) *networkingv3.Rule {
+	if action.GetParameters()["allow_cidr"] == nil {
+		return nil
 	}
 
-	rule := &networkingv3.Rule{
-		Action: "Allow",
-		Destination: networkingv3.EntityRule{
-			Nets: allowCIDR,
-		},
+	if len(action.GetParameters()["allow_cidr"].([]interface{})) == 0 {
+		return nil
 	}
 
-	return rule
+	rule := networkingv3.Rule{
+		Action:      "Allow",
+		Destination: networkingv3.EntityRule{},
+	}
+
+	for _, i := range action.GetParameters()["allow_cidr"].([]interface{}) {
+		rule.Destination.Nets = append(rule.Destination.Nets, i.(string))
+	}
+
+	return &rule
+}
+
+func createAllowNamespaceEgressRule(action *rules.Action) *networkingv3.Rule {
+	if action.GetParameters()["allow_namespaces"] == nil {
+		return nil
+	}
+
+	if len(action.GetParameters()["allow_namespaces"].([]interface{})) == 0 {
+		return nil
+	}
+
+	rule := networkingv3.Rule{
+		Action:      "Allow",
+		Destination: networkingv3.EntityRule{},
+	}
+
+	allowedNamespacesStr := []string{}
+	for _, i := range action.GetParameters()["allow_namespaces"].([]interface{}) {
+		allowedNamespacesStr = append(allowedNamespacesStr, i.(string))
+	}
+
+	selector := "kubernetes.io/metadata.name in { '"
+	selector += strings.Join(allowedNamespacesStr, "', '")
+	selector += "' }"
+
+	rule.Destination.NamespaceSelector = selector
+
+	return &rule
 }
 
 func createDenyEgressRule(ips []string) *networkingv3.Rule {
@@ -261,18 +311,15 @@ func CheckParameters(action *rules.Action) error {
 		return err
 	}
 
+	for _, i := range config.AllowCIDR {
+		if _, _, err2 := net.ParseCIDR(i); err2 != nil {
+			return fmt.Errorf("wrong CIDR '%v'", i)
+		}
+	}
+
 	err = utils.ValidateStruct(config)
 	if err != nil {
 		return err
-	}
-
-	if config.Allow == nil {
-		return nil
-	}
-	for _, i := range config.Allow {
-		if _, _, err := net.ParseCIDR(i); err != nil {
-			return fmt.Errorf("wrong CIDR '%v'", i)
-		}
 	}
 
 	return nil

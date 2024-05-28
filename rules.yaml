@@ -67,10 +67,22 @@
     output_fields:
       - k8s.ns.name!=kube-system
   actions:
-    - action: Create Calico netpol
-      actionner: calico:networkpolicy
+    - action: Disable outbound connections
       parameters:
-        order: 20
+        allow_cidr:
+          - "192.168.1.0/24"
+          - "172.17.0.0/16"
+        allow_namespaces:
+          - "green-ns"
+          - "blue-ns"
+    # - action: Create Calico netpol
+    #   actionner: calico:networkpolicy
+    #   parameters:
+    #     order: 20
+    #     allow_cidr:
+    #       - "192.168.2.0/24"
+    #     allow_namespaces:
+    #       - "green-ns"
   
 - rule: Delete namespace 
   match:
