@@ -88,7 +88,7 @@ func (c *AWSClient) GetLambdaClient() *lambda.Client {
 	defer c.mu.Unlock()
 
 	if c.lambdaClient == nil {
-		utils.PrintLog("warn", utils.LogLine{Message: "Lazily loading lambda client..."})
+		utils.PrintLog("warning", utils.LogLine{Message: "Lazily loading lambda client..."})
 		c.lambdaClient = lambda.NewFromConfig(c.cfg)
 	}
 	return c.lambdaClient
