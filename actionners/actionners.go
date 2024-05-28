@@ -394,6 +394,7 @@ func StartConsumer(eventsC <-chan string) {
 						if err != nil {
 							log := utils.LogLine{
 								Message:   "context",
+								Context:   i,
 								Rule:      e.Rule,
 								Action:    a.GetName(),
 								Actionner: a.GetActionner(),
