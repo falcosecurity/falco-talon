@@ -100,7 +100,7 @@ helm install falco falcosecurity/falco --namespace falco \
 
 ## License
 
-MIT
+Falco Talon is licensed to you under the [Apache 2.0](./LICENSE) open source license.
 
 ## Author
 
