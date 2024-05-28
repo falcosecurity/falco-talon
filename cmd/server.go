@@ -157,14 +157,14 @@ var serverCmd = &cobra.Command{
 		}
 
 		// start the local NATS
-		ns, err := nats.StartServer(config.DeduplicationTimeWindowSeconds)
+		ns, err := nats.StartServer(config.Deduplication.TimeWindowSeconds)
 		if err != nil {
 			utils.PrintLog("fatal", utils.LogLine{Error: err.Error(), Message: "nats"})
 		}
 		defer ns.Shutdown()
 
 		// starts a goroutine to get the holder of the lease
-		if config.DeduplicationLeaderLease {
+		if config.Deduplication.Enabled {
 			go func() {
 				err2 := k8s.Init()
 				if err2 != nil {
