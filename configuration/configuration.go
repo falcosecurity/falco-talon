@@ -2,7 +2,6 @@ package configuration
 
 import (
 	"fmt"
-	"path"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -61,12 +60,7 @@ func CreateConfiguration(configFile string) *Configuration {
 	v.AutomaticEnv()
 
 	if configFile != "" {
-		d, f := path.Split(configFile)
-		if d == "" {
-			d = "."
-		}
-		v.AddConfigPath(d)
-		v.SetConfigFile(f)
+		v.SetConfigFile(configFile)
 		err := v.ReadInConfig()
 		if err != nil {
 			utils.PrintLog("fatal", utils.LogLine{Error: fmt.Sprintf("error when reading config file: '%v'", err.Error()), Message: "config"})
