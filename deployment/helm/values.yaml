@@ -87,8 +87,9 @@ rulesFiles: # list of locale rules files to use, they will be concatenated into 
   - rules.yaml
   - rules_override.yaml
 
-deduplicationLeaderLease: true # in k8s only, create a lease for the leader election
-# deduplicationTimeWindowSeconds: 5 # duration in seconds for the deduplication time window
+deduplication:
+  leaderElection: true # enable the leader election for cluster mode
+  timeWindowSeconds: 5 # duration in seconds for the deduplication time window
 
 printAllEvents: false # print in stdout all received events, not only those which match a rule
 

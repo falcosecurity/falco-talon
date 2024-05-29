@@ -164,7 +164,7 @@ var serverCmd = &cobra.Command{
 		defer ns.Shutdown()
 
 		// starts a goroutine to get the holder of the lease
-		if config.Deduplication.Enabled {
+		if config.Deduplication.LeaderElection {
 			go func() {
 				err2 := k8s.Init()
 				if err2 != nil {

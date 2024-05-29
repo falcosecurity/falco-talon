@@ -10,13 +10,13 @@ import (
 )
 
 const (
-	defaultListenAddress           string = "0.0.0.0"
-	defaultListPort                int    = 2803
-	defaultRulesFile               string = "/etc/falco-talon/rules.yaml"
-	defaultWatchRules              bool   = true
-	defaultPrintAllEvents          bool   = false
-	defaultDeduplicationEnabled    bool   = true
-	defaultDeduplicationTimeWindow int    = 5
+	defaultListenAddress               string = "0.0.0.0"
+	defaultListPort                    int    = 2803
+	defaultRulesFile                   string = "/etc/falco-talon/rules.yaml"
+	defaultWatchRules                  bool   = true
+	defaultPrintAllEvents              bool   = false
+	defaultDeduplicationLeaderElection bool   = true
+	defaultDeduplicationTimeWindow     int    = 5
 )
 
 type Configuration struct {
@@ -34,7 +34,7 @@ type Configuration struct {
 }
 
 type deduplication struct {
-	Enabled           bool `mapstructure:"enabled"`
+	LeaderElection    bool `mapstructure:"leader_election"`
 	TimeWindowSeconds int  `mapstructure:"time_window_seconds"`
 }
 
@@ -54,7 +54,7 @@ func CreateConfiguration(configFile string) *Configuration {
 	v.SetDefault("default_notifiers", []string{})
 	v.SetDefault("watch_rules", defaultWatchRules)
 	v.SetDefault("print_all_events", defaultPrintAllEvents)
-	v.SetDefault("deduplication.enabled", defaultDeduplicationEnabled)
+	v.SetDefault("deduplication.leader_election", defaultDeduplicationLeaderElection)
 	v.SetDefault("deduplication.time_window_seconds", defaultDeduplicationTimeWindow)
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()

@@ -7,7 +7,7 @@ watch_rules: true # reload if the rules file changes (default: true)
 print_all_events: true # print in logs all received events, not only those which match
 
 deduplication:
-  enabled: true # enable the deduplication, in K8s only
+  leader_election: true # enable the leader election for cluster mode (in k8s only)
   time_window_seconds: 5 # duration in seconds for the deduplication time window (default: 5)
 
 default_notifiers: # these notifiers will be enabled for all rules
