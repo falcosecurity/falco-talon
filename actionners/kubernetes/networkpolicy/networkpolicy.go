@@ -16,8 +16,11 @@ import (
 )
 
 type Config struct {
-	Allow []string `mapstructure:"allow" validate:"omitempty"`
+	AllowCIDR       []string `mapstructure:"allow_cidr" validate:"omitempty"`
+	AllowNamespaces []string `mapstructure:"allow_namespaces" validate:"omitempty"`
 }
+
+const managedByStr string = "app.kubernetes.io/managed-by"
 
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	podName := event.GetPodName()
@@ -99,9 +102,14 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	delete(labels, "pod-template-hash")
 	delete(labels, "pod-template-generation")
 	delete(labels, "controller-revision-hash")
+	labels[managedByStr] = utils.FalcoTalonStr
 
-	labelsSelector := labels
-	labelsSelector["app.kubernetes.io/managed-by"] = utils.FalcoTalonStr
+	selector := make(map[string]string)
+	for i, j := range labels {
+		if i != managedByStr {
+			selector[i] = j
+		}
+	}
 
 	payload := networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
@@ -112,7 +120,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		Spec: networkingv1.NetworkPolicySpec{
 			PolicyTypes: []networkingv1.PolicyType{"Egress"},
 			PodSelector: metav1.LabelSelector{
-				MatchLabels: labelsSelector,
+				MatchLabels: selector,
 			},
 		},
 	}
@@ -158,16 +166,29 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 }
 
 func createEgressRule(action *rules.Action) (*networkingv1.NetworkPolicyEgressRule, error) {
-	if action.GetParameters()["allow"] == nil {
+	if action.GetParameters()["allow_cidr"] == nil && action.GetParameters()["allow_namespaces"] == nil {
 		return nil, nil
 	}
 	np := make([]networkingv1.NetworkPolicyPeer, 0)
-	if allowedCidr := action.GetParameters()["allow"].([]interface{}); len(allowedCidr) != 0 {
+	if allowedCidr := action.GetParameters()["allow_cidr"].([]interface{}); len(allowedCidr) != 0 {
 		for _, i := range allowedCidr {
 			np = append(np,
 				networkingv1.NetworkPolicyPeer{
 					IPBlock: &networkingv1.IPBlock{
 						CIDR: i.(string),
+					},
+				},
+			)
+		}
+	}
+	if allowedNamespaces := action.GetParameters()["allow_namespaces"].([]interface{}); len(allowedNamespaces) != 0 {
+		for _, i := range allowedNamespaces {
+			np = append(np,
+				networkingv1.NetworkPolicyPeer{
+					NamespaceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"kubernetes.io/metadata.name": i.(string),
+						},
 					},
 				},
 			)
@@ -186,18 +207,15 @@ func CheckParameters(action *rules.Action) error {
 		return err
 	}
 
+	for _, i := range config.AllowCIDR {
+		if _, _, err2 := net.ParseCIDR(i); err2 != nil {
+			return fmt.Errorf("wrong CIDR '%v'", i)
+		}
+	}
+
 	err = utils.ValidateStruct(config)
 	if err != nil {
 		return err
-	}
-
-	if config.Allow == nil {
-		return nil
-	}
-	for _, i := range config.Allow {
-		if _, _, err := net.ParseCIDR(i); err != nil {
-			return fmt.Errorf("wrong CIDR '%v'", i)
-		}
 	}
 
 	return nil

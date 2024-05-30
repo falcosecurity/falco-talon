@@ -25,7 +25,7 @@ nameOverride: ""
 
 extraEnv:
   - name: LOG_LEVEL
-    value: warn
+    value: warning
 #  - name: AWS_REGION - Specify if running on EKS, ECS or EC2
 #    value: us-east-1
 
