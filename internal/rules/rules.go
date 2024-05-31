@@ -104,7 +104,7 @@ func ParseRules(files []string) *[]*Rule {
 					}
 					if len(rule.Actions[n].AdditionalContexts) == 0 && len(action.AdditionalContexts) != 0 {
 						rule.Actions[n].AdditionalContexts = make([]string, len(action.AdditionalContexts))
-						rule.Actions[n].AdditionalContexts = append(rule.Actions[n].AdditionalContexts, action.AdditionalContexts...)
+						rule.Actions[n].AdditionalContexts = action.AdditionalContexts
 					}
 					if rule.Actions[n].Parameters == nil && len(action.Parameters) != 0 {
 						rule.Actions[n].Parameters = make(map[string]interface{})

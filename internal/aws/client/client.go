@@ -11,16 +11,16 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
 type AWSClient struct {
 	lambdaClient *lambda.Client
+	imdsClient   *imds.Client
 	// s3Client     *s3.Client
 	cfg aws.Config
-
-	mu sync.Mutex // Protects the fields below
 }
 
 var (
@@ -78,28 +78,22 @@ func Init() error {
 	return initErr
 }
 
-// GetAWSClient returns the singleton AWSClient instance. Make sure to call Init() before using this function.
 func GetAWSClient() *AWSClient {
 	return awsClient
 }
 
 func (c *AWSClient) GetLambdaClient() *lambda.Client {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	if c.lambdaClient == nil {
-		utils.PrintLog("warning", utils.LogLine{Message: "Lazily loading lambda client..."})
+		utils.PrintLog("warning", utils.LogLine{Message: "Lazily loading AWS Lambda client..."})
 		c.lambdaClient = lambda.NewFromConfig(c.cfg)
 	}
 	return c.lambdaClient
 }
 
-// func (c *AWSClient) S3Client() *s3.Client {
-//	c.mu.Lock()
-//	defer c.mu.Unlock()
-//
-//	if c.s3Client == nil {
-//		c.s3Client = s3.NewFromConfig(c.cfg)
-//	}
-//	return c.s3Client
-//}
+func (c *AWSClient) GetImds() *imds.Client {
+	if c.imdsClient == nil {
+		utils.PrintLog("warning", utils.LogLine{Message: "Lazily loading AWS IMDS client..."})
+		c.imdsClient = imds.NewFromConfig(c.cfg)
+	}
+	return c.imdsClient
+}

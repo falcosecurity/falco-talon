@@ -3,6 +3,8 @@ package context
 import (
 	"fmt"
 
+	"github.com/falco-talon/falco-talon/internal/context/aws"
+
 	"github.com/falco-talon/falco-talon/internal/context/kubernetes"
 	"github.com/falco-talon/falco-talon/internal/events"
 )
@@ -10,7 +12,7 @@ import (
 func GetContext(source string, event *events.Event) (map[string]interface{}, error) {
 	switch source {
 	case "aws":
-		return nil, nil
+		return aws.GetAwsContext(event)
 	case "k8snode":
 		return kubernetes.GetNodeContext(event)
 	default:

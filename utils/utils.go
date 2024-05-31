@@ -51,6 +51,7 @@ type LogLine struct {
 	Source            string            `json:"source,omitempty"`
 	Result            string            `json:"result,omitempty"`
 	Notifier          string            `json:"notifier,omitempty"`
+	Context           string            `json:"context,omitempty"`
 	Output            string            `json:"output,omitempty"`
 	ActionnerCategory string            `json:"actionner_category,omitempty"`
 	Actionner         string            `json:"actionner,omitempty"`
@@ -117,6 +118,9 @@ func PrintLog(level string, line LogLine) {
 	}
 	if line.Notifier != "" {
 		l.Str("notifier", line.Notifier)
+	}
+	if line.Context != "" {
+		l.Str("context", line.Context)
 	}
 	if line.Output != "" {
 		l.Str("output", line.Output)
