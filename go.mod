@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.27.1
 	github.com/aws/aws-sdk-go-v2/config v1.27.16
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.16
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.3
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.4
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.54.5
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.10
 	github.com/emersion/go-sasl v0.0.0-20231106173351-e73c9f7bad43
