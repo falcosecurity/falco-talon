@@ -1,17 +1,23 @@
 package kubernetes
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
+	"strings"
+	"sync"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/apimachinery/pkg/watch"
 	k8s "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -19,7 +25,9 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
+	"k8s.io/client-go/tools/remotecommand"
 	toolsWatch "k8s.io/client-go/tools/watch"
+	"k8s.io/kubectl/pkg/scheme"
 
 	klog "k8s.io/klog/v2"
 
@@ -32,45 +40,62 @@ type Client struct {
 	RestConfig *rest.Config
 }
 
-var client *Client
-var leaseHolderChan chan string
+var (
+	client          *Client
+	leaseHolderChan chan string
+	once            sync.Once
+)
 
 func Init() error {
 	if client != nil {
 		return nil
 	}
-	client = new(Client)
-	config := configuration.GetConfiguration()
-	var err error
-	if config.KubeConfig != "" {
-		client.RestConfig, err = clientcmd.BuildConfigFromFlags("", config.KubeConfig)
-	} else {
-		client.RestConfig, err = rest.InClusterConfig()
-	}
-	if err != nil {
-		return err
-	}
 
-	// creates the clientset
-	client.Clientset, err = k8s.NewForConfig(client.RestConfig)
-	if err != nil {
-		return err
-	}
+	var initErr error
 
-	// // disable klog
-	klog.InitFlags(nil)
-	if err := flag.Set("logtostderr", "false"); err != nil {
-		return err
-	}
-	if err := flag.Set("alsologtostderr", "false"); err != nil {
-		return err
-	}
-	flag.Parse()
+	once.Do(func() {
+		client = new(Client)
+		config := configuration.GetConfiguration()
+		var err error
+		if config.KubeConfig != "" {
+			client.RestConfig, err = clientcmd.BuildConfigFromFlags("", config.KubeConfig)
+		} else {
+			client.RestConfig, err = rest.InClusterConfig()
+		}
+		if err != nil {
+			initErr = err
+			return
+		}
 
-	return nil
+		// creates the clientset
+		client.Clientset, err = k8s.NewForConfig(client.RestConfig)
+		if err != nil {
+			initErr = err
+			return
+		}
+
+		// // disable klog
+		klog.InitFlags(nil)
+		if err := flag.Set("logtostderr", "false"); err != nil {
+			initErr = err
+			return
+		}
+		if err := flag.Set("alsologtostderr", "false"); err != nil {
+			initErr = err
+			return
+		}
+		flag.Parse()
+	})
+
+	return initErr
 }
 
 func GetClient() *Client {
+	if client == nil {
+		if err := Init(); err != nil {
+			return nil
+		}
+	}
 	return client
 }
 
@@ -346,6 +371,48 @@ func (client Client) GetLeaseHolder() (<-chan string, error) {
 	return leaseHolderChan, nil
 }
 
+func (client Client) Exec(namespace, pod, container string, command []string, script string) (*bytes.Buffer, error) {
+	var err error
+	buf := &bytes.Buffer{}
+	errBuf := &bytes.Buffer{}
+	var exec remotecommand.Executor
+	request := client.Clientset.CoreV1().RESTClient().
+		Post().
+		Namespace(namespace).
+		Resource("pods").
+		Name(pod).
+		SubResource("exec").
+		VersionedParams(&corev1.PodExecOptions{
+			Container: container,
+			Command:   command,
+			Stdin:     true,
+			Stdout:    true,
+			Stderr:    true,
+			TTY:       false,
+		}, scheme.ParameterCodec)
+	exec, err = remotecommand.NewSPDYExecutor(client.RestConfig, "POST", request.URL())
+	if err != nil {
+		return nil, err
+	}
+
+	reader := new(strings.Reader)
+	if script != "" {
+		reader = strings.NewReader(script)
+	}
+	err = exec.StreamWithContext(context.Background(), remotecommand.StreamOptions{
+		Stdin:  reader,
+		Stdout: buf,
+		Stderr: errBuf,
+		Tty:    false,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%v", errBuf.String())
+	}
+
+	// return utils.RemoveAnsiCharacters(buf.String()), nil
+	return buf, nil
+}
+
 func GetOwnerKind(pod corev1.Pod) (string, error) {
 	if len(pod.OwnerReferences) == 0 {
 		return "", fmt.Errorf("no owner reference found")
@@ -375,4 +442,53 @@ func GetHealthyReplicasPercent(replicaset *appsv1.ReplicaSet) (int64, error) {
 	healthyReplicas := int64(replicaset.Status.ReadyReplicas)
 	totalReplicas := int64(replicaset.Status.Replicas)
 	return 100 * (healthyReplicas / totalReplicas), nil
+}
+
+func (client *Client) CreateEphemeralContainer(pod *corev1.Pod, container, name string, ttl int) error {
+	ec := &corev1.EphemeralContainer{
+		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
+			Name:                     name,
+			Image:                    "dockersec/tcpdump",
+			ImagePullPolicy:          corev1.PullIfNotPresent,
+			Command:                  []string{"sleep", fmt.Sprintf("%v", ttl)},
+			Stdin:                    true,
+			TTY:                      false,
+			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+		},
+		TargetContainerName: container,
+	}
+
+	podWithEphemeralContainer := pod.DeepCopy()
+	podWithEphemeralContainer.Spec.EphemeralContainers = append(podWithEphemeralContainer.Spec.EphemeralContainers, *ec)
+
+	podJSON, err := json.Marshal(pod)
+	if err != nil {
+		return err
+	}
+
+	podWithEphemeralContainerJSON, err := json.Marshal(podWithEphemeralContainer)
+	if err != nil {
+		return err
+	}
+
+	patch, err := strategicpatch.CreateTwoWayMergePatch(podJSON, podWithEphemeralContainerJSON, pod)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.CoreV1().
+		Pods(pod.Namespace).
+		Patch(
+			context.Background(),
+			pod.Name,
+			types.StrategicMergePatchType,
+			patch,
+			metav1.PatchOptions{},
+			"ephemeralcontainers",
+		)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

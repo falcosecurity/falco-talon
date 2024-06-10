@@ -13,6 +13,7 @@ import (
 	"github.com/falco-talon/falco-talon/internal/events"
 	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 	"github.com/falco-talon/falco-talon/internal/rules"
+	"github.com/falco-talon/falco-talon/outputs/model"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
@@ -24,6 +25,7 @@ type patch struct {
 
 type Config struct {
 	Labels map[string]string `mapstructure:"labels" validate:"required"`
+	Level  string            `mapstructure:"level" validate:"omitempty"`
 }
 
 const (
@@ -32,7 +34,7 @@ const (
 	nodeStr        = "node"
 )
 
-func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
+func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Data, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
@@ -40,32 +42,38 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 	payload := make([]patch, 0)
 	parameters := action.GetParameters()
+	var config Config
+	err := utils.DecodeParams(parameters, &config)
+	if err != nil {
+		return utils.LogLine{
+			Objects: nil,
+			Error:   err.Error(),
+			Status:  "failure",
+		}, nil, err
+	}
 
 	client := kubernetes.GetClient()
 
-	var err error
 	var kind string
 	var node *corev1.Node
 
-	if parameters["level"] == nodeStr {
-		kind = parameters["level"].(string)
+	if config.Level == nodeStr {
+		kind = nodeStr
 		pod, err2 := client.GetPod(podName, namespace)
 		if err2 != nil {
 			return utils.LogLine{
-					Objects: objects,
-					Error:   err2.Error(),
-					Status:  "failure",
-				},
-				err2
+				Objects: objects,
+				Error:   err2.Error(),
+				Status:  "failure",
+			}, nil, err2
 		}
 		node, err = client.GetNodeFromPod(pod)
 		if err != nil {
 			return utils.LogLine{
-					Objects: objects,
-					Error:   err.Error(),
-					Status:  "failure",
-				},
-				err
+				Objects: objects,
+				Error:   err.Error(),
+				Status:  "failure",
+			}, nil, err
 		}
 		objects[nodeStr] = node.Name
 	} else {
@@ -74,7 +82,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		objects["namespace"] = namespace
 	}
 
-	for i, j := range parameters["labels"].(map[string]interface{}) {
+	for i, j := range config.Labels {
 		if fmt.Sprintf("%v", j) == "" {
 			continue
 		}
@@ -94,16 +102,15 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	}
 	if err != nil {
 		return utils.LogLine{
-				Objects: objects,
-				Error:   err.Error(),
-				Status:  "failure",
-			},
-			err
+			Objects: objects,
+			Error:   err.Error(),
+			Status:  "failure",
+		}, nil, err
 	}
 
 	payload = make([]patch, 0)
 	action.GetParameters()
-	for i, j := range parameters["labels"].(map[string]interface{}) {
+	for i, j := range config.Labels {
 		if fmt.Sprintf("%v", j) != "" {
 			continue
 		}
@@ -122,25 +129,23 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	if err != nil {
 		if err.Error() != "the server rejected our request due to an error in our request" {
 			return utils.LogLine{
-					Objects: objects,
-					Error:   err.Error(),
-					Status:  "failure",
-				},
-				err
+				Objects: objects,
+				Error:   err.Error(),
+				Status:  "failure",
+			}, nil, err
 		}
 	}
 	var output string
 	if kind == nodeStr {
-		output = fmt.Sprintf("the node '%v' has been labelized", node.Name)
+		output = fmt.Sprintf("the node '%v' has been labeled", node.Name)
 	} else {
-		output = fmt.Sprintf("the pod '%v' in the namespace '%v' has been labelized", podName, namespace)
+		output = fmt.Sprintf("the pod '%v' in the namespace '%v' has been labeled", podName, namespace)
 	}
 	return utils.LogLine{
-			Objects: objects,
-			Output:  output,
-			Status:  "success",
-		},
-		nil
+		Objects: objects,
+		Output:  output,
+		Status:  "success",
+	}, nil, nil
 }
 
 func CheckParameters(action *rules.Action) error {

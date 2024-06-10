@@ -10,6 +10,7 @@ import (
 	"github.com/falco-talon/falco-talon/internal/events"
 	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 	"github.com/falco-talon/falco-talon/internal/rules"
+	"github.com/falco-talon/falco-talon/outputs/model"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
@@ -20,7 +21,7 @@ type Config struct {
 	GracePeriodSeconds int    `mapstructure:"grace_period_seconds" validate:"omitempty"`
 }
 
-func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
+func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Data, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
@@ -30,10 +31,18 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	}
 
 	parameters := action.GetParameters()
-	gracePeriodSeconds := new(int64)
-	if parameters["grace_period_seconds"] != nil {
-		*gracePeriodSeconds = int64(parameters["grace_period_seconds"].(int))
+	var config Config
+	err := utils.DecodeParams(parameters, &config)
+	if err != nil {
+		return utils.LogLine{
+			Objects: nil,
+			Error:   err.Error(),
+			Status:  "failure",
+		}, nil, err
 	}
+
+	gracePeriodSeconds := new(int64)
+	*gracePeriodSeconds = int64(config.GracePeriodSeconds)
 
 	client := kubernetes.GetClient()
 	pod, err := client.GetPod(podName, namespace)
@@ -43,6 +52,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 				Error:   err.Error(),
 				Status:  "failure",
 			},
+			nil,
 			err
 	}
 
@@ -53,25 +63,26 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 				Error:   err.Error(),
 				Status:  "failure",
 			},
+			nil,
 			err
 	}
 
 	switch ownerKind {
 	case "DaemonSet":
-		if ignoreDaemonsets, ok := parameters["ignore_daemonsets"].(bool); ok && ignoreDaemonsets {
+		if config.IgnoreDaemonsets {
 			return utils.LogLine{
 				Objects: objects,
 				Status:  "ignored",
 				Result:  fmt.Sprintf("the pod '%v' in the namespace '%v' belongs to a DaemonSet and will be ignored.", podName, namespace),
-			}, nil
+			}, nil, nil
 		}
 	case "StatefulSet":
-		if ignoreStatefulsets, ok := parameters["ignore_statefulsets"].(bool); ok && ignoreStatefulsets {
+		if config.IgnoreStatefulSets {
 			return utils.LogLine{
 				Objects: objects,
 				Status:  "ignored",
 				Result:  fmt.Sprintf("the pod '%v' in the namespace '%v' belongs to a StatefulSet and will be ignored.", podName, namespace),
-			}, nil
+			}, nil, nil
 		}
 	case "ReplicaSet":
 		replicaSetName, err2 := kubernetes.GetOwnerName(*pod)
@@ -80,24 +91,24 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 				Objects: objects,
 				Status:  "failure",
 				Error:   err2.Error(),
-			}, nil
+			}, nil, nil
 		}
-		if minHealthyReplicas, ok := parameters["min_healthy_replicas"].(string); ok && minHealthyReplicas != "" {
+		if config.MinHealthyReplicas != "" {
 			replicaSet, err2 := client.GetReplicaSet(replicaSetName, pod.Namespace)
 			if err2 != nil {
 				return utils.LogLine{
 					Objects: objects,
 					Status:  "failure",
 					Error:   err2.Error(),
-				}, nil
+				}, nil, nil
 			}
-			minHealthyReplicasValue, kind, err2 := helpers.ParseMinHealthyReplicas(minHealthyReplicas)
+			minHealthyReplicasValue, kind, err2 := helpers.ParseMinHealthyReplicas(config.MinHealthyReplicas)
 			if err2 != nil {
 				return utils.LogLine{
 					Objects: objects,
 					Status:  "failure",
 					Error:   err2.Error(),
-				}, nil
+				}, nil, nil
 			}
 			switch kind {
 			case "absolut":
@@ -107,14 +118,14 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 						Objects: objects,
 						Status:  "failure",
 						Error:   err2.Error(),
-					}, nil
+					}, nil, nil
 				}
 				if healthyReplicasCount < minHealthyReplicasValue {
 					return utils.LogLine{
 						Objects: objects,
 						Status:  "ignored",
 						Result:  fmt.Sprintf("the pod '%v' in the namespace '%v' belongs to a ReplicaSet without enough healthy replicas and will be ignored.", podName, namespace),
-					}, nil
+					}, nil, nil
 				}
 			case "percent":
 				healthyReplicasPercent, err2 := kubernetes.GetHealthyReplicasCount(replicaSet)
@@ -123,14 +134,14 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 						Objects: objects,
 						Status:  "failure",
 						Error:   err2.Error(),
-					}, nil
+					}, nil, nil
 				}
 				if healthyReplicasPercent < minHealthyReplicasValue {
 					return utils.LogLine{
 						Objects: objects,
 						Status:  "ignored",
 						Result:  fmt.Sprintf("the pod '%v' in the namespace '%v' belongs to a ReplicaSet without enough healthy replicas and will be ignored.", podName, namespace),
-					}, nil
+					}, nil, nil
 				}
 			}
 		}
@@ -143,6 +154,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 				Status:  "failure",
 				Error:   err.Error(),
 			},
+			nil,
 			err
 	}
 	return utils.LogLine{
@@ -150,7 +162,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			Output:  fmt.Sprintf("the pod '%v' in the namespace '%v' has been terminated", podName, namespace),
 			Status:  "success",
 		},
-		nil
+		nil, nil
 }
 
 func CheckParameters(action *rules.Action) error {

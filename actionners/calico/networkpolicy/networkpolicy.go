@@ -15,6 +15,7 @@ import (
 	"github.com/falco-talon/falco-talon/internal/events"
 	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 	"github.com/falco-talon/falco-talon/internal/rules"
+	"github.com/falco-talon/falco-talon/outputs/model"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
@@ -27,11 +28,21 @@ type Config struct {
 const mask32 string = "/32"
 const managedByStr string = "app.kubernetes.io/managed-by"
 
-func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
+func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Data, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
 	parameters := action.GetParameters()
+
+	var config Config
+	err := utils.DecodeParams(parameters, &config)
+	if err != nil {
+		return utils.LogLine{
+			Objects: nil,
+			Error:   err.Error(),
+			Status:  "failure",
+		}, nil, err
+	}
 
 	objects := map[string]string{
 		"pod":       podName,
@@ -40,15 +51,13 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	k8sClient := kubernetes.GetClient()
 	calicoClient := calico.GetClient()
 
-	var err error
 	pod, err := k8sClient.GetPod(podName, namespace)
 	if err != nil {
 		return utils.LogLine{
-				Objects: objects,
-				Error:   err.Error(),
-				Status:  "failure",
-			},
-			err
+			Objects: objects,
+			Error:   err.Error(),
+			Status:  "failure",
+		}, nil, err
 	}
 
 	var owner string
@@ -60,11 +69,10 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			u, err2 := k8sClient.GetDaemonsetFromPod(pod)
 			if err2 != nil {
 				return utils.LogLine{
-						Objects: objects,
-						Error:   err2.Error(),
-						Status:  "failure",
-					},
-					err2
+					Objects: objects,
+					Error:   err2.Error(),
+					Status:  "failure",
+				}, nil, err2
 			}
 			owner = u.ObjectMeta.Name
 			labels = u.Spec.Selector.MatchLabels
@@ -72,11 +80,10 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			u, err2 := k8sClient.GetStatefulsetFromPod(pod)
 			if err2 != nil {
 				return utils.LogLine{
-						Objects: objects,
-						Error:   err2.Error(),
-						Status:  "failure",
-					},
-					err2
+					Objects: objects,
+					Error:   err2.Error(),
+					Status:  "failure",
+				}, nil, err2
 			}
 			owner = u.ObjectMeta.Name
 			labels = u.Spec.Selector.MatchLabels
@@ -84,11 +91,10 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			u, err2 := k8sClient.GetReplicasetFromPod(pod)
 			if err2 != nil {
 				return utils.LogLine{
-						Objects: objects,
-						Error:   err2.Error(),
-						Status:  "failure",
-					},
-					err2
+					Objects: objects,
+					Error:   err2.Error(),
+					Status:  "failure",
+				}, nil, err2
 			}
 			owner = u.ObjectMeta.Name
 			labels = u.Spec.Selector.MatchLabels
@@ -101,11 +107,10 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	if owner == "" || len(labels) == 0 {
 		err3 := fmt.Errorf("can't find the owner and/or labels for the pod '%v' in the namespace '%v'", podName, namespace)
 		return utils.LogLine{
-				Objects: objects,
-				Error:   err3.Error(),
-				Status:  "failure",
-			},
-			err3
+			Objects: objects,
+			Error:   err3.Error(),
+			Status:  "failure",
+		}, nil, err3
 	}
 
 	delete(labels, "pod-template-hash")
@@ -124,10 +129,8 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		},
 	}
 
-	if parameters["order"] != nil {
-		order := float64(parameters["order"].(int))
-		payload.Spec.Order = &order
-	}
+	order := float64(config.Order)
+	payload.Spec.Order = &order
 
 	var selector string
 	for i, j := range labels {
@@ -140,7 +143,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 	var allowCIDRRule, allowNamespacesRule *networkingv3.Rule
 
-	if parameters["allow_cidr"] == nil && parameters["allow_namespaces"] == nil {
+	if config.AllowCIDR == nil && config.AllowNamespaces == nil {
 		allowCIDRRule = &networkingv3.Rule{
 			Action: "Allow",
 			Destination: networkingv3.EntityRule{
@@ -149,19 +152,18 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		}
 		allowNamespacesRule = nil
 	} else {
-		allowCIDRRule = createAllowCIDREgressRule(action)
-		allowNamespacesRule = createAllowNamespaceEgressRule(action)
+		allowCIDRRule = createAllowCIDREgressRule(&config)
+		allowNamespacesRule = createAllowNamespaceEgressRule(&config)
 	}
 
 	denyRule := createDenyEgressRule([]string{event.GetRemoteIP() + mask32})
 	if denyRule == nil {
 		err2 := fmt.Errorf("can't create the rule for the networkpolicy '%v' in the namespace '%v'", owner, namespace)
 		return utils.LogLine{
-				Objects: objects,
-				Error:   err2.Error(),
-				Status:  "failure",
-			},
-			err2
+			Objects: objects,
+			Error:   err2.Error(),
+			Status:  "failure",
+		}, nil, err2
 	}
 
 	var output string
@@ -179,30 +181,27 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		if err2 != nil {
 			if !errorsv1.IsAlreadyExists(err2) {
 				return utils.LogLine{
-						Objects: objects,
-						Error:   err2.Error(),
-						Status:  "failure",
-					},
-					err2
+					Objects: objects,
+					Error:   err2.Error(),
+					Status:  "failure",
+				}, nil, err2
 			}
 			netpol, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Get(context.Background(), owner, metav1.GetOptions{})
 		} else {
 			output = fmt.Sprintf("the caliconetworkpolicy '%v' in the namespace '%v' has been created", owner, namespace)
 			return utils.LogLine{
-					Objects: objects,
-					Output:  output,
-					Status:  "success",
-				},
-				nil
+				Objects: objects,
+				Output:  output,
+				Status:  "success",
+			}, nil, nil
 		}
 	}
 	if err != nil {
 		return utils.LogLine{
-				Objects: objects,
-				Error:   err.Error(),
-				Status:  "failure",
-			},
-			err
+			Objects: objects,
+			Error:   err.Error(),
+			Status:  "failure",
+		}, nil, err
 	}
 	payload.ObjectMeta.ResourceVersion = netpol.ObjectMeta.ResourceVersion
 	var denyCIDR []string
@@ -224,29 +223,23 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	_, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Update(context.Background(), &payload, metav1.UpdateOptions{})
 	if err != nil {
 		return utils.LogLine{
-				Objects: objects,
-				Error:   err.Error(),
-				Status:  "failure",
-			},
-			err
+			Objects: objects,
+			Error:   err.Error(),
+			Status:  "failure",
+		}, nil, err
 	}
+	objects["caliconetworpolicy"] = owner
 	output = fmt.Sprintf("the caliconetworkpolicy '%v' in the namespace '%v' has been updated", owner, namespace)
-	objects["NetworkPolicy"] = owner
 
 	return utils.LogLine{
-			Objects: objects,
-			Output:  output,
-			Status:  "success",
-		},
-		nil
+		Objects: objects,
+		Output:  output,
+		Status:  "success",
+	}, nil, nil
 }
 
-func createAllowCIDREgressRule(action *rules.Action) *networkingv3.Rule {
-	if action.GetParameters()["allow_cidr"] == nil {
-		return nil
-	}
-
-	if len(action.GetParameters()["allow_cidr"].([]interface{})) == 0 {
+func createAllowCIDREgressRule(config *Config) *networkingv3.Rule {
+	if len(config.AllowCIDR) == 0 {
 		return nil
 	}
 
@@ -255,19 +248,13 @@ func createAllowCIDREgressRule(action *rules.Action) *networkingv3.Rule {
 		Destination: networkingv3.EntityRule{},
 	}
 
-	for _, i := range action.GetParameters()["allow_cidr"].([]interface{}) {
-		rule.Destination.Nets = append(rule.Destination.Nets, i.(string))
-	}
+	rule.Destination.Nets = append(rule.Destination.Nets, config.AllowCIDR...)
 
 	return &rule
 }
 
-func createAllowNamespaceEgressRule(action *rules.Action) *networkingv3.Rule {
-	if action.GetParameters()["allow_namespaces"] == nil {
-		return nil
-	}
-
-	if len(action.GetParameters()["allow_namespaces"].([]interface{})) == 0 {
+func createAllowNamespaceEgressRule(config *Config) *networkingv3.Rule {
+	if len(config.AllowNamespaces) == 0 {
 		return nil
 	}
 
@@ -277,9 +264,7 @@ func createAllowNamespaceEgressRule(action *rules.Action) *networkingv3.Rule {
 	}
 
 	allowedNamespacesStr := []string{}
-	for _, i := range action.GetParameters()["allow_namespaces"].([]interface{}) {
-		allowedNamespacesStr = append(allowedNamespacesStr, i.(string))
-	}
+	allowedNamespacesStr = append(allowedNamespacesStr, config.AllowNamespaces...)
 
 	selector := "kubernetes.io/metadata.name in { '"
 	selector += strings.Join(allowedNamespacesStr, "', '")

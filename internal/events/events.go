@@ -74,6 +74,10 @@ func (event *Event) GetNamespaceName() string {
 	return ""
 }
 
+func (event *Event) GetHostname() string {
+	return event.Hostname
+}
+
 func (event *Event) GetTargetName() string {
 	if event.OutputFields["ka.target.name"] != nil {
 		return event.OutputFields["ka.target.name"].(string)

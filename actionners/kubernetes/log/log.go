@@ -11,14 +11,19 @@ import (
 	"github.com/falco-talon/falco-talon/internal/events"
 	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 	"github.com/falco-talon/falco-talon/internal/rules"
+	"github.com/falco-talon/falco-talon/outputs/model"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
 type Config struct {
-	TailLines int `mapstructure:"tail_lines" validate:"omitempty"`
+	TailLines int `mapstructure:"tail_lines" validate:"gte=0,omitempty"`
 }
 
-func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
+const (
+	defaultTailLines int = 20
+)
+
+func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Data, error) {
 	pod := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
@@ -28,17 +33,20 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	}
 
 	parameters := action.GetParameters()
-	tailLines := new(int64)
-	if parameters["tail_lines"] != nil {
-		*tailLines = int64(parameters["tail_lines"].(int))
-	}
-	if *tailLines == 0 {
-		*tailLines = 20
+	var config Config
+	err := utils.DecodeParams(parameters, &config)
+	if err != nil {
+		return utils.LogLine{
+			Objects: nil,
+			Error:   err.Error(),
+			Status:  "failure",
+		}, nil, err
 	}
 
-	command := new(string)
-	if parameters["command"] != nil {
-		*command = parameters["command"].(string)
+	tailLines := new(int64)
+	*tailLines = int64(defaultTailLines)
+	if config.TailLines > 0 {
+		*tailLines = int64(config.TailLines)
 	}
 
 	client := kubernetes.GetClient()
@@ -48,15 +56,14 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	if len(containers) == 0 {
 		err := fmt.Errorf("no container found")
 		return utils.LogLine{
-				Objects: objects,
-				Error:   err.Error(),
-				Status:  "failure",
-			},
-			err
+			Objects: objects,
+			Error:   err.Error(),
+			Status:  "failure",
+		}, nil, err
 	}
 
 	ctx := context.Background()
-	var output string
+	var output []byte
 
 	for i, container := range containers {
 		logs, err := client.Clientset.CoreV1().Pods(namespace).GetLogs(pod, &corev1.PodLogOptions{
@@ -69,7 +76,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 					Objects: objects,
 					Error:   err.Error(),
 					Status:  "failure",
-				}, err
+				}, nil, err
 			}
 			continue
 		}
@@ -79,25 +86,23 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		_, err = io.Copy(buf, logs)
 		if err != nil {
 			return utils.LogLine{
-					Objects: objects,
-					Status:  "failure",
-					Error:   err.Error(),
-				},
-				err
+				Objects: objects,
+				Status:  "failure",
+				Error:   err.Error(),
+			}, nil, err
 		}
 
-		output = buf.String()
-		if output != "" {
+		output = buf.Bytes()
+		if len(output) != 0 {
 			break
 		}
 	}
 
 	return utils.LogLine{
-			Objects: objects,
-			Output:  output,
-			Status:  "success",
-		},
-		nil
+		Objects: objects,
+		Output:  fmt.Sprintf("the logs for the pod '%v' in the namespace '%v' has been downloaded", pod, namespace),
+		Status:  "success",
+	}, &model.Data{Name: "log", Namespace: namespace, Pod: pod, Hostname: event.GetHostname(), Bytes: output}, nil
 }
 
 func CheckParameters(action *rules.Action) error {

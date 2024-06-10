@@ -80,9 +80,18 @@ func NewPayload(log utils.LogLine) Payload {
 	s := make(map[string]string)
 
 	s["status"] = log.Status
-	s["rule"] = strings.ReplaceAll(strings.ToLower(log.Rule), " ", "_")
-	s["action"] = strings.ReplaceAll(strings.ToLower(log.Action), " ", "_")
-	s["actionner"] = log.Actionner
+	if log.Rule != "" {
+		s["rule"] = strings.ReplaceAll(strings.ToLower(log.Rule), " ", "_")
+	}
+	if log.Action != "" {
+		s["action"] = strings.ReplaceAll(strings.ToLower(log.Action), " ", "_")
+	}
+	if log.Actionner != "" {
+		s["actionner"] = log.Actionner
+	}
+	if log.Target != "" {
+		s["target"] = log.Target
+	}
 	s["message"] = log.Message
 	s["traceid"] = log.TraceID
 

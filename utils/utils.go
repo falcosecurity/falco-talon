@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-playground/validator/v10"
+	validator "github.com/go-playground/validator/v10"
 	"github.com/mitchellh/mapstructure"
 	"github.com/rs/zerolog"
 )
@@ -48,12 +48,14 @@ type LogLine struct {
 	Event             string            `json:"event,omitempty"`
 	Message           string            `json:"message,omitempty"`
 	Priority          string            `json:"priority,omitempty"`
+	Target            string            `json:"target,omitempty"`
 	Source            string            `json:"source,omitempty"`
 	Result            string            `json:"result,omitempty"`
 	Notifier          string            `json:"notifier,omitempty"`
 	Context           string            `json:"context,omitempty"`
 	Output            string            `json:"output,omitempty"`
 	ActionnerCategory string            `json:"actionner_category,omitempty"`
+	OutputCategory    string            `json:"output_category,omitempty"`
 	Actionner         string            `json:"actionner,omitempty"`
 	Action            string            `json:"action,omitempty"`
 	Error             string            `json:"error,omitempty"`
@@ -131,11 +133,17 @@ func PrintLog(level string, line LogLine) {
 	if line.ActionnerCategory != "" {
 		l.Str("actionner_category", line.ActionnerCategory)
 	}
+	if line.OutputCategory != "" {
+		l.Str("output_category", line.OutputCategory)
+	}
 	if line.Action != "" {
 		l.Str("action", line.Action)
 	}
 	if line.Status != "" {
 		l.Str("status", line.Status)
+	}
+	if line.Target != "" {
+		l.Str("target", line.Target)
 	}
 	if line.Result != "" {
 		l.Str("result", line.Result)

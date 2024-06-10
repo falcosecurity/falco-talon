@@ -2,19 +2,14 @@ package script
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"os"
-	"strings"
-
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/tools/remotecommand"
-	"k8s.io/kubectl/pkg/scheme"
 
 	"github.com/falco-talon/falco-talon/internal/events"
 	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 	"github.com/falco-talon/falco-talon/internal/rules"
+	"github.com/falco-talon/falco-talon/outputs/model"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
@@ -24,7 +19,7 @@ type Config struct {
 	Shell  string `mapstructure:"shell" validate:"omitempty"`
 }
 
-func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
+func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Data, error) {
 	pod := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
@@ -34,26 +29,38 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	}
 
 	parameters := action.GetParameters()
-	shell := new(string)
-	if parameters["shell"] != nil {
-		*shell = parameters["shell"].(string)
+	var config Config
+	err := utils.DecodeParams(parameters, &config)
+	if err != nil {
+		return utils.LogLine{
+			Objects: nil,
+			Error:   err.Error(),
+			Status:  "failure",
+		}, nil, err
 	}
-	if *shell == "" {
+
+	shell := new(string)
+	if config.Shell != "" {
+		*shell = config.Shell
+	} else {
 		*shell = "/bin/sh"
 	}
+
 	script := new(string)
-	if parameters["script"] != nil {
-		*script = parameters["script"].(string)
+	if config.Script != "" {
+		*script = config.Script
 	}
-	if parameters["file"] != nil {
-		fileContent, err := os.ReadFile(parameters["file"].(string))
-		if err != nil {
+
+	if config.File != "" {
+		fileContent, err2 := os.ReadFile(config.File)
+		if err2 != nil {
 			return utils.LogLine{
 					Objects: objects,
-					Error:   err.Error(),
+					Error:   err2.Error(),
 					Status:  "failure",
 				},
-				err
+				nil,
+				err2
 		}
 		*script = string(fileContent)
 	}
@@ -61,116 +68,57 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	event.ExportEnvVars()
 	*script = os.ExpandEnv(*script)
 
-	reader := strings.NewReader(*script)
-
 	client := kubernetes.GetClient()
 
 	p, _ := client.GetPod(pod, namespace)
 	containers := kubernetes.GetContainers(p)
 	if len(containers) == 0 {
-		err := fmt.Errorf("no container found")
+		err = fmt.Errorf("no container found")
 		return utils.LogLine{
 				Objects: objects,
 				Error:   err.Error(),
 				Status:  "failure",
 			},
+			nil,
 			err
 	}
 
-	var err error
-	buf := &bytes.Buffer{}
-	errBuf := &bytes.Buffer{}
-	var exec remotecommand.Executor
-	var container string
-
 	// copy the script to /tmp of the pod
+	var container string
+	output := new(bytes.Buffer)
 	for i, j := range containers {
 		container = j
-		request := client.Clientset.CoreV1().RESTClient().
-			Post().
-			Namespace(namespace).
-			Resource("pods").
-			Name(pod).
-			SubResource("exec").
-			VersionedParams(&corev1.PodExecOptions{
-				Container: container,
-				Command:   []string{"tee", "/tmp/talon-script.sh", ">", "/dev/null"},
-				Stdin:     true,
-				Stdout:    false,
-				Stderr:    true,
-				TTY:       false,
-			}, scheme.ParameterCodec)
-		exec, err = remotecommand.NewSPDYExecutor(client.RestConfig, "POST", request.URL())
+		command := []string{"tee", "/tmp/talon-script.sh", ">", "/dev/null"}
+		_, err = client.Exec(namespace, pod, container, command, *script)
 		if err != nil {
 			if i == len(containers)-1 {
 				return utils.LogLine{
 					Objects: objects,
 					Error:   err.Error(),
 					Status:  "failure",
-				}, err
+				}, nil, err
 			}
 			continue
 		}
 	}
-	err = exec.StreamWithContext(context.Background(), remotecommand.StreamOptions{
-		Stdin:  reader,
-		Stdout: nil,
-		Stderr: errBuf,
-		Tty:    false,
-	})
-	if err != nil {
-		return utils.LogLine{
-				Objects: objects,
-				Error:   errBuf.String(),
-				Status:  "failure",
-			},
-			err
-	}
 
 	// run the script
-	request := client.Clientset.CoreV1().RESTClient().
-		Post().
-		Namespace(namespace).
-		Resource("pods").
-		Name(pod).
-		SubResource("exec").
-		VersionedParams(&corev1.PodExecOptions{
-			Container: container,
-			Command:   []string{*shell, "/tmp/talon-script.sh"},
-			Stdin:     false,
-			Stdout:    true,
-			Stderr:    true,
-			TTY:       false,
-		}, scheme.ParameterCodec)
-	exec, err = remotecommand.NewSPDYExecutor(client.RestConfig, "POST", request.URL())
+	command := []string{*shell, "/tmp/talon-script.sh"}
+	output, err = client.Exec(namespace, pod, container, command, "")
 	if err != nil {
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
 			Status:  "failure",
-		}, err
+		}, nil, err
 	}
-	err = exec.StreamWithContext(context.Background(), remotecommand.StreamOptions{
-		Stdin:  nil,
-		Stdout: buf,
-		Stderr: errBuf,
-		Tty:    false,
-	})
-	if err != nil {
-		return utils.LogLine{
-				Objects: objects,
-				Error:   errBuf.String(),
-				Status:  "failure",
-			},
-			err
-	}
-	output := utils.RemoveAnsiCharacters(buf.String())
 
 	return utils.LogLine{
 			Objects: objects,
-			Output:  output,
+			Output:  utils.RemoveAnsiCharacters(output.String()),
 			Status:  "success",
 		},
+		nil,
 		nil
 }
 

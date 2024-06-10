@@ -1,4 +1,4 @@
-package exec
+package copy
 
 import (
 	"bytes"
@@ -13,8 +13,7 @@ import (
 )
 
 type Config struct {
-	Commannd string `mapstructure:"command" validate:"required"`
-	Shell    string `mapstructure:"shell" validate:"omitempty"`
+	File string `mapstructure:"file" validate:"required"`
 }
 
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Data, error) {
@@ -37,18 +36,13 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		}, nil, err
 	}
 
-	shell := new(string)
-	if config.Shell != "" {
-		*shell = config.Shell
-	} else {
-		*shell = "/bin/sh"
-	}
-
-	command := new(string)
-	*command = config.Commannd
+	file := new(string)
+	*file = config.File
 
 	event.ExportEnvVars()
-	*command = os.ExpandEnv(*command)
+	*file = os.ExpandEnv(*file)
+
+	objects["file"] = *file
 
 	client := kubernetes.GetClient()
 
@@ -65,7 +59,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 
 	output := new(bytes.Buffer)
 	for i, container := range containers {
-		command := []string{*shell, "-c", *command}
+		command := []string{"cat", *file}
 		output, err = client.Exec(namespace, pod, container, command, "")
 		if err != nil {
 			if i == len(containers)-1 {
@@ -77,13 +71,13 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 			}
 			continue
 		}
+		break
 	}
-
 	return utils.LogLine{
 		Objects: objects,
-		Output:  utils.RemoveAnsiCharacters(output.String()),
+		Output:  fmt.Sprintf("the file '%v' has been downloaded", *file),
 		Status:  "success",
-	}, nil, nil
+	}, &model.Data{Name: *file, Namespace: event.GetNamespaceName(), Pod: event.GetPodName(), Hostname: event.GetHostname(), Bytes: output.Bytes()}, nil
 }
 
 func CheckParameters(action *rules.Action) error {

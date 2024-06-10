@@ -3,14 +3,16 @@ package networkpolicy
 import (
 	"context"
 	"fmt"
+	"net"
+
 	v2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
 	v1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/cilium/pkg/policy/api"
 	errorsv1 "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net"
 
 	cilium "github.com/falco-talon/falco-talon/internal/cilium/client"
+	"github.com/falco-talon/falco-talon/outputs/model"
 
 	"github.com/falco-talon/falco-talon/internal/events"
 	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
@@ -28,7 +30,7 @@ const managedByStr string = "app.kubernetes.io/managed-by"
 const netpolDescription string = "Network policy created by Falco Talon"
 const namespaceKey = "kubernetes.io/metadata.name"
 
-func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
+func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Data, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
@@ -40,6 +42,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 				Error:   err.Error(),
 				Status:  "failure",
 			},
+			nil,
 			err
 	}
 
@@ -58,6 +61,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 				Error:   err.Error(),
 				Status:  "failure",
 			},
+			nil,
 			err
 	}
 
@@ -74,6 +78,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 						Error:   err2.Error(),
 						Status:  "failure",
 					},
+					nil,
 					err2
 			}
 			owner = u.ObjectMeta.Name
@@ -86,6 +91,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 						Error:   err2.Error(),
 						Status:  "failure",
 					},
+					nil,
 					err2
 			}
 			owner = u.ObjectMeta.Name
@@ -98,6 +104,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 						Error:   err2.Error(),
 						Status:  "failure",
 					},
+					nil,
 					err2
 			}
 			owner = u.ObjectMeta.Name
@@ -115,6 +122,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 				Error:   err3.Error(),
 				Status:  "failure",
 			},
+			nil,
 			err3
 	}
 
@@ -166,6 +174,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 				Error:   err2.Error(),
 				Status:  "failure",
 			},
+			nil,
 			err2
 	}
 
@@ -188,6 +197,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 					Error:   err2.Error(),
 					Status:  "failure",
 				},
+				nil,
 				err2
 		}
 		output = fmt.Sprintf("the ciliumnetworkpolicy '%v' in the namespace '%v' has been created", owner, namespace)
@@ -196,6 +206,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 				Output:  output,
 				Status:  "success",
 			},
+			nil,
 			nil
 	}
 	if err != nil {
@@ -204,6 +215,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 				Error:   err.Error(),
 				Status:  "failure",
 			},
+			nil,
 			err
 	}
 
@@ -213,17 +225,17 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 	denyRule = createDenyEgressRule([]string{event.GetRemoteIP() + mask32})
 
-	for _, egressDenyRule := range payload.Spec.EgressDeny {
-		if !denyEgressRuleExists(egressDenyRule, *denyRule) {
+	for i := range payload.Spec.EgressDeny {
+		if !denyEgressRuleExists(&payload.Spec.EgressDeny[i], denyRule) {
 			payload.Spec.EgressDeny = append(payload.Spec.EgressDeny, *denyRule)
 		}
 	}
 
-	for _, egressRule := range payload.Spec.Egress {
-		if !egressRuleExists(egressRule, *allowCIDRRule) && allowCIDRRule != nil {
+	for i := range payload.Spec.Egress {
+		if !egressRuleExists(&payload.Spec.Egress[i], allowCIDRRule) && allowCIDRRule != nil {
 			payload.Spec.Egress = append(payload.Spec.Egress, *allowCIDRRule)
 		}
-		if !egressRuleExists(egressRule, *allowNamespacesRule) && allowNamespacesRule != nil {
+		if !egressRuleExists(&payload.Spec.Egress[i], allowNamespacesRule) && allowNamespacesRule != nil {
 			payload.Spec.Egress = append(payload.Spec.Egress, *allowNamespacesRule)
 		}
 	}
@@ -235,6 +247,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 				Error:   err.Error(),
 				Status:  "failure",
 			},
+			nil,
 			err
 	}
 	output = fmt.Sprintf("the ciliumnetworkpolicy '%v' in the namespace '%v' has been updated", owner, namespace)
@@ -245,6 +258,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			Output:  output,
 			Status:  "success",
 		},
+		nil,
 		nil
 }
 
@@ -308,18 +322,12 @@ func createDenyEgressRule(ips []string) *api.EgressDenyRule {
 	return &r
 }
 
-func egressRuleExists(rule api.EgressRule, newRule api.EgressRule) bool {
-	if rule.DeepEqual(&newRule) {
-		return true
-	}
-	return false
+func egressRuleExists(rule *api.EgressRule, newRule *api.EgressRule) bool {
+	return rule.DeepEqual(newRule)
 }
 
-func denyEgressRuleExists(denyEgressRule api.EgressDenyRule, newDenyEgressRule api.EgressDenyRule) bool {
-	if denyEgressRule.DeepEqual(&newDenyEgressRule) {
-		return true
-	}
-	return false
+func denyEgressRuleExists(denyEgressRule *api.EgressDenyRule, newDenyEgressRule *api.EgressDenyRule) bool {
+	return denyEgressRule.DeepEqual(newDenyEgressRule)
 }
 
 func CheckParameters(action *rules.Action) error {

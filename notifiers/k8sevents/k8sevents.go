@@ -3,6 +3,7 @@ package k8sevents
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -21,10 +22,18 @@ const (
 
 var plaintextTmpl = `Status: {{ .Status }}
 Message: {{ .Message }}
+{{- if .Rule }}
 Rule: {{ .Rule }}
+{{- end }}
+{{- if .Action }}
 Action: {{ .Action }}
+{{- end }}
+{{- if .Actionner }}
 Actionner: {{ .Actionner }}
+{{- end }}
+{{- if .Event }}
 Event: {{ .Event }}
+{{- end }}
 {{- range $key, $value := .Objects }}
 {{ $key }}: {{ $value }}
 {{- end }}
@@ -36,6 +45,9 @@ Result: {{ .Result }}
 {{- end }}
 {{- if .Output }}
 Output: {{ .Output }}
+{{- end }}
+{{- if .Target }}
+Target: {{ .Target }}
 {{- end }}
 TraceID: {{ .TraceID }}
 `
@@ -71,6 +83,14 @@ func Notify(log utils.LogLine) error {
 		namespace = defaultStr
 	}
 
+	var reason string
+	if log.Actionner != "" {
+		reason = log.Actionner
+	}
+	if log.Target != "" {
+		reason = log.Target
+	}
+
 	k8sevent := &corev1.Event{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Event",
@@ -84,7 +104,7 @@ func Notify(log utils.LogLine) error {
 			Namespace: namespace,
 			Name:      log.Objects["pod"],
 		},
-		Reason:  falcoTalon + ":" + log.Actionner + ":" + log.Status,
+		Reason:  fmt.Sprintf("%v:%v:%v:%v", falcoTalon, log.Message, reason, log.Status),
 		Message: strings.ReplaceAll(message, `'`, `"`),
 		Source: corev1.EventSource{
 			Component: falcoTalon,
@@ -93,7 +113,7 @@ func Notify(log utils.LogLine) error {
 		EventTime:           metav1.NowMicro(),
 		ReportingController: "falcosecurity.org/" + falcoTalon,
 		ReportingInstance:   falcoTalon,
-		Action:              log.Actionner,
+		Action:              reason,
 	}
 	_, err = client.Clientset.CoreV1().Events(namespace).Create(context.TODO(), k8sevent, metav1.CreateOptions{})
 	if err != nil {

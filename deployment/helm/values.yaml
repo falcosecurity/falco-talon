@@ -5,7 +5,7 @@
 replicaCount: 2
 
 image:
-  registry: docker.io
+  registry: falco.docker.scarf.sh
   repository: issif/falco-talon
   tag: latest
   pullPolicy: Always
@@ -32,9 +32,6 @@ extraEnv:
 priorityClassName: ""
 
 podAnnotations: {}
-
-# listenAddress: 0.0.0.0
-# listenPort: 2803
 
 service:
   type: ClusterIP
@@ -77,29 +74,65 @@ tolerations: []
 
 affinity: {}
 
-defaultNotifiers: # these notifiers will be enabled for all rules
-  #  - slack
-  - k8sevents
+config:
+# listenAddress: 0.0.0.0
+# listenPort: 2803
 
-watchRules: true # reload if the rules file changes (default: true)
+  defaultNotifiers: # these notifiers will be enabled for all rules
+    #  - slack
+    - k8sevents
 
-rulesFiles: # list of locale rules files to use, they will be concatenated into a single config map
-  - rules.yaml
-  - rules_override.yaml
+  watchRules: true # reload if the rules file changes (default: true)
 
-deduplication:
-  leaderElection: true # enable the leader election for cluster mode
-  timeWindowSeconds: 5 # duration in seconds for the deduplication time window
+  rulesFiles: # list of locale rules files to use, they will be concatenated into a single config map
+    - rules.yaml
+    - rules_override.yaml
 
-printAllEvents: false # print in stdout all received events, not only those which match a rule
+  deduplication:
+    leaderElection: true # enable the leader election for cluster mode
+    timeWindowSeconds: 5 # duration in seconds for the deduplication time window
 
-# See https://docs.falco-talon.org/docs/notifiers/list/ for the settings
-notifiers:
-  slack:
-    # webhook_url: "https://hooks.slack.com/services/XXXX"
-    # icon: "" # default: "https://upload.wikimedia.org/wikipedia/commons/2/26/Circaetus_gallicus_claw.jpg"
-    # username: "" # default: "Falco Talon"
-    footer: "" # default: "https://github.com/falco-talon/falco-talon"
-    format: long # default: long
-  webhook:
-    url: ""
+  printAllEvents: false # print in stdout all received events, not only those which match a rule
+
+  # See https://docs.falco-talon.org/docs/notifiers/list/ for the settings
+  notifiers:
+    slack:
+      webhookUrl: ""
+      icon: "https://upload.wikimedia.org/wikipedia/commons/2/26/Circaetus_gallicus_claw.jpg"
+      username: "Falco Talon"
+      footer: "https://github.com/falco-talon/falco-talon"
+      format: "long"
+    webhook:
+      url: ""
+    smtp:
+      hostPort: ""
+      from: ""
+      to: ""
+      user: ""
+      password: ""
+      format: "html"
+      tls: false
+    loki:
+      hostPort: ""
+      user: ""
+      apiKey: ""
+      tenant: ""
+      customHeaders: []
+    elasticsearch:
+      url: ""
+      createIndexTemplate: true
+      numberOfShards: 1
+      numberOfReplicas: 1
+
+  aws:
+    roleArn: ""
+    externalId: ""
+    region: "" # if not specified, default region from provider credential chain will be used
+    accesKey: "" # if not specified, default access_key from provider credential chain will be used
+    secretKey: "" # if not specified, default secret_key from provider credential chain will be used
+
+  minio:
+    endpoint: "" # endpoint
+    accessKy: "" # access key
+    secretKey: "" # secret key
+    useSsl: false # Use SSL
