@@ -1,11 +1,10 @@
 package actionners
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-
 	lambdaInvoke "github.com/falco-talon/falco-talon/actionners/aws/lambda"
-
 	calicoNetworkpolicy "github.com/falco-talon/falco-talon/actionners/calico/networkpolicy"
 	k8sCordon "github.com/falco-talon/falco-talon/actionners/kubernetes/cordon"
 	k8sDelete "github.com/falco-talon/falco-talon/actionners/kubernetes/delete"
@@ -20,14 +19,18 @@ import (
 	awsChecks "github.com/falco-talon/falco-talon/internal/aws/checks"
 	aws "github.com/falco-talon/falco-talon/internal/aws/client"
 	calico "github.com/falco-talon/falco-talon/internal/calico/client"
-	"github.com/falco-talon/falco-talon/internal/context"
+	falcoContext "github.com/falco-talon/falco-talon/internal/context"
 	"github.com/falco-talon/falco-talon/internal/events"
 	k8sChecks "github.com/falco-talon/falco-talon/internal/kubernetes/checks"
 	k8s "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	"github.com/falco-talon/falco-talon/internal/nats"
 	"github.com/falco-talon/falco-talon/internal/rules"
 	"github.com/falco-talon/falco-talon/metrics"
 	"github.com/falco-talon/falco-talon/notifiers"
+	"github.com/falco-talon/falco-talon/tracing"
 	"github.com/falco-talon/falco-talon/utils"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type Actionner struct {
@@ -276,7 +279,7 @@ func (actionner *Actionner) AllowAdditionalContext() bool {
 	return actionner.AllowAdditionalContexts
 }
 
-func runAction(rule *rules.Rule, action *rules.Action, event *events.Event) error {
+func runAction(ctx context.Context, rule *rules.Rule, action *rules.Action, event *events.Event) error {
 	actionners := GetActionners()
 	if actionners == nil {
 		return nil
@@ -314,6 +317,14 @@ func runAction(rule *rules.Rule, action *rules.Action, event *events.Event) erro
 		}
 	}
 
+	tracer := tracing.GetTracer()
+	_, span := tracer.Start(ctx, "action",
+		trace.WithAttributes(attribute.String("action_name", action.Name)),
+		trace.WithAttributes(attribute.String("action_actionner", action.Actionner)),
+		trace.WithAttributes(attribute.String("action_description", action.Description)),
+	)
+	defer span.End()
+
 	result, err := actionner.Action(action, event)
 	log.Status = result.Status
 	if len(result.Objects) != 0 {
@@ -338,10 +349,12 @@ func runAction(rule *rules.Rule, action *rules.Action, event *events.Event) erro
 	return nil
 }
 
-func StartConsumer(eventsC <-chan string) {
+func StartConsumer(eventsC <-chan nats.MessageWithContext) {
 	config := configuration.GetConfiguration()
 	for {
-		e := <-eventsC
+		m := <-eventsC
+		e := m.Data
+		ctx := m.Ctx
 		var event *events.Event
 		err := json.Unmarshal([]byte(e), &event)
 		if err != nil {
@@ -390,7 +403,7 @@ func StartConsumer(eventsC <-chan string) {
 				if GetDefaultActionners().FindActionner(a.GetActionner()).AllowAdditionalContext() &&
 					len(a.GetAdditionalContexts()) != 0 {
 					for _, i := range a.GetAdditionalContexts() {
-						elements, err := context.GetContext(i, e)
+						elements, err := falcoContext.GetContext(i, e)
 						if err != nil {
 							log := utils.LogLine{
 								Message:   "context",
@@ -407,7 +420,7 @@ func StartConsumer(eventsC <-chan string) {
 						}
 					}
 				}
-				if err := runAction(i, a, e); err != nil && a.IgnoreErrors == falseStr {
+				if err := runAction(ctx, i, a, e); err != nil && a.IgnoreErrors == falseStr {
 					break
 				}
 				if a.Continue == falseStr || a.Continue != trueStr && !GetDefaultActionners().FindActionner(a.GetActionner()).MustDefaultContinue() {

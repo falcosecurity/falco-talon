@@ -8,6 +8,7 @@ import (
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
+	oteltrace "go.opentelemetry.io/otel/trace"
 	"log"
 	"time"
 
@@ -15,6 +16,8 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/trace"
 )
+
+var tracer oteltrace.Tracer
 
 func SetupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, err error) {
 	var shutdownFuncs []func(context.Context) error
@@ -41,6 +44,8 @@ func SetupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, er
 	}
 	shutdownFuncs = append(shutdownFuncs, tracerProvider.Shutdown)
 	otel.SetTracerProvider(tracerProvider)
+
+	tracer = tracerProvider.Tracer("falco-talon")
 
 	return
 }
@@ -101,4 +106,8 @@ func newResource() *resource.Resource {
 		log.Fatalf("failed to create resource: %v", err)
 	}
 	return res
+}
+
+func GetTracer() oteltrace.Tracer {
+	return tracer
 }

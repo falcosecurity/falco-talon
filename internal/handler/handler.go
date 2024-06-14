@@ -3,6 +3,9 @@ package handler
 import (
 	"crypto/md5" //nolint:gosec
 	"encoding/hex"
+	"github.com/falco-talon/falco-talon/tracing"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"net/http"
 
 	"github.com/jinzhu/copier"
@@ -51,7 +54,16 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	hasher := md5.New() //nolint:gosec
 	hasher.Write([]byte(event.Output))
-	err = nats.GetPublisher().PublishMsg(hex.EncodeToString(hasher.Sum(nil)), event.String())
+
+	tracer := tracing.GetTracer()
+	ctx, span := tracer.Start(r.Context(), "event",
+		trace.WithAttributes(attribute.String("event_rule", event.Rule)),
+		trace.WithAttributes(attribute.String("event_traceid", event.TraceID)),
+		trace.WithAttributes(attribute.String("event_source", event.Source)),
+	)
+	defer span.End()
+
+	err = nats.GetPublisher().PublishMsg(ctx, hex.EncodeToString(hasher.Sum(nil)), event.String())
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
