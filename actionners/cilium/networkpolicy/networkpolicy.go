@@ -6,10 +6,9 @@ import (
 	v2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
 	v1 "github.com/cilium/cilium/pkg/k8s/slim/k8s/apis/meta/v1"
 	"github.com/cilium/cilium/pkg/policy/api"
-	"net"
-
 	errorsv1 "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"net"
 
 	cilium "github.com/falco-talon/falco-talon/internal/cilium/client"
 
@@ -20,12 +19,14 @@ import (
 )
 
 type Config struct {
-	AllowCIDR []string `mapstructure:"allow_cidr" validate:"omitempty"`
+	AllowCIDR       []string `mapstructure:"allow_cidr" validate:"omitempty"`
+	AllowNamespaces []string `mapstructure:"allow_namespaces" validate:"omitempty"`
 }
 
 const mask32 string = "/32"
 const managedByStr string = "app.kubernetes.io/managed-by"
 const netpolDescription string = "Network policy created by Talon"
+const namespaceKey = "kubernetes.io/metadata.name"
 
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	podName := event.GetPodName()
@@ -145,7 +146,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		LabelSelector: &v1.LabelSelector{MatchLabels: labels},
 	}
 
-	var allowCIDRRule *api.EgressRule
+	var allowCIDRRule, allowNamespacesRule *api.EgressRule
 
 	if parameters["allow_cidr"] == nil && parameters["allow_namespaces"] == nil {
 		allowCIDRRule = &api.EgressRule{
@@ -155,6 +156,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		}
 	} else {
 		allowCIDRRule = createAllowCIDREgressRule(actionConfig)
+		allowNamespacesRule = createAllowNamespaceEgressRule(actionConfig)
 	}
 
 	denyRule := createDenyEgressRule([]string{event.GetRemoteIP() + mask32})
@@ -176,6 +178,9 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		payload.Spec.EgressDeny = []api.EgressDenyRule{*denyRule}
 		if allowCIDRRule != nil {
 			payload.Spec.Egress = append(payload.Spec.Egress, *allowCIDRRule)
+		}
+		if allowNamespacesRule != nil {
+			payload.Spec.Egress = append(payload.Spec.Egress, *allowNamespacesRule)
 		}
 		_, err2 := ciliumClient.CiliumV2().CiliumNetworkPolicies(namespace).Create(context.Background(), &payload, metav1.CreateOptions{})
 		if err2 != nil {
@@ -219,6 +224,9 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		if !egressRuleExists(egressRule, *allowCIDRRule) && allowCIDRRule != nil {
 			payload.Spec.Egress = append(payload.Spec.Egress, *allowCIDRRule)
 		}
+		if !egressRuleExists(egressRule, *allowNamespacesRule) && allowNamespacesRule != nil {
+			payload.Spec.Egress = append(payload.Spec.Egress, *allowNamespacesRule)
+		}
 	}
 
 	_, err = ciliumClient.CiliumV2().CiliumNetworkPolicies(namespace).Update(context.Background(), &payload, metav1.UpdateOptions{})
@@ -239,6 +247,32 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			Status:  "success",
 		},
 		nil
+}
+
+func createAllowNamespaceEgressRule(actionConfig Config) *api.EgressRule {
+	if len(actionConfig.AllowCIDR) == 0 {
+		return nil
+	}
+
+	selector := api.EndpointSelector{
+		LabelSelector: &v1.LabelSelector{
+			MatchExpressions: []v1.LabelSelectorRequirement{
+				{
+					Key:      namespaceKey,
+					Operator: v1.LabelSelectorOpIn,
+					Values:   actionConfig.AllowNamespaces,
+				},
+			},
+		},
+	}
+
+	rule := api.EgressRule{
+		EgressCommonRule: api.EgressCommonRule{
+			ToEndpoints: []api.EndpointSelector{selector},
+		},
+	}
+
+	return &rule
 }
 
 func createAllowCIDREgressRule(actionConfig Config) *api.EgressRule {
