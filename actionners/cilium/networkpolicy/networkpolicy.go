@@ -31,7 +31,6 @@ const namespaceKey = "kubernetes.io/metadata.name"
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
-	parameters := action.GetParameters()
 
 	var actionConfig Config
 	err := utils.DecodeParams(action.GetParameters(), &actionConfig)
@@ -148,7 +147,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 	var allowCIDRRule, allowNamespacesRule *api.EgressRule
 
-	if parameters["allow_cidr"] == nil && parameters["allow_namespaces"] == nil {
+	if actionConfig.AllowCIDR == nil && actionConfig.AllowNamespaces == nil {
 		allowCIDRRule = &api.EgressRule{
 			EgressCommonRule: api.EgressCommonRule{
 				ToCIDR: api.CIDRSlice{"0.0.0.0/0"},
