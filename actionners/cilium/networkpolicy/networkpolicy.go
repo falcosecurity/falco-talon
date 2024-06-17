@@ -25,7 +25,7 @@ type Config struct {
 
 const mask32 string = "/32"
 const managedByStr string = "app.kubernetes.io/managed-by"
-const netpolDescription string = "Network policy created by Talon"
+const netpolDescription string = "Network policy created by Falco Talon"
 const namespaceKey = "kubernetes.io/metadata.name"
 
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
