@@ -5,10 +5,10 @@ go 1.22.0
 toolchain go1.22.2
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.27.2
+	github.com/aws/aws-sdk-go-v2 v1.28.0
 	github.com/aws/aws-sdk-go-v2/config v1.27.18
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.18
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.5
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.6
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.54.6
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.12
 	github.com/cilium/cilium v1.15.6
