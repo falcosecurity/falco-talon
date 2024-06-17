@@ -8,6 +8,13 @@
       - "192.168.1.0/24"
       - "172.17.0.0/16"
 
+- action: Create cilium network policy
+  actionner: cilium:networkpolicy
+  parameters:
+    allow_cidr:
+      - "192.168.1.0/24"
+      - "172.17.0.0/16"
+
 - action: Label Pod as Suspicious
   description: "Add the label suspicious=true"
   actionner: kubernetes:label
@@ -17,6 +24,8 @@
 
 - action: Invoke Lambda function
   actionner: aws:lambda
+  additional_contexts:
+    - aws
   parameters:
     aws_lambda_name: sample-function
     aws_lambda_alias_or_version: $LATEST
@@ -30,7 +39,7 @@
     output_fields:
       - k8s.ns.name!=kube-system
   actions:
-    - action: Label Pod as Suspicious
+    - action: Create cilium network policy
 
 - rule: Terminal shell in container
   description: >
@@ -43,12 +52,12 @@
   actions:
     - action: Label Pod as Suspicious
 
-# - rule: Test invoke lambda
-#   match:
-#     rules:
-#       - Test invoke lambda
-#   actions:
-#     - action: Invoke Lambda function
+- rule: Test invoke lambda
+  match:
+     rules:
+       - Test invoke lambda
+  actions:
+     - action: Invoke Lambda function
 
 # - rule: Delete unknown namespace
 #   match:
