@@ -49,4 +49,4 @@ jobs:
       uses: magefile/mage-action@v3
       with:
         version: latest
-        args: pushimages
+        args: push:images

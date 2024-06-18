@@ -19,6 +19,7 @@ import (
 	"github.com/falco-talon/falco-talon/internal/nats"
 	ruleengine "github.com/falco-talon/falco-talon/internal/rules"
 	"github.com/falco-talon/falco-talon/notifiers"
+	"github.com/falco-talon/falco-talon/outputs"
 	"github.com/falco-talon/falco-talon/utils"
 
 	"github.com/spf13/cobra"
@@ -42,6 +43,7 @@ var serverCmd = &cobra.Command{
 		}
 
 		defaultActionners := actionners.GetDefaultActionners()
+		defaultOutputs := outputs.GetDefaultOutputs()
 
 		valid := true
 		if rules != nil {
@@ -59,6 +61,30 @@ var serverCmd = &cobra.Command{
 							}
 						}
 					}
+					if actionner != nil {
+						o := j.GetOutput()
+						if o == nil && actionner.IsOutputRequired() {
+							utils.PrintLog("error", utils.LogLine{Error: "an output is required", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
+							valid = false
+						}
+						if o != nil {
+							output := defaultOutputs.FindOutput(o.GetTarget())
+							if output == nil {
+								utils.PrintLog("error", utils.LogLine{Error: "unknown target", Rule: i.GetName(), Action: j.GetName(), Target: o.GetTarget(), Message: "rules"})
+								valid = false
+							}
+							if len(o.Parameters) == 0 {
+								utils.PrintLog("error", utils.LogLine{Error: "missing parameters for the output", Rule: i.GetName(), Action: j.GetName(), Target: o.GetTarget(), Message: "rules"})
+								valid = false
+							}
+							if output != nil && output.CheckParameters != nil {
+								if err := output.CheckParameters(o); err != nil {
+									utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), Target: o.GetTarget(), Message: "rules"})
+									valid = false
+								}
+							}
+						}
+					}
 				}
 			}
 		}
@@ -71,11 +97,16 @@ var serverCmd = &cobra.Command{
 			utils.PrintLog("fatal", utils.LogLine{Error: err.Error(), Message: "actionners"})
 		}
 
+		// init outputs
+		if err := outputs.Init(); err != nil {
+			utils.PrintLog("fatal", utils.LogLine{Error: err.Error(), Message: "outputs"})
+		}
+
 		// init notifiers
 		notifiers.Init()
 
 		if rules != nil {
-			utils.PrintLog("info", utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*rules)), Message: "init"})
+			utils.PrintLog("info", utils.LogLine{Result: fmt.Sprintf("%v rule(s) has/have been successfully loaded", len(*rules)), Message: "init"})
 		}
 
 		http.Handle("/metrics", metrics.Handler())
@@ -121,7 +152,10 @@ var serverCmd = &cobra.Command{
 								utils.PrintLog("error", utils.LogLine{Error: "invalid rules", Message: "rules"})
 								break
 							}
+
 							defaultActionners := actionners.GetDefaultActionners()
+							defaultOutputs := outputs.GetDefaultOutputs()
+
 							if newRules != nil {
 								valid := true
 								for _, i := range *newRules {
@@ -136,7 +170,30 @@ var serverCmd = &cobra.Command{
 												valid = false
 											}
 										}
+										o := j.GetOutput()
+										if o == nil && actionner.IsOutputRequired() {
+											utils.PrintLog("error", utils.LogLine{Error: "an output is required", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
+											valid = false
+										}
+										if o != nil {
+											output := defaultOutputs.FindOutput(o.GetTarget())
+											if output == nil {
+												utils.PrintLog("error", utils.LogLine{Error: "unknown target", Rule: i.GetName(), Action: j.GetName(), Target: o.GetTarget(), Message: "rules"})
+												valid = false
+											}
+											if len(o.Parameters) == 0 {
+												utils.PrintLog("error", utils.LogLine{Error: "missing parameters for the output", Rule: i.GetName(), Action: j.GetName(), Target: o.GetTarget(), Message: "rules"})
+												valid = false
+											}
+											if output != nil && output.CheckParameters != nil {
+												if err := output.CheckParameters(o); err != nil {
+													utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), Target: o.GetTarget(), Message: "rules"})
+													valid = false
+												}
+											}
+										}
 									}
+
 									if !valid {
 										utils.PrintLog("error", utils.LogLine{Error: "invalid rules", Message: "rules"})
 										break

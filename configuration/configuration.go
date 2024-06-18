@@ -31,6 +31,7 @@ type Otel struct {
 type Configuration struct {
 	Notifiers        map[string]map[string]interface{} `mapstructure:"notifiers"`
 	AwsConfig        AwsConfig                         `mapstructure:"aws"`
+	MinioConfig      MinioConfig                       `mapstructure:"minio"`
 	LogFormat        string                            `mapstructure:"log_format"`
 	KubeConfig       string                            `mapstructure:"kubeconfig"`
 	ListenAddress    string                            `mapstructure:"listen_address"`
@@ -46,6 +47,21 @@ type Configuration struct {
 type deduplication struct {
 	LeaderElection    bool `mapstructure:"leader_election"`
 	TimeWindowSeconds int  `mapstructure:"time_window_seconds"`
+}
+
+type AwsConfig struct {
+	Region     string `mapstructure:"region"`
+	AccessKey  string `mapstructure:"access_key"`
+	SecretKey  string `mapstructure:"secret_key"`
+	RoleArn    string `mapstructure:"role_arn"`
+	ExternalID string `mapstructure:"external_id"`
+}
+
+type MinioConfig struct {
+	Endpoint  string `mapstructure:"endpoint"`
+	AccessKey string `mapstructure:"access_key"`
+	SecretKey string `mapstructure:"secret_key"`
+	UseSSL    bool   `mapstructure:"use_ssl"`
 }
 
 var config *Configuration
@@ -93,12 +109,4 @@ func GetConfiguration() *Configuration {
 
 func (c *Configuration) GetDefaultNotifiers() []string {
 	return c.DefaultNotifiers
-}
-
-type AwsConfig struct {
-	Region     string `mapstructure:"region"`
-	AccessKey  string `mapstructure:"access_key"`
-	SecretKey  string `mapstructure:"secret_key"`
-	RoleArn    string `mapstructure:"role_arn"`
-	ExternalID string `mapstructure:"external_id"`
 }

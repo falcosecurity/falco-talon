@@ -5,4 +5,5 @@ falco-talon
 dist/
 Memory
 .idea/**
+tmp
 DO-NOT-COMMIT-local-setup.yaml

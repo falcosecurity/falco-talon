@@ -23,10 +23,6 @@ const (
 	Text  string = "text"
 
 	rfc2822 string = "Mon Jan 02 15:04:05 -0700 2006"
-
-	successStr string = "success"
-	failureStr string = "failure"
-	ignoredStr string = "ignored"
 )
 
 type Settings struct {
@@ -85,20 +81,22 @@ func checkSettings(settings *Settings) error {
 }
 
 func NewPayload(log utils.LogLine) (Payload, error) {
-	var status string
-	switch log.Status {
-	case failureStr:
-		status = "unsuccessfully triggered"
-	case successStr:
-		status = "successfully triggered"
-	case ignoredStr:
-		status = ignoredStr
+	subject := fmt.Sprintf("Subject: [falco-talon][%v][%v] ", log.Status, log.Message)
+	if log.Target != "" {
+		subject += fmt.Sprintf("Target '%v' ", log.Target)
 	}
+	if log.Action != "" {
+		subject += fmt.Sprintf("Action '%v' ", log.Action)
+	}
+	if log.Rule != "" {
+		subject += fmt.Sprintf("Rule '%v' ", log.Rule)
+	}
+	subject = strings.TrimSuffix(subject, " ")
 
 	payload := Payload{
 		From:    fmt.Sprintf("From: %v", settings.From),
 		To:      fmt.Sprintf("To: %v", settings.To),
-		Subject: fmt.Sprintf("Subject: [falco] Action `%v` from rule `%v` has been %v", log.Action, log.Rule, status),
+		Subject: subject,
 		Mime:    "MIME-version: 1.0;",
 		Date:    "Date: " + time.Now().Format(rfc2822),
 	}

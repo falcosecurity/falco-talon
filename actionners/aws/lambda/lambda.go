@@ -8,9 +8,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
 
-	"github.com/falco-talon/falco-talon/internal/aws/client"
+	aws "github.com/falco-talon/falco-talon/internal/aws/client"
 	"github.com/falco-talon/falco-talon/internal/events"
 	"github.com/falco-talon/falco-talon/internal/rules"
+	"github.com/falco-talon/falco-talon/outputs/model"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
@@ -20,52 +21,49 @@ type Config struct {
 	AWSLambdaInvocationType string `mapstructure:"aws_lambda_invocation_type" validate:"omitempty,oneof=RequestResponse Event DryRun"`
 }
 
-func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
-	lambdaClient := client.GetAWSClient().GetLambdaClient()
+func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Data, error) {
+	lambdaClient := aws.GetLambdaClient()
 	parameters := action.GetParameters()
 
-	var lambdaConfig Config
-	err := utils.DecodeParams(parameters, &lambdaConfig)
+	var config Config
+	err := utils.DecodeParams(parameters, &config)
 	if err != nil {
 		return utils.LogLine{
-				Objects: nil,
-				Error:   err.Error(),
-				Status:  "failure",
-			},
-			err
+			Objects: nil,
+			Error:   err.Error(),
+			Status:  "failure",
+		}, nil, err
 	}
 
 	objects := map[string]string{
-		"name":    lambdaConfig.AWSLambdaName,
-		"version": lambdaConfig.AWSLambdaAliasOrVersion,
+		"name":    config.AWSLambdaName,
+		"version": config.AWSLambdaAliasOrVersion,
 	}
 
 	payload, err := json.Marshal(event)
 	if err != nil {
 		return utils.LogLine{
-				Objects: objects,
-				Error:   err.Error(),
-				Status:  "failure",
-			},
-			err
+			Objects: objects,
+			Error:   err.Error(),
+			Status:  "failure",
+		}, nil, err
 	}
 
 	input := &lambda.InvokeInput{
-		FunctionName:   &lambdaConfig.AWSLambdaName,
+		FunctionName:   &config.AWSLambdaName,
 		ClientContext:  nil,
-		InvocationType: getInvocationType(lambdaConfig.AWSLambdaInvocationType),
+		InvocationType: getInvocationType(config.AWSLambdaInvocationType),
 		Payload:        payload,
-		Qualifier:      getLambdaVersion(&lambdaConfig.AWSLambdaAliasOrVersion),
+		Qualifier:      getLambdaVersion(&config.AWSLambdaAliasOrVersion),
 	}
 
 	lambdaOutput, err := lambdaClient.Invoke(context.Background(), input)
 	if err != nil {
 		return utils.LogLine{
-				Objects: objects,
-				Error:   err.Error(),
-				Status:  "failure",
-			},
-			err
+			Objects: objects,
+			Error:   err.Error(),
+			Status:  "failure",
+		}, nil, err
 	}
 
 	status := "success"
@@ -73,11 +71,10 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		status = "failure"
 	}
 	return utils.LogLine{
-			Objects: objects,
-			Output:  string(lambdaOutput.Payload),
-			Status:  status,
-		},
-		nil
+		Objects: objects,
+		Output:  string(lambdaOutput.Payload),
+		Status:  status,
+	}, nil, nil
 }
 
 func CheckParameters(action *rules.Action) error {

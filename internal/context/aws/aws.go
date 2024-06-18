@@ -3,14 +3,12 @@ package aws
 import (
 	"context"
 
-	"github.com/falco-talon/falco-talon/internal/aws/client"
+	aws "github.com/falco-talon/falco-talon/internal/aws/client"
 	"github.com/falco-talon/falco-talon/internal/events"
 )
 
 func GetAwsContext(_ *events.Event) (map[string]interface{}, error) {
-	awsClient := client.GetAWSClient()
-
-	imdsClient := awsClient.GetImds()
+	imdsClient := aws.GetImdsClient()
 
 	info, err := imdsClient.GetIAMInfo(context.Background(), nil)
 	if err != nil {

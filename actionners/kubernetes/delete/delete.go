@@ -10,12 +10,13 @@ import (
 	"github.com/falco-talon/falco-talon/internal/events"
 	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 	"github.com/falco-talon/falco-talon/internal/rules"
+	"github.com/falco-talon/falco-talon/outputs/model"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
 const namespaces string = "namespaces"
 
-func Action(_ *rules.Action, event *events.Event) (utils.LogLine, error) {
+func Action(_ *rules.Action, event *events.Event) (utils.LogLine, *model.Data, error) {
 	name := event.GetTargetName()
 	resource := event.GetTargetResource()
 	namespace := event.GetTargetNamespace()
@@ -57,11 +58,10 @@ func Action(_ *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 	if err != nil {
 		return utils.LogLine{
-				Objects: objects,
-				Error:   err.Error(),
-				Status:  "failure",
-			},
-			err
+			Objects: objects,
+			Error:   err.Error(),
+			Status:  "failure",
+		}, nil, err
 	}
 
 	var output string
@@ -72,9 +72,8 @@ func Action(_ *rules.Action, event *events.Event) (utils.LogLine, error) {
 	}
 
 	return utils.LogLine{
-			Objects: objects,
-			Output:  output,
-			Status:  "success",
-		},
-		nil
+		Objects: objects,
+		Output:  output,
+		Status:  "success",
+	}, nil, nil
 }
