@@ -4,7 +4,9 @@ import (
 	"crypto/md5" //nolint:gosec
 	"encoding/hex"
 	"github.com/falco-talon/falco-talon/tracing"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"net/http"
 
@@ -37,6 +39,18 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	requestContext := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
+
+	tracer := tracing.GetTracer()
+	ctx, span := tracer.Start(requestContext, "event",
+		trace.WithAttributes(attribute.String("event_rule", event.Rule)),
+		trace.WithAttributes(attribute.String("event_traceid", event.TraceID)),
+		trace.WithAttributes(attribute.String("event_source", event.Source)),
+	)
+	defer span.End()
+
+	event.TraceID = span.SpanContext().TraceID().String()
+
 	log := utils.LogLine{
 		Message:  "event",
 		Event:    event.Rule,
@@ -54,14 +68,6 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	hasher := md5.New() //nolint:gosec
 	hasher.Write([]byte(event.Output))
-
-	tracer := tracing.GetTracer()
-	ctx, span := tracer.Start(r.Context(), "event",
-		trace.WithAttributes(attribute.String("event_rule", event.Rule)),
-		trace.WithAttributes(attribute.String("event_traceid", event.TraceID)),
-		trace.WithAttributes(attribute.String("event_source", event.Source)),
-	)
-	defer span.End()
 
 	err = nats.GetPublisher().PublishMsg(ctx, hex.EncodeToString(hasher.Sum(nil)), event.String())
 	if err != nil {
