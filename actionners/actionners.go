@@ -6,6 +6,7 @@ import (
 	"fmt"
 	lambdaInvoke "github.com/falco-talon/falco-talon/actionners/aws/lambda"
 	calicoNetworkpolicy "github.com/falco-talon/falco-talon/actionners/calico/networkpolicy"
+	ciliumNetworkPolicy "github.com/falco-talon/falco-talon/actionners/cilium/networkpolicy"
 	k8sCordon "github.com/falco-talon/falco-talon/actionners/kubernetes/cordon"
 	k8sDelete "github.com/falco-talon/falco-talon/actionners/kubernetes/delete"
 	k8sDrain "github.com/falco-talon/falco-talon/actionners/kubernetes/drain"
@@ -19,6 +20,7 @@ import (
 	awsChecks "github.com/falco-talon/falco-talon/internal/aws/checks"
 	aws "github.com/falco-talon/falco-talon/internal/aws/client"
 	calico "github.com/falco-talon/falco-talon/internal/calico/client"
+	cilium "github.com/falco-talon/falco-talon/internal/cilium/client"
 	falcoContext "github.com/falco-talon/falco-talon/internal/context"
 	"github.com/falco-talon/falco-talon/internal/events"
 	k8sChecks "github.com/falco-talon/falco-talon/internal/kubernetes/checks"
@@ -188,6 +190,18 @@ func GetDefaultActionners() *Actionners {
 				},
 				CheckParameters: calicoNetworkpolicy.CheckParameters,
 				Action:          calicoNetworkpolicy.Action,
+			},
+			&Actionner{
+				Category:        "cilium",
+				Name:            "networkpolicy",
+				DefaultContinue: true,
+				Init:            cilium.Init,
+				Checks: []checkActionner{
+					k8sChecks.CheckPodExist,
+					k8sChecks.CheckRemoteIP,
+				},
+				CheckParameters: ciliumNetworkPolicy.CheckParameters,
+				Action:          ciliumNetworkPolicy.Action,
 			},
 		)
 	}

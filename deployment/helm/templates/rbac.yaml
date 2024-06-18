@@ -74,9 +74,11 @@ rules:
   - apiGroups:
       - networking.k8s.io
       - projectcalico.org
+      - cilium.io
     resources:
       - networkpolicies
       - caliconetworkpolicies
+      - ciliumnetworkpolicies
     verbs:
       - create
       - get
