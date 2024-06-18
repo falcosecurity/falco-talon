@@ -24,6 +24,7 @@ var (
 	matchCounter        metric.Int64Counter
 	actionCounter       metric.Int64Counter
 	notificationCounter metric.Int64Counter
+	outputCounter       metric.Int64Counter
 )
 var ctx context.Context
 
@@ -52,6 +53,7 @@ func init() {
 	matchCounter, _ = meter.Int64Counter("match", metric.WithDescription("number of matched events"))
 	actionCounter, _ = meter.Int64Counter("action", metric.WithDescription("number of actions"))
 	notificationCounter, _ = meter.Int64Counter("notification", metric.WithDescription("number of notifications"))
+	outputCounter, _ = meter.Int64Counter("output", metric.WithDescription("number of outputs"))
 }
 
 func IncreaseCounter(log utils.LogLine) {
@@ -65,6 +67,8 @@ func IncreaseCounter(log utils.LogLine) {
 		actionCounter.Add(ctx, 1, opts)
 	case "notification":
 		notificationCounter.Add(ctx, 1, opts)
+	case "output":
+		outputCounter.Add(ctx, 1, opts)
 	}
 }
 
@@ -96,6 +100,9 @@ func getMeasurementOption(log utils.LogLine) metric.MeasurementOption {
 	}
 	if log.Status != "" {
 		attrs = append(attrs, attribute.Key("status").String(log.Status))
+	}
+	if log.Target != "" {
+		attrs = append(attrs, attribute.Key("target").String(log.Target))
 	}
 	if len(log.Objects) > 0 {
 		for i, j := range log.Objects {

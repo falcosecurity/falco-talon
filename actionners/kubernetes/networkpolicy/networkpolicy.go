@@ -12,6 +12,7 @@ import (
 	"github.com/falco-talon/falco-talon/internal/events"
 	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 	"github.com/falco-talon/falco-talon/internal/rules"
+	"github.com/falco-talon/falco-talon/outputs/model"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
@@ -22,7 +23,7 @@ type Config struct {
 
 const managedByStr string = "app.kubernetes.io/managed-by"
 
-func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
+func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Data, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
@@ -32,6 +33,18 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	}
 	client := kubernetes.GetClient()
 
+	parameters := action.GetParameters()
+
+	var config Config
+	err := utils.DecodeParams(parameters, &config)
+	if err != nil {
+		return utils.LogLine{
+			Objects: nil,
+			Error:   err.Error(),
+			Status:  "failure",
+		}, nil, err
+	}
+
 	pod, err := client.GetPod(podName, namespace)
 	if err != nil {
 		return utils.LogLine{
@@ -39,6 +52,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 				Error:   err.Error(),
 				Status:  "failure",
 			},
+			nil,
 			err
 	}
 
@@ -55,6 +69,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 						Error:   err2.Error(),
 						Status:  "failure",
 					},
+					nil,
 					err2
 			}
 			owner = u.ObjectMeta.Name
@@ -67,6 +82,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 						Error:   err2.Error(),
 						Status:  "failure",
 					},
+					nil,
 					err2
 			}
 			owner = u.ObjectMeta.Name
@@ -79,6 +95,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 						Error:   err2.Error(),
 						Status:  "failure",
 					},
+					nil,
 					err2
 			}
 			owner = u.ObjectMeta.Name
@@ -96,6 +113,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 				Error:   err3.Error(),
 				Status:  "failure",
 			},
+			nil,
 			err3
 	}
 
@@ -125,19 +143,22 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 		},
 	}
 
-	np, err := createEgressRule(action)
+	np, err := createEgressRule(&config)
 	if err != nil {
 		return utils.LogLine{
 				Objects: objects,
 				Error:   err.Error(),
 				Status:  "failure",
 			},
+			nil,
 			err
 	}
 
 	if np != nil {
 		payload.Spec.Egress = []networkingv1.NetworkPolicyEgressRule{*np}
 	}
+
+	objects["networkpolicy"] = owner
 
 	var output string
 	_, err = client.Clientset.NetworkingV1().NetworkPolicies(namespace).Get(context.Background(), owner, metav1.GetOptions{})
@@ -150,44 +171,43 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 	}
 	if err != nil {
 		return utils.LogLine{
-				Objects: objects,
-				Error:   err.Error(),
-				Status:  "failure",
-			},
-			err
-	}
-	objects["NetworkPolicy"] = owner
-	return utils.LogLine{
 			Objects: objects,
-			Output:  output,
-			Status:  "success",
-		},
-		nil
+			Error:   err.Error(),
+			Status:  "failure",
+		}, nil, err
+	}
+
+	return utils.LogLine{
+		Objects: objects,
+		Output:  output,
+		Status:  "success",
+	}, nil, nil
 }
 
-func createEgressRule(action *rules.Action) (*networkingv1.NetworkPolicyEgressRule, error) {
-	if action.GetParameters()["allow_cidr"] == nil && action.GetParameters()["allow_namespaces"] == nil {
+func createEgressRule(config *Config) (*networkingv1.NetworkPolicyEgressRule, error) {
+	if len(config.AllowCIDR) == 0 && len(config.AllowNamespaces) == 0 {
 		return nil, nil
 	}
+
 	np := make([]networkingv1.NetworkPolicyPeer, 0)
-	if allowedCidr := action.GetParameters()["allow_cidr"].([]interface{}); len(allowedCidr) != 0 {
+	if allowedCidr := config.AllowCIDR; len(allowedCidr) != 0 {
 		for _, i := range allowedCidr {
 			np = append(np,
 				networkingv1.NetworkPolicyPeer{
 					IPBlock: &networkingv1.IPBlock{
-						CIDR: i.(string),
+						CIDR: i,
 					},
 				},
 			)
 		}
 	}
-	if allowedNamespaces := action.GetParameters()["allow_namespaces"].([]interface{}); len(allowedNamespaces) != 0 {
+	if allowedNamespaces := config.AllowNamespaces; len(allowedNamespaces) != 0 {
 		for _, i := range allowedNamespaces {
 			np = append(np,
 				networkingv1.NetworkPolicyPeer{
 					NamespaceSelector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{
-							"kubernetes.io/metadata.name": i.(string),
+							"kubernetes.io/metadata.name": i,
 						},
 					},
 				},

@@ -3,17 +3,17 @@ package checks
 import (
 	"context"
 
+	"github.com/aws/aws-sdk-go-v2/service/lambda"
+
 	lambdaActionner "github.com/falco-talon/falco-talon/actionners/aws/lambda"
-	"github.com/falco-talon/falco-talon/internal/aws/client"
+	aws "github.com/falco-talon/falco-talon/internal/aws/client"
 	"github.com/falco-talon/falco-talon/internal/events"
 	"github.com/falco-talon/falco-talon/internal/rules"
 	"github.com/falco-talon/falco-talon/utils"
-
-	"github.com/aws/aws-sdk-go-v2/service/lambda"
 )
 
 func CheckLambdaExist(_ *events.Event, action *rules.Action) error {
-	lambdaClient := client.GetAWSClient().GetLambdaClient()
+	client := aws.GetLambdaClient()
 	parameters := action.GetParameters()
 
 	var lambdaConfig lambdaActionner.Config
@@ -21,7 +21,7 @@ func CheckLambdaExist(_ *events.Event, action *rules.Action) error {
 	if err != nil {
 		return err
 	}
-	_, err = lambdaClient.GetFunction(context.Background(), &lambda.GetFunctionInput{
+	_, err = client.GetFunction(context.Background(), &lambda.GetFunctionInput{
 		FunctionName: &lambdaConfig.AWSLambdaName,
 	})
 	if err != nil {

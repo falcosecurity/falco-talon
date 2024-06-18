@@ -5,17 +5,20 @@ import (
 	"fmt"
 
 	lambdaInvoke "github.com/falco-talon/falco-talon/actionners/aws/lambda"
+	"github.com/falco-talon/falco-talon/outputs"
 
 	calicoNetworkpolicy "github.com/falco-talon/falco-talon/actionners/calico/networkpolicy"
 	ciliumNetworkPolicy "github.com/falco-talon/falco-talon/actionners/cilium/networkpolicy"
 	k8sCordon "github.com/falco-talon/falco-talon/actionners/kubernetes/cordon"
 	k8sDelete "github.com/falco-talon/falco-talon/actionners/kubernetes/delete"
+	k8sDownload "github.com/falco-talon/falco-talon/actionners/kubernetes/download"
 	k8sDrain "github.com/falco-talon/falco-talon/actionners/kubernetes/drain"
 	k8sExec "github.com/falco-talon/falco-talon/actionners/kubernetes/exec"
 	k8sLabel "github.com/falco-talon/falco-talon/actionners/kubernetes/label"
 	k8sLog "github.com/falco-talon/falco-talon/actionners/kubernetes/log"
 	k8sNetworkpolicy "github.com/falco-talon/falco-talon/actionners/kubernetes/networkpolicy"
 	k8sScript "github.com/falco-talon/falco-talon/actionners/kubernetes/script"
+	k8sTcpdump "github.com/falco-talon/falco-talon/actionners/kubernetes/tcpdump"
 	k8sTerminate "github.com/falco-talon/falco-talon/actionners/kubernetes/terminate"
 	"github.com/falco-talon/falco-talon/configuration"
 	awsChecks "github.com/falco-talon/falco-talon/internal/aws/checks"
@@ -29,18 +32,21 @@ import (
 	"github.com/falco-talon/falco-talon/internal/rules"
 	"github.com/falco-talon/falco-talon/metrics"
 	"github.com/falco-talon/falco-talon/notifiers"
+	"github.com/falco-talon/falco-talon/outputs/model"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
 type Actionner struct {
 	Name                    string
 	Category                string
-	Action                  func(action *rules.Action, event *events.Event) (utils.LogLine, error)
+	Action                  func(action *rules.Action, event *events.Event) (utils.LogLine, *model.Data, error)
 	CheckParameters         func(action *rules.Action) error
 	Init                    func() error
 	Checks                  []checkActionner
 	DefaultContinue         bool
 	AllowAdditionalContexts bool
+	AllowOutput             bool
+	RequireOutput           bool
 }
 
 // type checkActionner func(event *events.Event, actions ...rules.Action) error
@@ -130,6 +136,7 @@ func GetDefaultActionners() *Actionners {
 				},
 				CheckParameters: k8sLog.CheckParameters,
 				Action:          k8sLog.Action,
+				AllowOutput:     true,
 			},
 			&Actionner{
 				Category:        "kubernetes",
@@ -163,6 +170,31 @@ func GetDefaultActionners() *Actionners {
 				},
 				CheckParameters: k8sDrain.CheckParameters,
 				Action:          k8sDrain.Action,
+			},
+			&Actionner{
+				Category:        "kubernetes",
+				Name:            "download",
+				DefaultContinue: true,
+				Init:            k8s.Init,
+				Checks: []checkActionner{
+					k8sChecks.CheckPodExist,
+				},
+				CheckParameters:         k8sDownload.CheckParameters,
+				Action:                  k8sDownload.Action,
+				AllowAdditionalContexts: true,
+				RequireOutput:           true,
+			},
+			&Actionner{
+				Category:        "kubernetes",
+				Name:            "tcpdump",
+				DefaultContinue: true,
+				Init:            k8s.Init,
+				Checks: []checkActionner{
+					k8sChecks.CheckPodExist,
+				},
+				CheckParameters: k8sTcpdump.CheckParameters,
+				Action:          k8sTcpdump.Action,
+				RequireOutput:   true,
 			},
 			&Actionner{
 				Category:        "aws",
@@ -225,7 +257,7 @@ func Init() error {
 				if actionner.Init != nil {
 					utils.PrintLog("info", utils.LogLine{Message: "init", ActionnerCategory: actionner.Category})
 					if err := actionner.Init(); err != nil {
-						utils.PrintLog("error", utils.LogLine{Error: err.Error(), ActionnerCategory: actionner.Category})
+						utils.PrintLog("error", utils.LogLine{Message: "init", Error: err.Error(), ActionnerCategory: actionner.Category})
 						return err
 					}
 					enabledCategories[category] = true
@@ -286,6 +318,14 @@ func (actionner *Actionner) MustDefaultContinue() bool {
 	return actionner.DefaultContinue
 }
 
+func (actionner *Actionner) IsOutputRequired() bool {
+	return actionner.RequireOutput
+}
+
+func (actionner *Actionner) IsOutputAllowed() bool {
+	return actionner.AllowOutput
+}
+
 func (actionner *Actionner) AllowAdditionalContext() bool {
 	return actionner.AllowAdditionalContexts
 }
@@ -328,16 +368,21 @@ func runAction(rule *rules.Rule, action *rules.Action, event *events.Event) erro
 		}
 	}
 
-	result, err := actionner.Action(action, event)
+	result, data, err := actionner.Action(action, event)
 	log.Status = result.Status
 	if len(result.Objects) != 0 {
 		log.Objects = result.Objects
 	}
+	if result.Error != "" {
+		log.Error = result.Error
+	}
+
 	if result.Output != "" {
 		log.Output = result.Output
 	}
-	if result.Error != "" {
-		log.Error = result.Error
+	output := action.GetOutput()
+	if output == nil && data != nil {
+		log.Output = string(data.Bytes)
 	}
 
 	metrics.IncreaseCounter(log)
@@ -347,8 +392,126 @@ func runAction(rule *rules.Rule, action *rules.Action, event *events.Event) erro
 		notifiers.Notify(rule, action, event, log)
 		return err
 	}
+
 	utils.PrintLog("info", log)
 	notifiers.Notify(rule, action, event, log)
+
+	if actionner.IsOutputRequired() {
+		log = utils.LogLine{
+			Message: "output",
+			Action:  action.GetName(),
+			TraceID: event.TraceID,
+		}
+		if output == nil || data == nil || len(data.Bytes) == 0 {
+			if output == nil {
+				err = fmt.Errorf("an output is required")
+			}
+			if data == nil || len(data.Bytes) == 0 {
+				err = fmt.Errorf("empty output")
+			}
+			log.Error = err.Error()
+			utils.PrintLog("error", log)
+			metrics.IncreaseCounter(log)
+			notifiers.Notify(rule, action, event, log)
+			return err
+		}
+		target := output.GetTarget()
+		o := outputs.GetDefaultOutputs().FindOutput(target)
+		if o == nil {
+			err = fmt.Errorf("unknown target '%v'", target)
+			log.Error = err.Error()
+			utils.PrintLog("error", log)
+			metrics.IncreaseCounter(log)
+			notifiers.Notify(rule, action, event, log)
+			return err
+		}
+
+		log.Target = target
+
+		if checks := o.Checks; len(checks) != 0 {
+			for _, i := range checks {
+				if err2 := i(output, event); err2 != nil {
+					log.Error = err2.Error()
+					log.Status = "failure"
+					utils.PrintLog("error", log)
+					metrics.IncreaseCounter(log)
+					notifiers.Notify(rule, action, event, log)
+					return err2
+				}
+			}
+		}
+
+		result, err = o.Output(output, data)
+		log.Status = result.Status
+		log.Objects = result.Objects
+		if result.Output != "" {
+			log.Output = result.Output
+		}
+		if result.Error != "" {
+			log.Error = result.Error
+		}
+
+		metrics.IncreaseCounter(log)
+
+		if err != nil {
+			utils.PrintLog("error", log)
+			notifiers.Notify(rule, action, event, log)
+			return err
+		}
+
+		utils.PrintLog("info", log)
+		notifiers.Notify(rule, action, event, log)
+		return nil
+	}
+
+	if actionner.IsOutputAllowed() && output != nil && data != nil {
+		if len(data.Bytes) == 0 {
+			err = fmt.Errorf("empty output")
+			log.Error = err.Error()
+			utils.PrintLog("error", log)
+			metrics.IncreaseCounter(log)
+			notifiers.Notify(rule, action, event, log)
+			return err
+		}
+		log = utils.LogLine{
+			Message: "output",
+			Rule:    rule.GetName(),
+			Action:  action.GetName(),
+			TraceID: event.TraceID,
+		}
+		target := output.GetTarget()
+		o := outputs.GetOutputs().FindOutput(target)
+		if o == nil {
+			err = fmt.Errorf("unknown target '%v'", target)
+			log.Error = err.Error()
+			utils.PrintLog("error", log)
+			notifiers.Notify(rule, action, event, log)
+			return err
+		}
+		log.Target = target
+		result, err = o.Output(output, data)
+		log.Status = result.Status
+		log.Objects = result.Objects
+		if result.Output != "" {
+			log.Output = result.Output
+		}
+		if result.Error != "" {
+			log.Error = result.Error
+		}
+
+		metrics.IncreaseCounter(log)
+
+		if err != nil {
+			utils.PrintLog("error", log)
+			notifiers.Notify(rule, action, event, log)
+			return err
+		}
+
+		utils.PrintLog("info", log)
+		notifiers.Notify(rule, action, event, log)
+		return nil
+	}
+
 	return nil
 }
 

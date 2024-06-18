@@ -3,6 +3,7 @@ package slack
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/falco-talon/falco-talon/notifiers/http"
 	"github.com/falco-talon/falco-talon/utils"
@@ -16,8 +17,6 @@ const (
 	successStr string = "success"
 	failureStr string = "failure"
 	ignoredStr string = "ignored"
-
-	resultStr string = "result"
 )
 
 type Settings struct {
@@ -88,44 +87,55 @@ func NewPayload(log utils.LogLine) Payload {
 	var attachments []Attachment
 	var attachment Attachment
 
-	var color, status, resultOrError string
+	var color string
 	switch log.Status {
 	case failureStr:
 		color = Red
-		status = "unsuccessfully triggered"
-		resultOrError = "error"
 	case successStr:
 		color = Green
-		status = "successfully triggered"
-		resultOrError = resultStr
 	case ignoredStr:
 		color = Grey
-		status = ignoredStr
-		resultOrError = resultStr
 	}
 	attachment.Color = color
 
-	text := fmt.Sprintf("Action `%v` from rule `%v` has been %v", log.Action, log.Rule, status)
+	text := fmt.Sprintf("[%v][%v] ", log.Status, log.Message)
+	if log.Target != "" {
+		text += fmt.Sprintf("Target '%v' ", log.Target)
+	}
+	if log.Action != "" {
+		text += fmt.Sprintf("Action '%v' ", log.Action)
+	}
+	if log.Rule != "" {
+		text += fmt.Sprintf("Rule '%v' ", log.Rule)
+	}
+
+	text = strings.TrimSuffix(text, " ")
 
 	if settings.Format == "short" {
-		attachment.Text = text + fmt.Sprintf(", with %v: `%v`", resultOrError, log.Message)
+		attachment.Text = text
 		text = ""
 	} else {
 		var fields []Field
 		var field Field
 
-		field.Title = "Rule"
-		field.Value = "`" + log.Rule + "`"
-		field.Short = false
-		fields = append(fields, field)
-		field.Title = "Action"
-		field.Value = "`" + log.Action + "`"
-		field.Short = false
-		fields = append(fields, field)
-		field.Title = "Actionner"
-		field.Value = "`" + log.Actionner + "`"
-		field.Short = true
-		fields = append(fields, field)
+		if log.Rule != "" {
+			field.Title = "Rule"
+			field.Value = "`" + log.Rule + "`"
+			field.Short = false
+			fields = append(fields, field)
+		}
+		if log.Action != "" {
+			field.Title = "Action"
+			field.Value = "`" + log.Action + "`"
+			field.Short = false
+			fields = append(fields, field)
+		}
+		if log.Actionner != "" {
+			field.Title = "Actionner"
+			field.Value = "`" + log.Actionner + "`"
+			field.Short = true
+			fields = append(fields, field)
+		}
 		field.Title = "Status"
 		field.Value = "`" + log.Status + "`"
 		field.Short = true
@@ -138,10 +148,12 @@ func NewPayload(log utils.LogLine) Payload {
 				fields = append(fields, field)
 			}
 		}
-		field.Title = "Event"
-		field.Value = "`" + log.Event + "`"
-		field.Short = false
-		fields = append(fields, field)
+		if log.Event != "" {
+			field.Title = "Event"
+			field.Value = "`" + log.Event + "`"
+			field.Short = false
+			fields = append(fields, field)
+		}
 		field.Title = "Message"
 		field.Value = "`" + log.Message + "`"
 		field.Short = false
@@ -149,6 +161,12 @@ func NewPayload(log utils.LogLine) Payload {
 		if log.Error != "" {
 			field.Title = "Error"
 			field.Value = "`" + log.Error + "`"
+			field.Short = false
+			fields = append(fields, field)
+		}
+		if log.Target != "" {
+			field.Title = "Target"
+			field.Value = "`" + log.Target + "`"
 			field.Short = false
 			fields = append(fields, field)
 		}

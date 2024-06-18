@@ -16,10 +16,11 @@ import (
 )
 
 type Action struct {
+	Output             Output                 `yaml:"output,omitempty"`
+	Parameters         map[string]interface{} `yaml:"parameters,omitempty"`
 	Name               string                 `yaml:"action"`
 	Description        string                 `yaml:"description"`
 	Actionner          string                 `yaml:"actionner"`
-	Parameters         map[string]interface{} `yaml:"parameters,omitempty"`
 	Continue           string                 `yaml:"continue,omitempty"`      // can't be a bool because an omitted value == false by default
 	IgnoreErrors       string                 `yaml:"ignore_errors,omitempty"` // can't be a bool because an omitted value == false by default
 	AdditionalContexts []string               `yaml:"additional_contexts,omitempty"`
@@ -45,6 +46,11 @@ type Match struct {
 	Tags               []string `yaml:"tags"`
 	TagsC              [][]string
 	PriorityNumber     int
+}
+
+type Output struct {
+	Parameters map[string]interface{} `yaml:"parameters"`
+	Target     string                 `yaml:"target"`
 }
 
 type outputfield struct {
@@ -138,6 +144,41 @@ func ParseRules(files []string) *[]*Rule {
 						default:
 							if rule.Actions[n].Parameters[k] == nil {
 								rule.Actions[n].Parameters[k] = v
+							}
+						}
+					}
+					if rule.Actions[n].Output.Target == "" && action.Output.Target != "" {
+						rule.Actions[n].Output.Target = action.Output.Target
+					}
+					for k, v := range action.Output.Parameters {
+						rt := reflect.TypeOf(v)
+						ru := reflect.TypeOf(rule.Actions[n].Output.Parameters[k])
+						if v == nil {
+							continue
+						}
+						if rule.Actions[n].Output.Parameters[k] != nil && ru.Kind() != rt.Kind() {
+							utils.PrintLog("error", utils.LogLine{Error: "mismatch of type for a parameter", Message: "rules", Rule: rule.GetName(), Action: action.GetName(), Target: action.Output.GetTarget()})
+							continue
+						}
+						switch rt.Kind() {
+						case reflect.Slice, reflect.Array:
+							w := v
+							if rule.Actions[n].Output.Parameters[k] == nil {
+								rule.Actions[n].Output.Parameters[k] = []interface{}{w}
+							} else {
+								w = append(w.([]interface{}), rule.Actions[n].Output.Parameters[k].([]interface{})...)
+							}
+							rule.Actions[n].Output.Parameters[k] = w
+						case reflect.Map:
+							for s, t := range v.(map[string]interface{}) {
+								if rule.Actions[n].Output.Parameters[k] == nil {
+									rule.Actions[n].Output.Parameters[k] = make(map[string]interface{})
+								}
+								rule.Actions[n].Output.Parameters[k].(map[string]interface{})[s] = t
+							}
+						default:
+							if rule.Actions[n].Output.Parameters[k] == nil {
+								rule.Actions[n].Output.Parameters[k] = v
 							}
 						}
 					}
@@ -264,6 +305,33 @@ func extractActionsRules(files []string) (*[]*Action, *[]*Rule, error) {
 						i.Parameters[k] = v
 					}
 				}
+				for k, v := range l.Output.Parameters {
+					rt := reflect.TypeOf(v)
+					ru := reflect.TypeOf(i.Output.Parameters[k])
+					if v == nil {
+						continue
+					}
+					if i.Output.Parameters[k] != nil && ru.Kind() != rt.Kind() {
+						continue
+					}
+					switch rt.Kind() {
+					case reflect.Slice, reflect.Array:
+						if i.Output.Parameters[k] == nil {
+							i.Output.Parameters[k] = []interface{}{v}
+						} else {
+							i.Output.Parameters[k] = append(i.Output.Parameters[k].([]interface{}), v.([]interface{})...)
+						}
+					case reflect.Map:
+						for s, t := range v.(map[string]interface{}) {
+							if i.Output.Parameters[k] == nil {
+								i.Output.Parameters[k] = make(map[string]interface{})
+							}
+							i.Output.Parameters[k].(map[string]interface{})[s] = t
+						}
+					default:
+						i.Output.Parameters[k] = v
+					}
+				}
 				l.Name = ""
 			}
 		}
@@ -356,6 +424,10 @@ func (rule *Rule) isValid() bool {
 				utils.PrintLog("error", utils.LogLine{Error: "'ignore_errors' setting can be 'true' or 'false' only", Message: "rules", Action: i.Name, Actionner: i.Actionner, Rule: rule.Name})
 				valid = false
 			}
+			if i.Output.Target != "" && len(i.Output.Parameters) == 0 {
+				utils.PrintLog("error", utils.LogLine{Error: "missing 'parameters' for the output", Message: "rules", Action: i.Name, Actionner: i.Actionner, Rule: rule.Name, Target: i.Output.Target})
+				valid = false
+			}
 		}
 	}
 	if !priorityCheckRegex.MatchString(rule.Match.Priority) {
@@ -433,6 +505,21 @@ func (action *Action) GetParameters() map[string]interface{} {
 
 func (action *Action) GetAdditionalContexts() []string {
 	return action.AdditionalContexts
+}
+
+func (action *Action) GetOutput() *Output {
+	if action.Output.Target == "" {
+		return nil
+	}
+	return &action.Output
+}
+
+func (output *Output) GetTarget() string {
+	return output.Target
+}
+
+func (output *Output) GetParameters() map[string]interface{} {
+	return output.Parameters
 }
 
 func (rule *Rule) CompareRule(event *events.Event) bool {

@@ -1,15 +1,22 @@
 package smtp
 
 var plaintextTmpl = `Status: {{ .Status }}
+{{- if .Action }}
 Action: {{ .Action }}
+{{- end }}
+{{- if .Actionner }}
 Actionner: {{ .Actionner }}
+{{- end }}
+{{- if .Rule }}
 Rule: {{ .Rule }}
+{{- end }}
+{{- if .Event }}
 Event: {{ .Event }}
+{{- end }}
 Message: {{ .Message }}
 {{- range $key, $value := .Objects }}
 {{ $key }}: {{ $value }}
 {{- end }}
-Trace ID: {{ .TraceID }}
 {{- if .Error }}
 Error: {{ .Error }}
 {{- end }}
@@ -20,6 +27,10 @@ Result: {{ .Result }}
 Output: 
 {{ .Output }}
 {{- end }}
+{{- if .Target }}
+Target: {{ .Target }}
+{{- end }}
+Trace ID: {{ .TraceID }}
 `
 
 var htmlTmpl = `
@@ -52,28 +63,42 @@ var htmlTmpl = `
 </table>
 <table cellpadding="5" cellspacing="0" style="font-family:arial,helvetica,sans-serif; width:800px; font-size:13px">
     <tbody>
+        {{ if .Action }}
         <tr>
             <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Action</strong></span></td>
             <td style="background-color:#d1d6da">{{ .Action }}</td>
         </tr>
+        {{ end }}
+        {{ if .Actionner }}
         <tr>
             <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Actionner</strong></span></td>
             <td style="background-color:#d1d6da">{{ .Actionner }}</td>
         </tr>
+        {{ end }}
+        {{ if .Rule }}
         <tr>
             <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Rule</strong></span></td>
             <td style="background-color:#d1d6da">{{ .Rule }}</td>
         </tr>
+        {{ end }}
         {{ range $key, $value := .Objects }}
             <tr>
                 <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>{{ $key }}</strong></span></td>
                 <td style="background-color:#d1d6da">{{ $value }}</td>
             </tr>
         {{ end }}
+        {{ if .Event }}
         <tr>
             <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Event</strong></span></td>
             <td style="background-color:#d1d6da">{{ .Event }}</td>
         </tr>
+        {{ end }}
+        {{ if .Target }}
+        <tr>
+            <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Target</strong></span></td>
+            <td style="background-color:#d1d6da">{{ .Target }}</td>
+        </tr>
+        {{ end }}
         <tr>
             <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Message</strong></span></td>
             <td style="background-color:#d1d6da">{{ .Message }}</td>

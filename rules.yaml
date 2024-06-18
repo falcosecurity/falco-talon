@@ -59,15 +59,15 @@
   actions:
      - action: Invoke Lambda function
 
-# - rule: Delete unknown namespace
-#   match:
-#     rules:
-#       - K8s Namespace Created
-#     output_fields:
-#       - ka.target.namespace=todelete
-#   actions:
-#       - action: Delete the namespace
-#         actionner: kubernetes:delete
+- rule: Delete unknown namespace
+  match:
+    rules:
+      - K8s Namespace Created
+    output_fields:
+      - ka.target.namespace=todelete
+  actions:
+      - action: Delete the namespace
+        actionner: kubernetes:delete
   
 - rule: Calico netpol 
   match:
@@ -84,14 +84,14 @@
         allow_namespaces:
           - "green-ns"
           - "blue-ns"
-    # - action: Create Calico netpol
-    #   actionner: calico:networkpolicy
-    #   parameters:
-    #     order: 20
-    #     allow_cidr:
-    #       - "192.168.2.0/24"
-    #     allow_namespaces:
-    #       - "green-ns"
+    - action: Create Calico netpol
+      actionner: calico:networkpolicy
+      parameters:
+        order: 20
+        allow_cidr:
+          - "192.168.2.0/24"
+        allow_namespaces:
+          - "green-ns"
   
 - rule: Delete namespace 
   match:
@@ -116,3 +116,58 @@
         - k8snode
       parameters:
         command: echo "${NODE_HOSTNAME}"
+
+- rule: Test download
+  match:
+    rules:
+      - Test download
+  actions:
+    - action: Test log
+      actionner: kubernetes:log
+      output:
+        target: aws:s3
+        parameters:
+          bucket: falcosidekick-tests
+          prefix: logs/
+    - action: Test download
+      actionner: kubernetes:download
+      parameters:
+        file: "${FD_NAME}"
+      output:
+        target: minio:s3
+        parameters:
+          bucket: falco-talon
+          prefix: /files/
+
+- rule: Test tcpdump
+  match:
+    rules:
+      - Test tcpdump
+  actions:
+    - action: Test tcpdump
+      actionner: kubernetes:tcpdump
+      parameters:
+        snaplen: 512
+        duration: 5
+      output:
+        target: aws:s3
+        parameters:
+          bucket: falcosidekick-tests
+          prefix: /tcpdump/
+          region: us-east-1
+
+- rule: Test log
+  match:
+    rules:
+      - Test log
+  actions:
+    - action: Test log
+      actionner: kubernetes:log
+      parameters:
+        tail_lines: 1
+      output:
+        target: aws:s3
+        parameters:
+          bucket: falcosidekick-tests
+          prefix: /logs/
+          region: us-east-1

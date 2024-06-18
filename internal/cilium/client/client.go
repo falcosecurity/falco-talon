@@ -2,10 +2,11 @@ package kubernetes
 
 import (
 	cilium "github.com/cilium/cilium/pkg/k8s/client/clientset/versioned"
-	"github.com/falco-talon/falco-talon/configuration"
-	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/falco-talon/falco-talon/configuration"
+	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 )
 
 type Client struct {

@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/falco-talon/falco-talon/configuration"
-	"github.com/falco-talon/falco-talon/utils"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -13,14 +12,15 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
 type AWSClient struct {
 	lambdaClient *lambda.Client
 	imdsClient   *imds.Client
-	// s3Client     *s3.Client
-	cfg aws.Config
+	s3Client     *s3.Client
+	cfg          aws.Config
 }
 
 var (
@@ -29,11 +29,14 @@ var (
 )
 
 func Init() error {
+	if awsClient != nil {
+		return nil
+	}
+
 	var initErr error
 
-	awsConfig := configuration.GetConfiguration().AwsConfig
-
 	once.Do(func() {
+		awsConfig := configuration.GetConfiguration().AwsConfig
 		var cfg aws.Config
 		var err error
 
@@ -82,18 +85,39 @@ func GetAWSClient() *AWSClient {
 	return awsClient
 }
 
-func (c *AWSClient) GetLambdaClient() *lambda.Client {
+func GetLambdaClient() *lambda.Client {
+	c := GetAWSClient()
+	if c == nil {
+		return nil
+	}
 	if c.lambdaClient == nil {
-		utils.PrintLog("warning", utils.LogLine{Message: "Lazily loading AWS Lambda client..."})
 		c.lambdaClient = lambda.NewFromConfig(c.cfg)
 	}
 	return c.lambdaClient
 }
 
-func (c *AWSClient) GetImds() *imds.Client {
+func GetImdsClient() *imds.Client {
+	c := GetAWSClient()
+	if c == nil {
+		return nil
+	}
 	if c.imdsClient == nil {
-		utils.PrintLog("warning", utils.LogLine{Message: "Lazily loading AWS IMDS client..."})
 		c.imdsClient = imds.NewFromConfig(c.cfg)
 	}
-	return c.imdsClient
+	return GetAWSClient().imdsClient
+}
+
+func GetS3Client() *s3.Client {
+	c := GetAWSClient()
+	if c == nil {
+		return nil
+	}
+	if c.s3Client == nil {
+		c.s3Client = s3.NewFromConfig(c.cfg)
+	}
+	return c.s3Client
+}
+
+func (client AWSClient) GetRegion() string {
+	return client.cfg.Region
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/falco-talon/falco-talon/internal/events"
 	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 	"github.com/falco-talon/falco-talon/internal/rules"
+	"github.com/falco-talon/falco-talon/outputs/model"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
@@ -30,16 +31,24 @@ type Config struct {
 	GracePeriodSeconds int    `mapstructure:"grace_period_seconds" validate:"omitempty"`
 }
 
-func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
+func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Data, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 	objects := map[string]string{}
 
 	parameters := action.GetParameters()
-	gracePeriodSeconds := new(int64)
-	if val, ok := parameters["grace_period_seconds"].(int); ok {
-		*gracePeriodSeconds = int64(val)
+	var config Config
+	err := utils.DecodeParams(parameters, &config)
+	if err != nil {
+		return utils.LogLine{
+			Objects: nil,
+			Error:   err.Error(),
+			Status:  "failure",
+		}, nil, err
 	}
+
+	gracePeriodSeconds := new(int64)
+	*gracePeriodSeconds = int64(config.GracePeriodSeconds)
 
 	client := kubernetes.GetClient()
 	pod, err := client.GetPod(podName, namespace)
@@ -50,7 +59,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			Objects: objects,
 			Error:   err.Error(),
 			Status:  "failure",
-		}, err
+		}, nil, err
 	}
 
 	node, err := client.GetNodeFromPod(pod)
@@ -61,7 +70,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			Objects: objects,
 			Error:   err.Error(),
 			Status:  "failure",
-		}, err
+		}, nil, err
 	}
 	nodeName := node.GetName()
 	objects["node"] = nodeName
@@ -74,7 +83,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 			Objects: objects,
 			Error:   err.Error(),
 			Status:  "failure",
-		}, err
+		}, nil, err
 	}
 
 	var ignoredPodsCount, evictionErrorsCount, otherErrorsCount int
@@ -95,11 +104,11 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 			switch ownerKind {
 			case "DaemonSet":
-				if ignoreDaemonsets, ok := parameters["ignore_daemonsets"].(bool); ok && ignoreDaemonsets {
+				if config.IgnoreDaemonsets {
 					ignoredPodsCount++
 				}
 			case "StatefulSet":
-				if ignoreStatefulsets, ok := parameters["ignore_statefulsets"].(bool); ok && ignoreStatefulsets {
+				if config.IgnoreStatefulSets {
 					ignoredPodsCount++
 				}
 			case "ReplicaSet":
@@ -108,14 +117,14 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 					utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting pod owner name: %v", err)})
 					otherErrorsCount++
 				}
-				if minHealthyReplicas, ok := parameters["min_healthy_replicas"].(string); ok && minHealthyReplicas != "" {
+				if config.MinHealthyReplicas != "" {
 					replicaSet, err := client.GetReplicaSet(replicaSetName, p.Namespace)
 					if err != nil {
 						utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting replica set for pod '%v': %v", p.Name, err)})
 						otherErrorsCount++
 						return
 					}
-					minHealthyReplicasValue, kind, err := helpers.ParseMinHealthyReplicas(minHealthyReplicas)
+					minHealthyReplicasValue, kind, err := helpers.ParseMinHealthyReplicas(config.MinHealthyReplicas)
 					if err != nil {
 						utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error parsing min_healthy_replicas: %v", err)})
 						otherErrorsCount++
@@ -166,20 +175,18 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, error) {
 
 	wg.Wait()
 
-	if ignoreErrors, ok := parameters["ignore_errors"].(bool); ok && (ignoreErrors || (evictionErrorsCount == 0 && otherErrorsCount == 0)) {
+	if config.IgnoreErrors || (evictionErrorsCount == 0 && otherErrorsCount == 0) {
 		return utils.LogLine{
-				Objects: objects,
-				Output:  fmt.Sprintf("the node '%v' has been drained, errors are ignored: %v ignored pods, %v eviction errors, %v other errors", nodeName, ignoredPodsCount, evictionErrorsCount, otherErrorsCount),
-				Status:  "success",
-			},
-			nil
+			Objects: objects,
+			Output:  fmt.Sprintf("the node '%v' has been drained, errors are ignored: %v ignored pods, %v eviction errors, %v other errors", nodeName, ignoredPodsCount, evictionErrorsCount, otherErrorsCount),
+			Status:  "success",
+		}, nil, nil
 	}
 	return utils.LogLine{
-			Objects: objects,
-			Error:   fmt.Sprintf("the node '%v' has not been fully drained: %v pods ignored, %v eviction errors, %v other errors", nodeName, ignoredPodsCount, evictionErrorsCount, otherErrorsCount),
-			Status:  "failure",
-		},
-		fmt.Errorf("the node '%v' has not been fully drained: %v eviction errors, %v other errors", nodeName, evictionErrorsCount, otherErrorsCount)
+		Objects: objects,
+		Error:   fmt.Sprintf("the node '%v' has not been fully drained: %v pods ignored, %v eviction errors, %v other errors", nodeName, ignoredPodsCount, evictionErrorsCount, otherErrorsCount),
+		Status:  "failure",
+	}, nil, fmt.Errorf("the node '%v' has not been fully drained: %v eviction errors, %v other errors", nodeName, evictionErrorsCount, otherErrorsCount)
 }
 
 func CheckParameters(action *rules.Action) error {
