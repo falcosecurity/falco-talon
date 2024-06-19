@@ -43,9 +43,9 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	tracer := tracing.GetTracer()
 	ctx, span := tracer.Start(requestContext, "event",
-		trace.WithAttributes(attribute.String("event_rule", event.Rule)),
-		trace.WithAttributes(attribute.String("event_traceid", event.TraceID)),
-		trace.WithAttributes(attribute.String("event_source", event.Source)),
+		trace.WithAttributes(attribute.String("event.rule", event.Rule)),
+		trace.WithAttributes(attribute.String("event.traceid", event.TraceID)),
+		trace.WithAttributes(attribute.String("event.source", event.Source)),
 	)
 	defer span.End()
 

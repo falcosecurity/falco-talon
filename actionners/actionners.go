@@ -376,9 +376,9 @@ func runAction(ctx context.Context, rule *rules.Rule, action *rules.Action, even
 
 	tracer := tracing.GetTracer()
 	ctx, span := tracer.Start(ctx, "action",
-		trace.WithAttributes(attribute.String("action_name", action.Name)),
-		trace.WithAttributes(attribute.String("action_actionner", action.Actionner)),
-		trace.WithAttributes(attribute.String("action_description", action.Description)),
+		trace.WithAttributes(attribute.String("action.name", action.Name)),
+		trace.WithAttributes(attribute.String("action.actionner", action.Actionner)),
+		trace.WithAttributes(attribute.String("action.description", action.Description)),
 	)
 	defer span.End()
 
@@ -456,9 +456,9 @@ func runAction(ctx context.Context, rule *rules.Rule, action *rules.Action, even
 		}
 		tracer := tracing.GetTracer()
 		ctx, span := tracer.Start(ctx, "output",
-			trace.WithAttributes(attribute.String("output_name", o.GetName())),
-			trace.WithAttributes(attribute.String("output_category", o.GetCategory())),
-			trace.WithAttributes(attribute.String("output_target", output.GetTarget())),
+			trace.WithAttributes(attribute.String("output.name", o.GetName())),
+			trace.WithAttributes(attribute.String("output.category", o.GetCategory())),
+			trace.WithAttributes(attribute.String("output.target", output.GetTarget())),
 		)
 		defer span.End()
 		result, err = o.Output(output, data)
@@ -511,9 +511,9 @@ func runAction(ctx context.Context, rule *rules.Rule, action *rules.Action, even
 		log.Target = target
 		tracer := tracing.GetTracer()
 		ctx, span := tracer.Start(ctx, "output",
-			trace.WithAttributes(attribute.String("output_name", o.GetName())),
-			trace.WithAttributes(attribute.String("output_category", o.GetCategory())),
-			trace.WithAttributes(attribute.String("output_target", output.GetTarget())),
+			trace.WithAttributes(attribute.String("output.name", o.GetName())),
+			trace.WithAttributes(attribute.String("output.category", o.GetCategory())),
+			trace.WithAttributes(attribute.String("output.target", output.GetTarget())),
 		)
 		defer span.End()
 		result, err = o.Output(output, data)
@@ -613,9 +613,8 @@ func StartConsumer(eventsC <-chan nats.MessageWithContext) {
 						}
 					}
 				}
-				ctx, err := runAction(ctx, i, a, e)
-				span := trace.SpanFromContext(ctx)
-				defer span.End()
+				actionCtx, err := runAction(ctx, i, a, e)
+				span := trace.SpanFromContext(actionCtx)
 				if err != nil {
 					span.SetStatus(codes.Error, "Failed to run action")
 					span.RecordError(err)
@@ -623,6 +622,7 @@ func StartConsumer(eventsC <-chan nats.MessageWithContext) {
 					span.SetStatus(codes.Ok, "Action completed successfully")
 					span.SetAttributes(attribute.String("result", "Action completed successfully"))
 				}
+				span.End()
 
 				if err != nil && a.IgnoreErrors == falseStr {
 					break
