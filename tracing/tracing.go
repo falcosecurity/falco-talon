@@ -4,13 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/falco-talon/falco-talon/configuration"
+	"log"
+	"time"
+
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
-	"log"
-	"time"
+
+	"github.com/falco-talon/falco-talon/configuration"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -19,10 +21,10 @@ import (
 
 var tracer oteltrace.Tracer
 
-func SetupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, err error) {
+func SetupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, oerr error) {
+	var err error
 	var shutdownFuncs []func(context.Context) error
 	shutdown = func(ctx context.Context) error {
-		var err error
 		for _, fn := range shutdownFuncs {
 			err = errors.Join(err, fn(ctx))
 		}
@@ -74,7 +76,6 @@ func newTraceProvider() (*trace.TracerProvider, error) {
 }
 
 func newOtlpGrpcExporter(ctx context.Context) (trace.SpanExporter, error) {
-
 	endpoint := fmt.Sprintf("%s:%s", configuration.GetConfiguration().Otel.CollectorEndpoint, configuration.GetConfiguration().Otel.CollectorPort)
 	insecure := configuration.GetConfiguration().Otel.CollectorUseInsecureGrpc
 

@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"time"
+
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+
 	"github.com/falco-talon/falco-talon/internal/handler"
 	"github.com/falco-talon/falco-talon/metrics"
 	"github.com/falco-talon/falco-talon/tracing"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	"net/http"
-	"time"
 
 	"github.com/fsnotify/fsnotify"
 
@@ -257,7 +259,7 @@ var serverCmd = &cobra.Command{
 
 		otelShutdown, err := tracing.SetupOTelSDK(context.Background())
 		if err != nil {
-			utils.PrintLog("warn", utils.LogLine{Error: err.Error(), Message: fmt.Sprintf("fail to initialize OTEL GRPC exporter.")})
+			utils.PrintLog("warn", utils.LogLine{Error: err.Error(), Message: "fail to initialize OTEL GRPC exporter."})
 		}
 		defer func() {
 			err = errors.Join(err, otelShutdown(context.Background()))

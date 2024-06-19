@@ -3,9 +3,10 @@ package nats
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
-	"time"
 
 	// "github.com/nats-io/nats.go"
 
@@ -23,8 +24,8 @@ const (
 )
 
 type MessageWithContext struct {
-	Data []byte
 	Ctx  context.Context
+	Data []byte
 }
 
 var consumer, publisher *Client

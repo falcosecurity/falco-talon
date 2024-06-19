@@ -32,6 +32,7 @@ type Configuration struct {
 	Notifiers        map[string]map[string]interface{} `mapstructure:"notifiers"`
 	AwsConfig        AwsConfig                         `mapstructure:"aws"`
 	MinioConfig      MinioConfig                       `mapstructure:"minio"`
+	Otel             Otel                              `mapstructure:"otel"`
 	LogFormat        string                            `mapstructure:"log_format"`
 	KubeConfig       string                            `mapstructure:"kubeconfig"`
 	ListenAddress    string                            `mapstructure:"listen_address"`
@@ -41,7 +42,6 @@ type Configuration struct {
 	Deduplication    deduplication                     `mapstructure:"deduplication"`
 	WatchRules       bool                              `mapstructure:"watch_rules"`
 	PrintAllEvents   bool                              `mapstructure:"print_all_events"`
-	Otel             Otel                              `mapstructure:"otel"`
 }
 
 type deduplication struct {

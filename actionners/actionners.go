@@ -4,9 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
+	"go.opentelemetry.io/otel/codes"
+
 	lambdaInvoke "github.com/falco-talon/falco-talon/actionners/aws/lambda"
 	"github.com/falco-talon/falco-talon/outputs"
-	"go.opentelemetry.io/otel/codes"
+
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	calicoNetworkpolicy "github.com/falco-talon/falco-talon/actionners/calico/networkpolicy"
 	ciliumNetworkPolicy "github.com/falco-talon/falco-talon/actionners/cilium/networkpolicy"
@@ -37,8 +42,6 @@ import (
 	"github.com/falco-talon/falco-talon/outputs/model"
 	"github.com/falco-talon/falco-talon/tracing"
 	"github.com/falco-talon/falco-talon/utils"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type Actionner struct {
@@ -338,7 +341,6 @@ func (actionner *Actionner) AllowAdditionalContext() bool {
 func runAction(ctx context.Context, rule *rules.Rule, action *rules.Action, event *events.Event) (octx context.Context, err error) {
 	actionners := GetActionners()
 	if actionners == nil {
-
 		return ctx, nil
 	}
 
@@ -366,7 +368,7 @@ func runAction(ctx context.Context, rule *rules.Rule, action *rules.Action, even
 
 	if checks := actionner.Checks; len(checks) != 0 {
 		for _, i := range checks {
-			if err := i(event, action); err != nil {
+			if err = i(event, action); err != nil {
 				log.Error = err.Error()
 				utils.PrintLog("error", log)
 				return ctx, err
@@ -454,8 +456,8 @@ func runAction(ctx context.Context, rule *rules.Rule, action *rules.Action, even
 				}
 			}
 		}
-		tracer := tracing.GetTracer()
-		ctx, span := tracer.Start(ctx, "output",
+		tracer = tracing.GetTracer()
+		ctx, span = tracer.Start(ctx, "output",
 			trace.WithAttributes(attribute.String("output.name", o.GetName())),
 			trace.WithAttributes(attribute.String("output.category", o.GetCategory())),
 			trace.WithAttributes(attribute.String("output.target", output.GetTarget())),
@@ -509,8 +511,8 @@ func runAction(ctx context.Context, rule *rules.Rule, action *rules.Action, even
 			return ctx, err
 		}
 		log.Target = target
-		tracer := tracing.GetTracer()
-		ctx, span := tracer.Start(ctx, "output",
+		tracer = tracing.GetTracer()
+		ctx, span = tracer.Start(ctx, "output",
 			trace.WithAttributes(attribute.String("output.name", o.GetName())),
 			trace.WithAttributes(attribute.String("output.category", o.GetCategory())),
 			trace.WithAttributes(attribute.String("output.target", output.GetTarget())),
@@ -549,7 +551,7 @@ func StartConsumer(eventsC <-chan nats.MessageWithContext) {
 		e := m.Data
 		ctx := m.Ctx
 		var event *events.Event
-		err := json.Unmarshal([]byte(e), &event)
+		err := json.Unmarshal(e, &event)
 		if err != nil {
 			continue
 		}

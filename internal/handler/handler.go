@@ -3,12 +3,14 @@ package handler
 import (
 	"crypto/md5" //nolint:gosec
 	"encoding/hex"
-	"github.com/falco-talon/falco-talon/tracing"
+	"net/http"
+
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
-	"net/http"
+
+	"github.com/falco-talon/falco-talon/tracing"
 
 	"github.com/jinzhu/copier"
 	"gopkg.in/yaml.v2"
