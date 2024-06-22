@@ -18,99 +18,132 @@ metadata:
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 rules:
+  {{- if .Values.rbac.namespaces }}
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs: {{ .Values.rbac.namespaces }}
+  {{- end }}
+  {{- if .Values.rbac.pods }}
   - apiGroups:
       - ""
     resources:
       - pods
-    verbs:
-      - get
-      - update
-      - patch
-      - delete
-      - list
+    verbs: {{ .Values.rbac.pods }}
+  {{- end }}
+  {{- if .Values.rbac.nodes }}
   - apiGroups:
       - ""
     resources:
       - nodes
-    verbs:
-      - get
-      - watch
-      - create
-      - update
-      - patch
+    verbs: {{ .Values.rbac.nodes }}
+  {{- end }}
+  {{- if .Values.rbac.podsExec }}
   - apiGroups:
       - ""
     resources:
       - pods/exec
-    verbs:
-      - get
-      - create
+    verbs: {{ .Values.rbac.podsExec }}
+  {{- end }}
+  {{- if .Values.rbac.podsEviction }}
   - apiGroups:
       - ""
     resources:
       - pods/eviction
-    verbs:
-      - get
-      - create
+    verbs: {{ .Values.rbac.podsEviction }}
+  {{- end }}
+  {{- if .Values.rbac.events }}
   - apiGroups:
       - ""
     resources:
       - events
-    verbs:
-      - create
-      - get
-      - update
-      - patch
+    verbs: {{ .Values.rbac.events }}
+  {{- end }}
+  {{- if .Values.rbac.daemonsets }}
   - apiGroups:
-      - apps
+      - "apps"
     resources:
       - daemonsets
-      - deployments
-      - replicasets
-      - statefulsets
-    verbs:
-      - get
-      - delete
+    verbs: {{ .Values.rbac.daemonsets }}
+  {{- end }}
+  {{- if .Values.rbac.deployments }}
   - apiGroups:
-      - networking.k8s.io
-      - projectcalico.org
-      - cilium.io
+      - "apps"
+    resources:
+      - deployments
+    verbs: {{ .Values.rbac.deployments }}
+  {{- end }}
+  {{- if .Values.rbac.replicasets }}
+  - apiGroups:
+      - "apps"
+    resources:
+      - replicasets
+    verbs: {{ .Values.rbac.replicasets }}
+  {{- end }}
+  {{- if .Values.rbac.statefulsets }}
+  - apiGroups:
+      - "apps"
+    resources:
+      - statefulsets
+    verbs: {{ .Values.rbac.statefulsets }}
+  {{- end }}
+  {{- if .Values.rbac.networkpolicies }}
+  - apiGroups:
+      - "networking.k8s.io"
     resources:
       - networkpolicies
-      - caliconetworkpolicies
-      - ciliumnetworkpolicies
-    verbs:
-      - create
-      - get
-      - update
-      - patch
+    verbs: {{ .Values.rbac.networkpolicies }}
+  {{- end }}
+  {{- if .Values.rbac.caliconetworkpolicies }}
   - apiGroups:
-      - rbac.authorization.k8s.io
+      - "projectcalico.org"
+    resources:
+      - caliconetworkpolicies
+    verbs: {{ .Values.rbac.caliconetworkpolicies }}
+  {{- end }}
+  {{- if .Values.rbac.ciliumnetworkpolicies }}
+  - apiGroups:
+      - "cilium.io"
+    resources:
+      - ciliumnetworkpolicies
+    verbs: {{ .Values.rbac.ciliumnetworkpolicies }}
+  {{- end }}
+  {{- if .Values.rbac.roles }}
+  - apiGroups:
+      - "rbac.authorization.k8s.io"
+    resources:
+      - roles
+    verbs: {{ .Values.rbac.roles }}
+  {{- end }}
+  {{- if .Values.rbac.clusterroles }}
+  - apiGroups:
+      - "rbac.authorization.k8s.io"
     resources:
       - clusterroles
-      - roles
-    verbs:
-      - get
-      - delete
+    verbs: {{ .Values.rbac.clusterroles }}
+  {{- end }}
+  {{- if .Values.rbac.configmaps }}
   - apiGroups:
       - ""
     resources:
       - configmaps
-      - secrets
-      - namespace
-    verbs:
-      - get
-      - delete
+    verbs: {{ .Values.rbac.configmaps }}
+  {{- end }}
+  {{- if .Values.rbac.secrets }}
   - apiGroups:
-      - coordination.k8s.io
+      - ""
+    resources:
+      - secrets
+    verbs: {{ .Values.rbac.secrets }}
+  {{- end }}
+  {{- if .Values.rbac.leases }}
+  - apiGroups:
+      - "coordination.k8s.io"
     resources:
       - leases
-    verbs:
-      - get
-      - watch
-      - create
-      - update
-      - patch
+    verbs: {{ .Values.rbac.leases }}
+  {{- end }}
 {{- if .Values.podSecurityPolicy.create }}
 - apiGroups:
     - policy
