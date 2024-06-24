@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.6
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.55.1
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.55.2
-	github.com/aws/aws-sdk-go-v2/service/sts v1.28.13
+	github.com/aws/aws-sdk-go-v2/service/sts v1.29.1
 	github.com/cilium/cilium v1.15.6
 	github.com/emersion/go-sasl v0.0.0-20231106173351-e73c9f7bad43
 	github.com/emersion/go-smtp v0.21.2
@@ -53,7 +53,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.10 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.3.12 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.12 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.14 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.17.10 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.20.12 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.24.6 // indirect
