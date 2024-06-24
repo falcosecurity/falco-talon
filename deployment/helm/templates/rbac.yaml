@@ -23,126 +23,144 @@ rules:
       - ""
     resources:
       - namespaces
-    verbs: {{ .Values.rbac.namespaces }}
+    verbs:
+{{ toYaml .Values.rbac.namespaces | indent 6 }}
   {{- end }}
   {{- if .Values.rbac.pods }}
   - apiGroups:
       - ""
     resources:
       - pods
-    verbs: {{ .Values.rbac.pods }}
+    verbs:
+{{ toYaml .Values.rbac.pods | indent 6 }}
   {{- end }}
   {{- if .Values.rbac.nodes }}
   - apiGroups:
       - ""
     resources:
       - nodes
-    verbs: {{ .Values.rbac.nodes }}
+    verbs:
+{{ toYaml .Values.rbac.nodes | indent 6 }}
   {{- end }}
   {{- if .Values.rbac.podsExec }}
   - apiGroups:
       - ""
     resources:
       - pods/exec
-    verbs: {{ .Values.rbac.podsExec }}
+    verbs:
+{{ toYaml .Values.rbac.podsExec | indent 6 }}
   {{- end }}
   {{- if .Values.rbac.podsEviction }}
   - apiGroups:
       - ""
     resources:
       - pods/eviction
-    verbs: {{ .Values.rbac.podsEviction }}
+    verbs:
+{{ toYaml .Values.rbac.podsEviction | indent 6 }}
   {{- end }}
   {{- if .Values.rbac.events }}
   - apiGroups:
       - ""
     resources:
       - events
-    verbs: {{ .Values.rbac.events }}
+    verbs:
+{{ toYaml .Values.rbac.events | indent 6 }}
   {{- end }}
   {{- if .Values.rbac.daemonsets }}
   - apiGroups:
       - "apps"
     resources:
       - daemonsets
-    verbs: {{ .Values.rbac.daemonsets }}
+    verbs:
+{{ toYaml .Values.rbac.daemonsets | indent 6 }}
   {{- end }}
   {{- if .Values.rbac.deployments }}
   - apiGroups:
       - "apps"
     resources:
       - deployments
-    verbs: {{ .Values.rbac.deployments }}
+    verbs:
+{{ toYaml .Values.rbac.deployments | indent 6 }}
   {{- end }}
   {{- if .Values.rbac.replicasets }}
   - apiGroups:
       - "apps"
     resources:
       - replicasets
-    verbs: {{ .Values.rbac.replicasets }}
+    verbs:
+{{ toYaml .Values.rbac.replicasets | indent 6 }}
   {{- end }}
   {{- if .Values.rbac.statefulsets }}
   - apiGroups:
       - "apps"
     resources:
       - statefulsets
-    verbs: {{ .Values.rbac.statefulsets }}
+    verbs:
+{{ toYaml .Values.rbac.statefulsets | indent 6 }}
   {{- end }}
   {{- if .Values.rbac.networkpolicies }}
   - apiGroups:
       - "networking.k8s.io"
     resources:
       - networkpolicies
-    verbs: {{ .Values.rbac.networkpolicies }}
+    verbs:
+{{ toYaml .Values.rbac.networkpolicies | indent 6 }}
   {{- end }}
   {{- if .Values.rbac.caliconetworkpolicies }}
   - apiGroups:
       - "projectcalico.org"
     resources:
       - caliconetworkpolicies
-    verbs: {{ .Values.rbac.caliconetworkpolicies }}
+    verbs:
+{{ toYaml .Values.rbac.caliconetworkpolicies | indent 6 }}
   {{- end }}
   {{- if .Values.rbac.ciliumnetworkpolicies }}
   - apiGroups:
       - "cilium.io"
     resources:
       - ciliumnetworkpolicies
-    verbs: {{ .Values.rbac.ciliumnetworkpolicies }}
+    verbs:
+{{ toYaml .Values.rbac.ciliumnetworkpolicies | indent 6 }}
   {{- end }}
   {{- if .Values.rbac.roles }}
   - apiGroups:
       - "rbac.authorization.k8s.io"
     resources:
       - roles
-    verbs: {{ .Values.rbac.roles }}
+    verbs:
+{{ toYaml .Values.rbac.roles | indent 6 }}
   {{- end }}
   {{- if .Values.rbac.clusterroles }}
   - apiGroups:
       - "rbac.authorization.k8s.io"
     resources:
       - clusterroles
-    verbs: {{ .Values.rbac.clusterroles }}
+    verbs:
+{{ toYaml .Values.rbac.clusterroles | indent 6 }}
   {{- end }}
   {{- if .Values.rbac.configmaps }}
   - apiGroups:
       - ""
     resources:
       - configmaps
-    verbs: {{ .Values.rbac.configmaps }}
+    verbs:
+{{ toYaml .Values.rbac.configmaps | indent 6 }}
   {{- end }}
   {{- if .Values.rbac.secrets }}
   - apiGroups:
       - ""
     resources:
       - secrets
-    verbs: {{ .Values.rbac.secrets }}
+    verbs:
+{{ toYaml .Values.rbac.secrets | indent 6 }}
   {{- end }}
   {{- if .Values.rbac.leases }}
   - apiGroups:
       - "coordination.k8s.io"
     resources:
       - leases
-    verbs: {{ .Values.rbac.leases }}
+    verbs:
+{{ toYaml .Values.rbac.leases | indent 6 }}
   {{- end }}
 {{- if .Values.podSecurityPolicy.create }}
 - apiGroups:

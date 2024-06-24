@@ -75,7 +75,7 @@ tolerations: []
 affinity: {}
 
 rbac:
-  namespace: ["get"]
+  namespaces: ["get"]
   pods: ["get", "update", "patch", "delete", "list"]
   nodes: ["get", "update", "patch", "watch", "create"]
   podsExec: ["get", "create"]
