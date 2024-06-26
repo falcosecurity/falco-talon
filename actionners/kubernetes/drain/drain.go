@@ -23,18 +23,19 @@ const (
 	EvictionKind = "Eviction"
 	// EvictionSubresource represents the kind of evictions object as pod's subresource
 	EvictionSubresource = "pods/eviction"
-	// HoldEvictionDefaultTickerSeconds represents how much time does the ticker takes to create another request to check if pods were evicted
-	HoldEvictionDefaultTickerSeconds = 5
+	// AmountOfTickers represents the amount of tickers that will be created to check whether or not pods were evicted,
+	// used if wait_period is specified
+	AmountOfTickers = 10
 )
 
 type Config struct {
-	MinHealthyReplicas         string   `mapstructure:"min_healthy_replicas" validate:"omitempty,is_absolut_or_percent"`
-	IgnoreErrors               bool     `mapstructure:"ignore_errors" validate:"omitempty"`
-	IgnoreDaemonsets           bool     `mapstructure:"ignore_daemonsets" validate:"omitempty"`
-	IgnoreStatefulSets         bool     `mapstructure:"ignore_statefulsets" validate:"omitempty"`
-	GracePeriodSeconds         int      `mapstructure:"grace_period_seconds" validate:"omitempty"`
-	WaitPeriod                 int      `mapstructure:"wait_period" validate:"omitempty"`
-	WaitTimeExcludedNamespaces []string `mapstructure:"wait_time_excluded_namespaces" validate:"omitempty"`
+	MinHealthyReplicas           string   `mapstructure:"min_healthy_replicas" validate:"omitempty,is_absolut_or_percent"`
+	WaitPeriodExcludedNamespaces []string `mapstructure:"wait_period_excluded_namespaces" validate:"omitempty"`
+	IgnoreErrors                 bool     `mapstructure:"ignore_errors" validate:"omitempty"`
+	IgnoreDaemonsets             bool     `mapstructure:"ignore_daemonsets" validate:"omitempty"`
+	IgnoreStatefulSets           bool     `mapstructure:"ignore_statefulsets" validate:"omitempty"`
+	GracePeriodSeconds           int      `mapstructure:"grace_period_seconds" validate:"omitempty"`
+	WaitPeriod                   int      `mapstructure:"wait_period" validate:"omitempty"`
 }
 
 func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Data, error) {
@@ -98,6 +99,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 
 	for _, p := range pods.Items {
 		wg.Add(1)
+		p := p
 		go func() {
 			defer wg.Done()
 
@@ -109,15 +111,15 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 			}
 
 			switch ownerKind {
-			case "DaemonSet":
+			case utils.DaemonSetStr:
 				if config.IgnoreDaemonsets {
 					ignoredPodsCount++
 				}
-			case "StatefulSet":
+			case utils.StatefulSetStr:
 				if config.IgnoreStatefulSets {
 					ignoredPodsCount++
 				}
-			case "ReplicaSet":
+			case utils.ReplicaSetStr:
 				replicaSetName, err := kubernetes.GetOwnerName(p)
 				if err != nil {
 					utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting pod owner name: %v", err)})
@@ -206,8 +208,10 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 }
 
 func verifyEvictionHasFinished(c *kubernetes.Client, period int, nodeName string, config Config) error {
+	tickerTiming := period / AmountOfTickers
+
 	timeout := time.After(time.Duration(period) * time.Second)
-	ticker := time.NewTicker(HoldEvictionDefaultTickerSeconds * time.Second)
+	ticker := time.NewTicker(time.Duration(tickerTiming) * time.Second)
 	defer ticker.Stop()
 
 	for {
@@ -218,7 +222,7 @@ func verifyEvictionHasFinished(c *kubernetes.Client, period int, nodeName string
 
 			var nonDaemonSetPods []string
 			excludedNamespaces := make(map[string]bool)
-			for _, namespace := range config.WaitTimeExcludedNamespaces {
+			for _, namespace := range config.WaitPeriodExcludedNamespaces {
 				excludedNamespaces[namespace] = true
 			}
 			pods, err := c.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{
@@ -232,7 +236,7 @@ func verifyEvictionHasFinished(c *kubernetes.Client, period int, nodeName string
 				isDaemonSet := false
 				if pod.OwnerReferences != nil {
 					for _, ownerRef := range pod.OwnerReferences {
-						if ownerRef.Kind == "DaemonSet" {
+						if ownerRef.Kind == utils.DaemonSetStr {
 							isDaemonSet = true
 							break
 						}
