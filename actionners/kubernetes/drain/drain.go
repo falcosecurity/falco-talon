@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	v1 "k8s.io/api/apps/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -102,8 +103,8 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		p := p
 		go func() {
 			defer wg.Done()
-
-			ownerKind, err := kubernetes.GetOwnerKind(p)
+			var ownerKind string
+			ownerKind, err = kubernetes.GetOwnerKind(p)
 			if err != nil {
 				utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting pod '%v' owner kind: %v", p.Name, err)})
 				otherErrorsCount++
@@ -120,19 +121,23 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 					ignoredPodsCount++
 				}
 			case utils.ReplicaSetStr:
-				replicaSetName, err := kubernetes.GetOwnerName(p)
+				var replicaSetName string
+				replicaSetName, err = kubernetes.GetOwnerName(p)
 				if err != nil {
 					utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting pod owner name: %v", err)})
 					otherErrorsCount++
 				}
 				if config.MinHealthyReplicas != "" {
-					replicaSet, err := client.GetReplicaSet(replicaSetName, p.Namespace)
+					var replicaSet *v1.ReplicaSet
+					replicaSet, err = client.GetReplicaSet(replicaSetName, p.Namespace)
 					if err != nil {
 						utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting replica set for pod '%v': %v", p.Name, err)})
 						otherErrorsCount++
 						return
 					}
-					minHealthyReplicasValue, kind, err := helpers.ParseMinHealthyReplicas(config.MinHealthyReplicas)
+					var minHealthyReplicasValue int64
+					var kind string
+					minHealthyReplicasValue, kind, err = helpers.ParseMinHealthyReplicas(config.MinHealthyReplicas)
 					if err != nil {
 						utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error parsing min_healthy_replicas: %v", err)})
 						otherErrorsCount++
@@ -140,7 +145,8 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 					}
 					switch kind {
 					case "absolut":
-						healthyReplicasCount, err := kubernetes.GetHealthyReplicasCount(replicaSet)
+						var healthyReplicasCount int64
+						healthyReplicasCount, err = kubernetes.GetHealthyReplicasCount(replicaSet)
 						if err != nil {
 							utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
 							otherErrorsCount++
@@ -150,7 +156,8 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 							return
 						}
 					case "percent":
-						healthyReplicasValue, err := kubernetes.GetHealthyReplicasCount(replicaSet)
+						var healthyReplicasValue int64
+						healthyReplicasValue, err = kubernetes.GetHealthyReplicasCount(replicaSet)
 						minHealthyReplicasAbsoluteValue := int64(float64(minHealthyReplicasValue) / 100.0 * float64(healthyReplicasValue))
 						if err != nil {
 							utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
@@ -174,7 +181,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 					GracePeriodSeconds: gracePeriodSeconds,
 				},
 			}
-			if err := client.PolicyV1().Evictions(pod.GetNamespace()).Evict(context.Background(), eviction); err != nil {
+			if err = client.PolicyV1().Evictions(pod.GetNamespace()).Evict(context.Background(), eviction); err != nil {
 				utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error evicting pod '%v': %v", p.Name, err)})
 				evictionErrorsCount++
 			}
