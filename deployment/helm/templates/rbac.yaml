@@ -34,6 +34,14 @@ rules:
     verbs:
 {{ toYaml .Values.rbac.pods | indent 6 }}
   {{- end }}
+  {{- if .Values.rbac.podsEphemeralcontainers }}
+  - apiGroups:
+      - ""
+    resources:
+      - pods/ephemeralcontainers
+    verbs:
+{{ toYaml .Values.rbac.podsEphemeralcontainers | indent 6 }}
+  {{- end }}
   {{- if .Values.rbac.nodes }}
   - apiGroups:
       - ""
