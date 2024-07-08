@@ -2,7 +2,7 @@ apiVersion: v1
 appVersion: 0.1.0
 description: React to events from Falco
 name: falco-talon
-version: 0.2.0
+version: 0.1.0
 keywords:
   - falco
   - monitoring
