@@ -284,7 +284,12 @@ func newHTTPHandler() http.Handler {
 	handleFunc("/healthz", handler.HealthHandler)
 	handleFunc("/rules", handler.RulesHandler)
 
-	otelHandler := otelhttp.NewHandler(mux, "/")
+	otelHandler := otelhttp.NewHandler(
+		mux,
+		"/",
+		otelhttp.WithFilter(func(req *http.Request) bool {
+			return req.URL.Path == "/"
+		}))
 	return otelHandler
 }
 
