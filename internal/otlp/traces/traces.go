@@ -1,4 +1,4 @@
-package tracing
+package traces
 
 import (
 	"context"
@@ -82,6 +82,10 @@ func newOtlpGrpcExporter(ctx context.Context) (trace.SpanExporter, error) {
 	opts := []otlptracegrpc.Option{
 		otlptracegrpc.WithInsecure(),
 		otlptracegrpc.WithEndpoint(endpoint),
+		otlptracegrpc.WithTimeout(1 * time.Second),
+		otlptracegrpc.WithRetry(otlptracegrpc.RetryConfig{
+			Enabled: false,
+		}),
 	}
 
 	if insecure {

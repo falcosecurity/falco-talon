@@ -36,11 +36,11 @@ import (
 	k8sChecks "github.com/falco-talon/falco-talon/internal/kubernetes/checks"
 	k8s "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 	"github.com/falco-talon/falco-talon/internal/nats"
+	"github.com/falco-talon/falco-talon/internal/otlp/metrics"
+	"github.com/falco-talon/falco-talon/internal/otlp/traces"
 	"github.com/falco-talon/falco-talon/internal/rules"
-	"github.com/falco-talon/falco-talon/metrics"
 	"github.com/falco-talon/falco-talon/notifiers"
 	"github.com/falco-talon/falco-talon/outputs/model"
-	"github.com/falco-talon/falco-talon/tracing"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
@@ -376,7 +376,7 @@ func runAction(ctx context.Context, rule *rules.Rule, action *rules.Action, even
 		}
 	}
 
-	tracer := tracing.GetTracer()
+	tracer := traces.GetTracer()
 	ctx, span := tracer.Start(ctx, "action",
 		trace.WithAttributes(attribute.String("action.name", action.Name)),
 		trace.WithAttributes(attribute.String("action.actionner", action.Actionner)),
@@ -456,7 +456,7 @@ func runAction(ctx context.Context, rule *rules.Rule, action *rules.Action, even
 				}
 			}
 		}
-		tracer = tracing.GetTracer()
+		tracer = traces.GetTracer()
 		ctx, span = tracer.Start(ctx, "output",
 			trace.WithAttributes(attribute.String("output.name", o.GetName())),
 			trace.WithAttributes(attribute.String("output.category", o.GetCategory())),
@@ -511,7 +511,7 @@ func runAction(ctx context.Context, rule *rules.Rule, action *rules.Action, even
 			return ctx, err
 		}
 		log.Target = target
-		tracer = tracing.GetTracer()
+		tracer = traces.GetTracer()
 		ctx, span = tracer.Start(ctx, "output",
 			trace.WithAttributes(attribute.String("output.name", o.GetName())),
 			trace.WithAttributes(attribute.String("output.category", o.GetCategory())),

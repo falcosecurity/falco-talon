@@ -5,8 +5,8 @@ import (
 
 	"github.com/falco-talon/falco-talon/configuration"
 	"github.com/falco-talon/falco-talon/internal/events"
+	"github.com/falco-talon/falco-talon/internal/otlp/metrics"
 	"github.com/falco-talon/falco-talon/internal/rules"
-	"github.com/falco-talon/falco-talon/metrics"
 	"github.com/falco-talon/falco-talon/notifiers/elasticsearch"
 	"github.com/falco-talon/falco-talon/notifiers/k8sevents"
 	"github.com/falco-talon/falco-talon/notifiers/loki"
