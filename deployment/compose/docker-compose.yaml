@@ -9,6 +9,10 @@ services:
 #    image: otel/opentelemetry-collector-contrib:0.72.0
     image: otel/opentelemetry-collector-contrib:0.103.0
     command: ["--config=/otel/collector-config.yaml"]
+    environment:
+      GRAFANA_SAAS_USERNAME: $GRAFANA_SAAS_USERNAME
+      GRAFANA_SAAS_TOKEN: $GRAFANA_SAAS_TOKEN
+      GRAFANA_SAAS_ENDPOINT: $GRAFANA_SAAS_ENDPOINT
     volumes:
       - ./otel/collector-config.yaml:/otel/collector-config.yaml
     ports:
@@ -48,7 +52,7 @@ services:
 
   # jaeger
   jaeger:
-    image: jaegertracing/all-in-one
+    image: jaegertracing/all-in-one:1.58.0
     ports:
       - 16686:16686
       - 14250:14250
