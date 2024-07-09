@@ -105,6 +105,7 @@ func newResource() *resource.Resource {
 		context.Background(),
 		resource.WithAttributes(
 			semconv.ServiceNameKey.String("falco-talon"),
+			semconv.ServiceVersionKey.String(configuration.GetInfo().GitVersion),
 		),
 	)
 	if err != nil {
