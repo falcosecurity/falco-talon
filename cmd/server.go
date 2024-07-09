@@ -262,7 +262,7 @@ var serverCmd = &cobra.Command{
 		}
 		defer func() {
 			err = errors.Join(err, otelShutdown(ctx))
-			utils.PrintLog("warn", utils.LogLine{Error: err.Error(), Message: "nats"})
+			utils.PrintLog("warn", utils.LogLine{Error: err.Error(), Message: "otel-traces"})
 		}()
 
 		if err := srv.ListenAndServe(); err != nil {
