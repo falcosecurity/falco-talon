@@ -192,11 +192,12 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 	if config.WaitPeriod != 0 {
 		err = verifyEvictionHasFinished(client, config.WaitPeriod, nodeName, config)
 		if err != nil {
+			err = fmt.Errorf("pods were not evited during the wait period of %v seconds for node %s", config.WaitPeriod, nodeName)
 			return utils.LogLine{
 				Objects: objects,
-				Error:   fmt.Sprintf("pods were not evited during the wait period of %v seconds for node %s.", config.WaitPeriod, nodeName),
+				Error:   err.Error(),
 				Status:  "failure",
-			}, nil, fmt.Errorf("pods were not evited during the wait period of %v seconds for node %s", config.WaitPeriod, nodeName)
+			}, nil, err
 		}
 	}
 
