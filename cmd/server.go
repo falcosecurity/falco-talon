@@ -273,6 +273,7 @@ var serverCmd = &cobra.Command{
 
 func newHTTPHandler() http.Handler {
 	mux := http.NewServeMux()
+	mux.Handle("/metrics", metrics.Handler())
 
 	handleFunc := func(pattern string, handlerFunc func(http.ResponseWriter, *http.Request)) {
 		otelHandler := otelhttp.WithRouteTag(pattern, http.HandlerFunc(handlerFunc))
