@@ -10,8 +10,8 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"github.com/falco-talon/falco-talon/internal/handler"
-	"github.com/falco-talon/falco-talon/metrics"
-	"github.com/falco-talon/falco-talon/tracing"
+	"github.com/falco-talon/falco-talon/internal/otlp/metrics"
+	"github.com/falco-talon/falco-talon/internal/otlp/traces"
 
 	"github.com/fsnotify/fsnotify"
 
@@ -110,8 +110,6 @@ var serverCmd = &cobra.Command{
 		if rules != nil {
 			utils.PrintLog("info", utils.LogLine{Result: fmt.Sprintf("%v rule(s) has/have been successfully loaded", len(*rules)), Message: "init"})
 		}
-
-		http.Handle("/metrics", metrics.Handler())
 
 		if config.WatchRules {
 			utils.PrintLog("info", utils.LogLine{Result: "watch of rules enabled", Message: "init"})
@@ -257,12 +255,14 @@ var serverCmd = &cobra.Command{
 
 		utils.PrintLog("info", utils.LogLine{Result: fmt.Sprintf("Falco Talon is up and listening on %s:%d", config.ListenAddress, config.ListenPort), Message: "http"})
 
-		otelShutdown, err := tracing.SetupOTelSDK(context.Background())
+		ctx := context.Background()
+		otelShutdown, err := traces.SetupOTelSDK(ctx)
 		if err != nil {
-			utils.PrintLog("warn", utils.LogLine{Error: err.Error(), Message: "fail to initialize OTEL GRPC exporter."})
+			utils.PrintLog("warn", utils.LogLine{Error: err.Error(), Message: "otel-traces"})
 		}
 		defer func() {
-			err = errors.Join(err, otelShutdown(context.Background()))
+			err = errors.Join(err, otelShutdown(ctx))
+			utils.PrintLog("warn", utils.LogLine{Error: err.Error(), Message: "otel-traces"})
 		}()
 
 		if err := srv.ListenAndServe(); err != nil {
@@ -284,7 +284,12 @@ func newHTTPHandler() http.Handler {
 	handleFunc("/healthz", handler.HealthHandler)
 	handleFunc("/rules", handler.RulesHandler)
 
-	otelHandler := otelhttp.NewHandler(mux, "/")
+	otelHandler := otelhttp.NewHandler(
+		mux,
+		"/",
+		otelhttp.WithFilter(func(req *http.Request) bool {
+			return req.URL.Path == "/"
+		}))
 	return otelHandler
 }
 

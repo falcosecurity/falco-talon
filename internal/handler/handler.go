@@ -10,16 +10,15 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/falco-talon/falco-talon/tracing"
-
 	"github.com/jinzhu/copier"
 	"gopkg.in/yaml.v2"
 
 	"github.com/falco-talon/falco-talon/configuration"
 	"github.com/falco-talon/falco-talon/internal/events"
 	"github.com/falco-talon/falco-talon/internal/nats"
+	"github.com/falco-talon/falco-talon/internal/otlp/metrics"
+	"github.com/falco-talon/falco-talon/internal/otlp/traces"
 	"github.com/falco-talon/falco-talon/internal/rules"
-	"github.com/falco-talon/falco-talon/metrics"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
@@ -43,7 +42,7 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	requestContext := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
 
-	tracer := tracing.GetTracer()
+	tracer := traces.GetTracer()
 	ctx, span := tracer.Start(requestContext, "event",
 		trace.WithAttributes(attribute.String("event.rule", event.Rule)),
 		trace.WithAttributes(attribute.String("event.traceid", event.TraceID)),
