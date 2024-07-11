@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -261,8 +260,9 @@ var serverCmd = &cobra.Command{
 			utils.PrintLog("warn", utils.LogLine{Error: err.Error(), Message: "otel-traces"})
 		}
 		defer func() {
-			err = errors.Join(err, otelShutdown(ctx))
-			utils.PrintLog("warn", utils.LogLine{Error: err.Error(), Message: "otel-traces"})
+			if err := otelShutdown(ctx); err != nil {
+				utils.PrintLog("warn", utils.LogLine{Error: err.Error(), Message: "otel-traces"})
+			}
 		}()
 
 		if err := srv.ListenAndServe(); err != nil {
