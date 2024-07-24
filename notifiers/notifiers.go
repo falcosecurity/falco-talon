@@ -1,11 +1,13 @@
 package notifiers
 
 import (
+	"context"
 	"strings"
 
 	"github.com/falco-talon/falco-talon/configuration"
 	"github.com/falco-talon/falco-talon/internal/events"
 	"github.com/falco-talon/falco-talon/internal/otlp/metrics"
+	"github.com/falco-talon/falco-talon/internal/otlp/traces"
 	"github.com/falco-talon/falco-talon/internal/rules"
 	"github.com/falco-talon/falco-talon/notifiers/elasticsearch"
 	"github.com/falco-talon/falco-talon/notifiers/k8sevents"
@@ -14,7 +16,9 @@ import (
 	"github.com/falco-talon/falco-talon/notifiers/smtp"
 	"github.com/falco-talon/falco-talon/notifiers/webhook"
 	"github.com/falco-talon/falco-talon/utils"
-
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -109,11 +113,11 @@ func GetNotifiers() *Notifiers {
 	return enabledNotifiers
 }
 
-func Notify(rule *rules.Rule, action *rules.Action, event *events.Event, log utils.LogLine) {
+func Notify(ictx context.Context, rule *rules.Rule, action *rules.Action, event *events.Event, log utils.LogLine) context.Context {
 	config := configuration.GetConfiguration()
 
 	if len(rule.Notifiers) == 0 && len(config.DefaultNotifiers) == 0 {
-		return
+		return ictx
 	}
 
 	enabledNotifiers := map[string]bool{}
@@ -139,21 +143,35 @@ func Notify(rule *rules.Rule, action *rules.Action, event *events.Event, log uti
 	}
 	log.Objects = obj
 
+	var ctx context.Context
+	var span trace.Span
+
 	for i := range enabledNotifiers {
 		if n := GetNotifiers().FindNotifier(i); n != nil {
 			logN.Notifier = i
+			tracer := traces.GetTracer()
+			ctx, span = tracer.Start(ictx, "notification",
+				trace.WithAttributes(attribute.String("notifier.name", n.Name)),
+			)
+			defer span.End()
 			if err := n.Notification(log); err != nil {
+				span.SetStatus(codes.Error, "notification send failed")
+				span.RecordError(err)
+				defer span.End()
 				logN.Status = "failure"
 				logN.Error = err.Error()
 				utils.PrintLog("error", logN)
 				metrics.IncreaseCounter(log)
 			} else {
+				span.SetStatus(codes.Ok, "notification send success")
 				logN.Status = "success"
 				utils.PrintLog("info", logN)
 				metrics.IncreaseCounter(log)
 			}
 		}
 	}
+
+	return ctx
 }
 
 func (notifiers *Notifiers) FindNotifier(name string) *Notifier {

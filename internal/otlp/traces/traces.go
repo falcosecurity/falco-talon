@@ -84,7 +84,7 @@ func newOtlpGrpcExporter(ctx context.Context) (trace.SpanExporter, error) {
 		otlptracegrpc.WithEndpoint(endpoint),
 		otlptracegrpc.WithTimeout(1 * time.Second),
 		otlptracegrpc.WithRetry(otlptracegrpc.RetryConfig{
-			Enabled: false,
+			Enabled: true,
 		}),
 	}
 
