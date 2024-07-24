@@ -2,6 +2,7 @@ package actionners
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 
@@ -469,8 +470,9 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 			trace.WithAttributes(attribute.String("output.name", o.GetName())),
 			trace.WithAttributes(attribute.String("output.category", o.GetCategory())),
 			trace.WithAttributes(attribute.String("output.target", output.GetTarget())),
-			trace.WithAttributes(attribute.String("output.body", string(data.Bytes))),
+			trace.WithAttributes(attribute.String("output.body", base64.StdEncoding.EncodeToString(data.Bytes))),
 		)
+		defer span.End()
 		log.Status = result.Status
 		log.Objects = result.Objects
 		if result.Output != "" {
@@ -483,6 +485,7 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 		metrics.IncreaseCounter(log)
 
 		if err != nil {
+			span.SetStatus(codes.Error, "Failed to run output")
 			utils.PrintLog("error", log)
 			ctx = notifiers.Notify(ctx, rule, action, event, log)
 			return ctx, err

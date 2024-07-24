@@ -68,6 +68,7 @@ func newTraceProvider() (*trace.TracerProvider, error) {
 	traceProvider := trace.NewTracerProvider(
 		trace.WithBatcher(traceExporter,
 			trace.WithBatchTimeout(time.Second*5),
+			trace.WithExportTimeout(time.Second*30),
 		),
 		trace.WithResource(newResource()),
 	)
@@ -82,9 +83,11 @@ func newOtlpGrpcExporter(ctx context.Context) (trace.SpanExporter, error) {
 	opts := []otlptracegrpc.Option{
 		otlptracegrpc.WithInsecure(),
 		otlptracegrpc.WithEndpoint(endpoint),
-		otlptracegrpc.WithTimeout(1 * time.Second),
+		otlptracegrpc.WithTimeout(5 * time.Second),
 		otlptracegrpc.WithRetry(otlptracegrpc.RetryConfig{
-			Enabled: true,
+			Enabled:        true,
+			MaxInterval:    2 * time.Second,
+			MaxElapsedTime: 10 * time.Second,
 		}),
 	}
 
