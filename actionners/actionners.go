@@ -2,7 +2,6 @@ package actionners
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 
@@ -201,9 +200,10 @@ func GetDefaultActionners() *Actionners {
 				Checks: []checkActionner{
 					k8sChecks.CheckPodExist,
 				},
-				CheckParameters: k8sTcpdump.CheckParameters,
-				Action:          k8sTcpdump.Action,
-				RequireOutput:   true,
+				AllowAdditionalContexts: true,
+				CheckParameters:         k8sTcpdump.CheckParameters,
+				Action:                  k8sTcpdump.Action,
+				RequireOutput:           true,
 			},
 			&Actionner{
 				Category:        "aws",
@@ -339,10 +339,10 @@ func (actionner *Actionner) AllowAdditionalContext() bool {
 	return actionner.AllowAdditionalContexts
 }
 
-func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, event *events.Event) (octx context.Context, err error) {
+func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, event *events.Event) (err error) {
 	actionners := GetActionners()
 	if actionners == nil {
-		return ictx, nil
+		return nil
 	}
 
 	log := utils.LogLine{
@@ -357,14 +357,14 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 	if rule.DryRun == trueStr {
 		log.Output = "no action, dry-run is enabled"
 		utils.PrintLog("info", log)
-		return ictx, err
+		return err
 	}
 
 	actionner := actionners.FindActionner(action.GetActionner())
 	if actionner == nil {
 		log.Error = fmt.Sprintf("unknown actionner '%v'", action.GetActionner())
 		utils.PrintLog("error", log)
-		return ictx, fmt.Errorf("unknown actionner '%v'", action.GetActionner())
+		return fmt.Errorf("unknown actionner '%v'", action.GetActionner())
 	}
 
 	if checks := actionner.Checks; len(checks) != 0 {
@@ -372,7 +372,7 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 			if err = i(event, action); err != nil {
 				log.Error = err.Error()
 				utils.PrintLog("error", log)
-				return ictx, err
+				return err
 			}
 		}
 	}
@@ -384,8 +384,10 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 		trace.WithAttributes(attribute.String("action.description", action.Description)),
 	)
 	defer span.End()
-
 	result, data, err := actionner.Action(action, event)
+	span.SetAttributes(attribute.String("action.result", result.Status))
+	span.SetAttributes(attribute.String("action.output", result.Output))
+
 	log.Status = result.Status
 	if len(result.Objects) != 0 {
 		log.Objects = result.Objects
@@ -405,10 +407,12 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 	metrics.IncreaseCounter(log)
 
 	if err != nil {
+		span.SetStatus(codes.Error, "Failed to run action")
 		utils.PrintLog("error", log)
 		ctx = notifiers.Notify(ctx, rule, action, event, log)
-		return ctx, err
+		return err
 	}
+	span.SetStatus(codes.Ok, "Action completed successfully")
 
 	utils.PrintLog("info", log)
 	ctx = notifiers.Notify(ctx, rule, action, event, log)
@@ -430,7 +434,7 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 			utils.PrintLog("error", log)
 			metrics.IncreaseCounter(log)
 			ctx = notifiers.Notify(ctx, rule, action, event, log)
-			return ctx, err
+			return err
 		}
 		target := output.GetTarget()
 		o := outputs.GetDefaultOutputs().FindOutput(target)
@@ -440,7 +444,7 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 			utils.PrintLog("error", log)
 			metrics.IncreaseCounter(log)
 			ctx = notifiers.Notify(ctx, rule, action, event, log)
-			return ctx, err
+			return err
 		}
 
 		log.Target = target
@@ -453,7 +457,7 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 					utils.PrintLog("error", log)
 					metrics.IncreaseCounter(log)
 					ctx = notifiers.Notify(ctx, rule, action, event, log)
-					return ctx, err
+					return err
 				}
 			}
 		}
@@ -465,14 +469,8 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 		)
 		defer span.End()
 		result, err = o.Output(output, data)
-		tracer = traces.GetTracer()
-		ctx, span = tracer.Start(ctx, "output-result",
-			trace.WithAttributes(attribute.String("output.name", o.GetName())),
-			trace.WithAttributes(attribute.String("output.category", o.GetCategory())),
-			trace.WithAttributes(attribute.String("output.target", output.GetTarget())),
-			trace.WithAttributes(attribute.String("output.body", base64.StdEncoding.EncodeToString(data.Bytes))),
-		)
-		defer span.End()
+		span.SetAttributes(attribute.String("output.status", result.Status))
+		span.SetAttributes(attribute.String("output.message", result.Output))
 		log.Status = result.Status
 		log.Objects = result.Objects
 		if result.Output != "" {
@@ -488,12 +486,13 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 			span.SetStatus(codes.Error, "Failed to run output")
 			utils.PrintLog("error", log)
 			ctx = notifiers.Notify(ctx, rule, action, event, log)
-			return ctx, err
+			return err
 		}
+		span.SetStatus(codes.Ok, "Output completed successfully")
 
 		utils.PrintLog("info", log)
 		ctx = notifiers.Notify(ctx, rule, action, event, log)
-		return ctx, nil
+		return nil
 	}
 
 	if actionner.IsOutputAllowed() && output != nil && data != nil {
@@ -503,7 +502,7 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 			utils.PrintLog("error", log)
 			metrics.IncreaseCounter(log)
 			ctx = notifiers.Notify(ctx, rule, action, event, log)
-			return ctx, err
+			return err
 		}
 		log = utils.LogLine{
 			Message: "output",
@@ -518,7 +517,7 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 			log.Error = err.Error()
 			utils.PrintLog("error", log)
 			ctx = notifiers.Notify(ctx, rule, action, event, log)
-			return ctx, err
+			return err
 		}
 		log.Target = target
 		tracer = traces.GetTracer()
@@ -541,17 +540,19 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 		metrics.IncreaseCounter(log)
 
 		if err != nil {
+			span.SetStatus(codes.Error, "Failed to run output")
 			utils.PrintLog("error", log)
 			ctx = notifiers.Notify(ctx, rule, action, event, log)
-			return ctx, err
+			return err
 		}
+		span.SetStatus(codes.Ok, "Output completed successfully")
 
 		utils.PrintLog("info", log)
 		ctx = notifiers.Notify(ctx, rule, action, event, log)
-		return ctx, nil
+		return nil
 	}
 
-	return ctx, nil
+	return nil
 }
 
 func StartConsumer(eventsC <-chan nats.MessageWithContext) {
@@ -608,7 +609,7 @@ func StartConsumer(eventsC <-chan nats.MessageWithContext) {
 				if GetDefaultActionners().FindActionner(a.GetActionner()).AllowAdditionalContext() &&
 					len(a.GetAdditionalContexts()) != 0 {
 					for _, i := range a.GetAdditionalContexts() {
-						elements, err := falcoContext.GetContext(i, e)
+						elements, err := falcoContext.GetContext(ctx, i, e)
 						if err != nil {
 							log := utils.LogLine{
 								Message:   "context",
@@ -625,20 +626,7 @@ func StartConsumer(eventsC <-chan nats.MessageWithContext) {
 						}
 					}
 				}
-				actionCtx, err := runAction(ctx, i, a, e)
-
-				var span trace.Span
-
-				span = trace.SpanFromContext(actionCtx)
-				if err != nil {
-					span.SetStatus(codes.Error, "Failed to run action")
-					span.RecordError(err)
-				} else {
-					span.SetStatus(codes.Ok, "Action completed successfully")
-					span.SetAttributes(attribute.String("result", "Action completed successfully"))
-				}
-				span.End()
-
+				err := runAction(ctx, i, a, e)
 				if err != nil && a.IgnoreErrors == falseStr {
 					break
 				}
