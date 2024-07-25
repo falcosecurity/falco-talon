@@ -42,7 +42,6 @@ func GetContext(ctx context.Context, source string, event *events.Event) (map[st
 
 func enrichSpanWithAttributesFromContext(span oteltrace.Span, context map[string]interface{}) {
 	for k, v := range context {
-		s := fmt.Sprintf("%v", v)
-		span.SetAttributes(attribute.String(k, s))
+		span.SetAttributes(attribute.String(k, fmt.Sprintf("%v", v)))
 	}
 }
