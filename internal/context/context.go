@@ -7,6 +7,7 @@ import (
 	"github.com/falco-talon/falco-talon/internal/context/aws"
 	"github.com/falco-talon/falco-talon/internal/otlp/traces"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	oteltrace "go.opentelemetry.io/otel/trace"
 
 	"github.com/falco-talon/falco-talon/internal/context/kubernetes"
@@ -24,6 +25,8 @@ func GetContext(ctx context.Context, source string, event *events.Event) (map[st
 	case "aws":
 		awsContext, err := aws.GetAwsContext(event)
 		if err != nil {
+			span.SetStatus(codes.Error, "Failed to add context")
+			span.RecordError(err)
 			return nil, err
 		}
 		enrichSpanWithAttributesFromContext(span, awsContext)
@@ -31,6 +34,8 @@ func GetContext(ctx context.Context, source string, event *events.Event) (map[st
 	case "k8snode":
 		nodeContext, err := kubernetes.GetNodeContext(event)
 		if err != nil {
+			span.SetStatus(codes.Error, "Failed to add context")
+			span.RecordError(err)
 			return nil, err
 		}
 		enrichSpanWithAttributesFromContext(span, nodeContext)

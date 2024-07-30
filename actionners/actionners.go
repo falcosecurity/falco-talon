@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"runtime"
 
+	"github.com/falco-talon/falco-talon/internal/otlp/traces"
 	"go.opentelemetry.io/otel/codes"
 
 	lambdaInvoke "github.com/falco-talon/falco-talon/actionners/aws/lambda"
@@ -37,7 +40,6 @@ import (
 	k8s "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 	"github.com/falco-talon/falco-talon/internal/nats"
 	"github.com/falco-talon/falco-talon/internal/otlp/metrics"
-	"github.com/falco-talon/falco-talon/internal/otlp/traces"
 	"github.com/falco-talon/falco-talon/internal/rules"
 	"github.com/falco-talon/falco-talon/notifiers"
 	"github.com/falco-talon/falco-talon/outputs/model"
@@ -340,6 +342,9 @@ func (actionner *Actionner) AllowAdditionalContext() bool {
 }
 
 func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, event *events.Event) (err error) {
+
+	tracer := traces.GetTracer()
+
 	actionners := GetActionners()
 	if actionners == nil {
 		return nil
@@ -369,15 +374,21 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 
 	if checks := actionner.Checks; len(checks) != 0 {
 		for _, i := range checks {
+			_, span := tracer.Start(ictx, "checks",
+				trace.WithAttributes(attribute.String("check.name", runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name())))
 			if err = i(event, action); err != nil {
+				span.SetStatus(codes.Error, "Failed to run checks")
+				span.RecordError(err)
 				log.Error = err.Error()
 				utils.PrintLog("error", log)
+				span.End()
 				return err
+			} else {
+				span.End()
 			}
 		}
 	}
 
-	tracer := traces.GetTracer()
 	ctx, span := tracer.Start(ictx, "action",
 		trace.WithAttributes(attribute.String("action.name", action.Name)),
 		trace.WithAttributes(attribute.String("action.actionner", action.Actionner)),
@@ -408,6 +419,7 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 
 	if err != nil {
 		span.SetStatus(codes.Error, "Failed to run action")
+		span.RecordError(err)
 		utils.PrintLog("error", log)
 		ctx = notifiers.Notify(ctx, rule, action, event, log)
 		return err
@@ -461,7 +473,6 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 				}
 			}
 		}
-		tracer = traces.GetTracer()
 		ctx, span = tracer.Start(ctx, "output",
 			trace.WithAttributes(attribute.String("output.name", o.GetName())),
 			trace.WithAttributes(attribute.String("output.category", o.GetCategory())),
@@ -484,6 +495,7 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 
 		if err != nil {
 			span.SetStatus(codes.Error, "Failed to run output")
+			span.RecordError(err)
 			utils.PrintLog("error", log)
 			ctx = notifiers.Notify(ctx, rule, action, event, log)
 			return err
@@ -520,7 +532,6 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 			return err
 		}
 		log.Target = target
-		tracer = traces.GetTracer()
 		ctx, span = tracer.Start(ctx, "output",
 			trace.WithAttributes(attribute.String("output.name", o.GetName())),
 			trace.WithAttributes(attribute.String("output.category", o.GetCategory())),
@@ -541,6 +552,7 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 
 		if err != nil {
 			span.SetStatus(codes.Error, "Failed to run output")
+			span.RecordError(err)
 			utils.PrintLog("error", log)
 			ctx = notifiers.Notify(ctx, rule, action, event, log)
 			return err
