@@ -26,7 +26,7 @@ nameOverride: ""
 extraEnv:
   - name: LOG_LEVEL
     value: warning
-#  - name: AWS_REGION - Specify if running on EKS, ECS or EC2
+#  - name: AWS_REGION # Specify if running on EKS, ECS or EC2
 #    value: us-east-1
 
 priorityClassName: ""
@@ -73,6 +73,27 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+rbac:
+  namespaces: ["get"]
+  pods: ["get", "update", "patch", "delete", "list"]
+  podsEphemeralcontainers: ["patch", "create"]
+  nodes: ["get", "update", "patch", "watch", "create"]
+  podsExec: ["get", "create"]
+  podsEviction: ["get", "create"]
+  events: ["get", "update", "patch", "create"]
+  daemonsets: ["get", "delete"]
+  deployments: ["get", "delete"]
+  replicasets: ["get", "delete"]
+  statefulsets: ["get", "delete"]
+  networkpolicies: ["get", "update", "patch", "create"]
+  caliconetworkpolicies: ["get", "update", "patch", "create"]
+  ciliumnetworkpolicies: ["get", "update", "patch", "create"]
+  roles: ["get", "delete"]
+  clusterroles: ["get", "delete"]
+  configmaps: ["get", "delete"]
+  secrets: ["get", "delete"]
+  leases: ["get", "update", "patch", "watch", "create"]
 
 config:
 # listenAddress: 0.0.0.0
@@ -136,3 +157,33 @@ config:
     accessKy: "" # access key
     secretKey: "" # secret key
     useSsl: false # Use SSL
+
+# -- serviceMonitor holds the configuration for the ServiceMonitor CRD.
+serviceMonitor:
+  # -- enable the deployment of a Service Monitor for the Prometheus Operator.
+  enabled: false
+  # -- path at which the metrics are expose
+  path: /metrics
+  # -- additionalLabels specifies labels to be added on the Service Monitor.
+  additionalLabels: {}
+  # -- interval specifies the time interval at which Prometheus should scrape metrics from the service.
+  interval: "30s"
+  # -- scheme specifies network protocol used by the metrics endpoint. In this case HTTP.
+  scheme: http
+  # -- scrapeTimeout determines the maximum time Prometheus should wait for a target to respond to a scrape request.
+  # If the target does not respond within the specified timeout, Prometheus considers the scrape as failed for
+  # that target.
+  scrapeTimeout: "10s"
+  # -- relabelings configures the relabeling rules to apply the target’s metadata labels.
+  relabelings: []
+  # -- targetLabels defines the labels which are transferred from the associated Kubernetes service object onto the ingested metrics.
+  targetLabels: []
+  # -- tlsConfig specifies TLS (Transport Layer Security) configuration for secure communication when
+  # scraping metrics from a service. It allows you to define the details of the TLS connection, such as
+  # CA certificate, client certificate, and client key. Currently, the k8s-metacollector does not support
+  # TLS configuration for the metrics endpoint.
+  tlsConfig: {}
+    # insecureSkipVerify: false
+    # caFile: /path/to/ca.crt
+    # certFile: /path/to/client.crt
+    # keyFile: /path/to/client.key

@@ -22,14 +22,16 @@
 
 `Falco Talon` can receive the `events` from [`Falco`](https://falco.org) or [`Falcosidekick`](https://github.com/falcosecurity/falcosidekick):
 
-```
-┌──────────┐      ┌───────────────┐      ┌─────────────┐
-│  Falco   ├──────► Falcosidekick ├──────► Falco Talon │
-└──────────┘      └───────────────┘      └─────────────┘
-or
-┌──────────┐      ┌─────────────┐
-│  Falco   ├──────► Falco Talon │
-└──────────┘      └─────────────┘
+```mermaid
+flowchart LR
+    falco
+    falcosidekick
+    falco-talon
+    falco -- event --> falcosidekick
+    falco -- event --> falco-talon
+    falcosidekick -- event --> falco-talon
+    falco-talon -- action --> aws
+    falco-talon -- action --> kubernetes
 ```
 
 ### Glossary
