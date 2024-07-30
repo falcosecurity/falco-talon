@@ -4,6 +4,12 @@ import (
 	"context"
 	"strings"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+
 	"github.com/falco-talon/falco-talon/configuration"
 	"github.com/falco-talon/falco-talon/internal/events"
 	"github.com/falco-talon/falco-talon/internal/otlp/metrics"
@@ -16,11 +22,6 @@ import (
 	"github.com/falco-talon/falco-talon/notifiers/smtp"
 	"github.com/falco-talon/falco-talon/notifiers/webhook"
 	"github.com/falco-talon/falco-talon/utils"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 type Notifier struct {

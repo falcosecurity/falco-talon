@@ -7,8 +7,9 @@ import (
 	"reflect"
 	"runtime"
 
-	"github.com/falco-talon/falco-talon/internal/otlp/traces"
 	"go.opentelemetry.io/otel/codes"
+
+	"github.com/falco-talon/falco-talon/internal/otlp/traces"
 
 	lambdaInvoke "github.com/falco-talon/falco-talon/actionners/aws/lambda"
 	"github.com/falco-talon/falco-talon/outputs"
@@ -342,7 +343,6 @@ func (actionner *Actionner) AllowAdditionalContext() bool {
 }
 
 func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, event *events.Event) (err error) {
-
 	tracer := traces.GetTracer()
 
 	actionners := GetActionners()
@@ -383,9 +383,8 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 				utils.PrintLog("error", log)
 				span.End()
 				return err
-			} else {
-				span.End()
 			}
+			span.End()
 		}
 	}
 
@@ -421,7 +420,7 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 		span.SetStatus(codes.Error, "Failed to run action")
 		span.RecordError(err)
 		utils.PrintLog("error", log)
-		ctx = notifiers.Notify(ctx, rule, action, event, log)
+		_ = notifiers.Notify(ctx, rule, action, event, log)
 		return err
 	}
 	span.SetStatus(codes.Ok, "Action completed successfully")
@@ -445,7 +444,7 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 			log.Error = err.Error()
 			utils.PrintLog("error", log)
 			metrics.IncreaseCounter(log)
-			ctx = notifiers.Notify(ctx, rule, action, event, log)
+			_ = notifiers.Notify(ctx, rule, action, event, log)
 			return err
 		}
 		target := output.GetTarget()
@@ -455,7 +454,7 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 			log.Error = err.Error()
 			utils.PrintLog("error", log)
 			metrics.IncreaseCounter(log)
-			ctx = notifiers.Notify(ctx, rule, action, event, log)
+			_ = notifiers.Notify(ctx, rule, action, event, log)
 			return err
 		}
 
@@ -468,7 +467,7 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 					log.Status = "failure"
 					utils.PrintLog("error", log)
 					metrics.IncreaseCounter(log)
-					ctx = notifiers.Notify(ctx, rule, action, event, log)
+					_ = notifiers.Notify(ctx, rule, action, event, log)
 					return err
 				}
 			}
@@ -497,13 +496,13 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 			span.SetStatus(codes.Error, "Failed to run output")
 			span.RecordError(err)
 			utils.PrintLog("error", log)
-			ctx = notifiers.Notify(ctx, rule, action, event, log)
+			_ = notifiers.Notify(ctx, rule, action, event, log)
 			return err
 		}
 		span.SetStatus(codes.Ok, "Output completed successfully")
 
 		utils.PrintLog("info", log)
-		ctx = notifiers.Notify(ctx, rule, action, event, log)
+		_ = notifiers.Notify(ctx, rule, action, event, log)
 		return nil
 	}
 
@@ -513,7 +512,7 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 			log.Error = err.Error()
 			utils.PrintLog("error", log)
 			metrics.IncreaseCounter(log)
-			ctx = notifiers.Notify(ctx, rule, action, event, log)
+			_ = notifiers.Notify(ctx, rule, action, event, log)
 			return err
 		}
 		log = utils.LogLine{
@@ -528,7 +527,7 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 			err = fmt.Errorf("unknown target '%v'", target)
 			log.Error = err.Error()
 			utils.PrintLog("error", log)
-			ctx = notifiers.Notify(ctx, rule, action, event, log)
+			_ = notifiers.Notify(ctx, rule, action, event, log)
 			return err
 		}
 		log.Target = target
@@ -554,13 +553,13 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 			span.SetStatus(codes.Error, "Failed to run output")
 			span.RecordError(err)
 			utils.PrintLog("error", log)
-			ctx = notifiers.Notify(ctx, rule, action, event, log)
+			_ = notifiers.Notify(ctx, rule, action, event, log)
 			return err
 		}
 		span.SetStatus(codes.Ok, "Output completed successfully")
 
 		utils.PrintLog("info", log)
-		ctx = notifiers.Notify(ctx, rule, action, event, log)
+		_ = notifiers.Notify(ctx, rule, action, event, log)
 		return nil
 	}
 
