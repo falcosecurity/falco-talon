@@ -45,12 +45,11 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 	tracer := traces.GetTracer()
 	ctx, span := tracer.Start(requestContext, "event",
 		trace.WithAttributes(attribute.String("event.rule", event.Rule)),
-		trace.WithAttributes(attribute.String("event.traceid", event.TraceID)),
 		trace.WithAttributes(attribute.String("event.source", event.Source)),
 	)
 	defer span.End()
-
 	event.TraceID = span.SpanContext().TraceID().String()
+	span.SetAttributes(attribute.String("event.traceid", event.TraceID))
 
 	log := utils.LogLine{
 		Message:  "event",
