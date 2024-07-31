@@ -479,8 +479,6 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 		)
 		defer span.End()
 		result, err = o.Output(output, data)
-		span.SetAttributes(attribute.String("output.status", result.Status))
-		span.SetAttributes(attribute.String("output.message", result.Output))
 		log.Status = result.Status
 		log.Objects = result.Objects
 		if result.Output != "" {
@@ -500,6 +498,8 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 			return err
 		}
 		span.SetStatus(codes.Ok, "Output completed successfully")
+		span.SetAttributes(attribute.String("output.status", result.Status))
+		span.SetAttributes(attribute.String("output.message", result.Output))
 
 		utils.PrintLog("info", log)
 		_ = notifiers.Notify(ctx, rule, action, event, log)
@@ -557,6 +557,8 @@ func runAction(ictx context.Context, rule *rules.Rule, action *rules.Action, eve
 			return err
 		}
 		span.SetStatus(codes.Ok, "Output completed successfully")
+		span.SetAttributes(attribute.String("output.status", result.Status))
+		span.SetAttributes(attribute.String("output.message", result.Output))
 
 		utils.PrintLog("info", log)
 		_ = notifiers.Notify(ctx, rule, action, event, log)

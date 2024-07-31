@@ -26,6 +26,7 @@ type Otel struct {
 	CollectorEndpoint        string `mapstructure:"collector_endpoint"`
 	CollectorPort            string `mapstructure:"collector_port"`
 	CollectorUseInsecureGrpc bool   `mapstructure:"collector_use_insecure_grpc"`
+	Enabled                  bool   `mapstructure:"enabled"`
 }
 
 type Configuration struct {

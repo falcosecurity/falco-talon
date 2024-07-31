@@ -7,6 +7,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/falco-talon/falco-talon/utils"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
@@ -46,7 +47,9 @@ func SetupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, oe
 	}
 	shutdownFuncs = append(shutdownFuncs, tracerProvider.Shutdown)
 	otel.SetTracerProvider(tracerProvider)
-
+	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
+		utils.PrintLog("error", utils.LogLine{Error: err.Error(), Message: "otel"})
+	}))
 	tracer = tracerProvider.Tracer("falco-talon")
 
 	return
@@ -60,18 +63,26 @@ func newPropagator() propagation.TextMapPropagator {
 }
 
 func newTraceProvider() (*trace.TracerProvider, error) {
+
+	config := configuration.GetConfiguration()
+
 	traceExporter, err := newOtlpGrpcExporter(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	traceProvider := trace.NewTracerProvider(
-		trace.WithBatcher(traceExporter,
+	traceProvidersOpts := []trace.TracerProviderOption{
+		trace.WithResource(newResource()),
+	}
+
+	if config.Otel.Enabled {
+		traceProvidersOpts = append(traceProvidersOpts, trace.WithBatcher(traceExporter,
 			trace.WithBatchTimeout(time.Second*5),
 			trace.WithExportTimeout(time.Second*30),
-		),
-		trace.WithResource(newResource()),
-	)
+		))
+	}
+
+	traceProvider := trace.NewTracerProvider(traceProvidersOpts...)
 
 	return traceProvider, nil
 }
