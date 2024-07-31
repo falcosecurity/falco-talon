@@ -7,11 +7,12 @@ import (
 	"log"
 	"time"
 
-	"github.com/falco-talon/falco-talon/utils"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
 	semconv "go.opentelemetry.io/otel/semconv/v1.24.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
+
+	"github.com/falco-talon/falco-talon/utils"
 
 	"github.com/falco-talon/falco-talon/configuration"
 
@@ -22,6 +23,7 @@ import (
 
 var tracer oteltrace.Tracer
 
+//nolint:nakedret
 func SetupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, oerr error) {
 	var err error
 	var shutdownFuncs []func(context.Context) error
@@ -63,7 +65,6 @@ func newPropagator() propagation.TextMapPropagator {
 }
 
 func newTraceProvider() (*trace.TracerProvider, error) {
-
 	config := configuration.GetConfiguration()
 
 	traceExporter, err := newOtlpGrpcExporter(context.Background())
