@@ -65,15 +65,17 @@ func newTraceProvider() (*trace.TracerProvider, error) {
 		return nil, err
 	}
 
-	traceProvider := trace.NewTracerProvider(
-		trace.WithBatcher(traceExporter,
-			trace.WithBatchTimeout(time.Second*5),
-			trace.WithExportTimeout(time.Second*30),
-		),
-		trace.WithResource(newResource()),
-	)
+	if configuration.GetConfiguration().Otel.Enabled {
+		return trace.NewTracerProvider(
+			trace.WithBatcher(traceExporter,
+				trace.WithBatchTimeout(time.Second*5),
+				trace.WithExportTimeout(time.Second*30),
+			),
+			trace.WithResource(newResource()),
+		), nil
+	}
 
-	return traceProvider, nil
+	return trace.NewTracerProvider(), nil
 }
 
 func newOtlpGrpcExporter(ctx context.Context) (trace.SpanExporter, error) {

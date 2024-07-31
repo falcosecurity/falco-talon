@@ -43,3 +43,9 @@ notifiers:
   #   user: ""
   #   password: ""
   #   format: "html"
+
+otel:
+  enabled: true
+  collector_endpoint: localhost
+  collector_port: 4317
+  collector_use_insecure_grpc: true
