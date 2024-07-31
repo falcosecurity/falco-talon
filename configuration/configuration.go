@@ -17,6 +17,7 @@ const (
 	defaultPrintAllEvents               bool   = false
 	defaultDeduplicationLeaderElection  bool   = true
 	defaultDeduplicationTimeWindow      int    = 5
+	defaultOtelCollectorEnabled         bool   = false
 	defaultOtelCollectorEndpoint        string = "localhost"
 	defaultOtelCollectorUseInsecureGrpc bool   = false
 	defaultOtelCollectorPort            int    = 4317
@@ -83,6 +84,7 @@ func CreateConfiguration(configFile string) *Configuration {
 	v.SetDefault("print_all_events", defaultPrintAllEvents)
 	v.SetDefault("deduplication.leader_election", defaultDeduplicationLeaderElection)
 	v.SetDefault("deduplication.time_window_seconds", defaultDeduplicationTimeWindow)
+	v.SetDefault("otel.enabled", defaultOtelCollectorEnabled)
 	v.SetDefault("otel.collector_endpoint", defaultOtelCollectorEndpoint)
 	v.SetDefault("otel.collector_port", defaultOtelCollectorPort)
 	v.SetDefault("otel.collector_use_insecure_grpc", defaultOtelCollectorUseInsecureGrpc)

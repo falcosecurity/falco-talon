@@ -35,7 +35,7 @@ import (
 	aws "github.com/falco-talon/falco-talon/internal/aws/client"
 	calico "github.com/falco-talon/falco-talon/internal/calico/client"
 	cilium "github.com/falco-talon/falco-talon/internal/cilium/client"
-	falcoContext "github.com/falco-talon/falco-talon/internal/context"
+	talonContext "github.com/falco-talon/falco-talon/internal/context"
 	"github.com/falco-talon/falco-talon/internal/events"
 	k8sChecks "github.com/falco-talon/falco-talon/internal/kubernetes/checks"
 	k8s "github.com/falco-talon/falco-talon/internal/kubernetes/client"
@@ -622,7 +622,7 @@ func StartConsumer(eventsC <-chan nats.MessageWithContext) {
 				if GetDefaultActionners().FindActionner(a.GetActionner()).AllowAdditionalContext() &&
 					len(a.GetAdditionalContexts()) != 0 {
 					for _, i := range a.GetAdditionalContexts() {
-						elements, err := falcoContext.GetContext(ctx, i, e)
+						elements, err := talonContext.GetContext(ctx, i, e)
 						if err != nil {
 							log := utils.LogLine{
 								Message:   "context",
