@@ -5,14 +5,20 @@ import (
 	"encoding/hex"
 	"net/http"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/jinzhu/copier"
 	"gopkg.in/yaml.v2"
 
 	"github.com/falco-talon/falco-talon/configuration"
 	"github.com/falco-talon/falco-talon/internal/events"
 	"github.com/falco-talon/falco-talon/internal/nats"
+	"github.com/falco-talon/falco-talon/internal/otlp/metrics"
+	"github.com/falco-talon/falco-talon/internal/otlp/traces"
 	"github.com/falco-talon/falco-talon/internal/rules"
-	"github.com/falco-talon/falco-talon/metrics"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
@@ -34,6 +40,17 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	requestContext := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
+
+	tracer := traces.GetTracer()
+	ctx, span := tracer.Start(requestContext, "event",
+		trace.WithAttributes(attribute.String("event.rule", event.Rule)),
+		trace.WithAttributes(attribute.String("event.source", event.Source)),
+	)
+	defer span.End()
+	event.TraceID = span.SpanContext().TraceID().String()
+	span.SetAttributes(attribute.String("event.traceid", event.TraceID))
+
 	log := utils.LogLine{
 		Message:  "event",
 		Event:    event.Rule,
@@ -51,7 +68,8 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	hasher := md5.New() //nolint:gosec
 	hasher.Write([]byte(event.Output))
-	err = nats.GetPublisher().PublishMsg(hex.EncodeToString(hasher.Sum(nil)), event.String())
+
+	err = nats.GetPublisher().PublishMsg(ctx, hex.EncodeToString(hasher.Sum(nil)), event.String())
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
