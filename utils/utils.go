@@ -60,6 +60,7 @@ type LogLine struct {
 	Action            string            `json:"action,omitempty"`
 	Error             string            `json:"error,omitempty"`
 	Status            string            `json:"status,omitempty"`
+	Stage             string            `json:"stage,omitempty"`
 }
 
 var validate *validator.Validate
@@ -126,6 +127,9 @@ func PrintLog(level string, line LogLine) {
 	}
 	if line.Output != "" {
 		l.Str("output", line.Output)
+	}
+	if line.Stage != "" {
+		l.Str("stage", line.Stage)
 	}
 	if line.Actionner != "" {
 		l.Str("actionner", line.Actionner)

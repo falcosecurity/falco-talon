@@ -138,6 +138,12 @@ func Notify(ictx context.Context, rule *rules.Rule, action *rules.Action, event 
 		TraceID:   event.TraceID,
 	}
 
+	logN.Stage = "action"
+	if log.Target != "" {
+		logN.Target = log.Target
+		logN.Stage = "output"
+	}
+
 	obj := make(map[string]string, len(log.Objects))
 	for i, j := range log.Objects {
 		obj[cases.Title(language.Und, cases.NoLower).String(strings.ToLower(i))] = j
