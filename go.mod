@@ -29,7 +29,7 @@ require (
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.52.0
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.53.0
 	go.opentelemetry.io/otel v1.28.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.27.0
 	go.opentelemetry.io/otel/exporters/prometheus v0.49.0
