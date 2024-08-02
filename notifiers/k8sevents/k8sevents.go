@@ -46,8 +46,8 @@ Result: {{ .Result }}
 {{- if .Output }}
 Output: {{ .Output }}
 {{- end }}
-{{- if .Target }}
-Target: {{ .Target }}
+{{- if .OutputTarget }}
+OutputTarget: {{ .OutputTarget }}
 {{- end }}
 TraceID: {{ .TraceID }}
 `
@@ -87,8 +87,8 @@ func Notify(log utils.LogLine) error {
 	if log.Actionner != "" {
 		reason = log.Actionner
 	}
-	if log.Target != "" {
-		reason = log.Target
+	if log.OutputTarget != "" {
+		reason = log.OutputTarget
 	}
 
 	k8sevent := &corev1.Event{

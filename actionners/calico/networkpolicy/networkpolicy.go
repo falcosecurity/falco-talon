@@ -40,7 +40,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		return utils.LogLine{
 			Objects: nil,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
@@ -56,7 +56,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
@@ -71,7 +71,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 				return utils.LogLine{
 					Objects: objects,
 					Error:   err2.Error(),
-					Status:  "failure",
+					Status:  utils.FailureStr,
 				}, nil, err2
 			}
 			owner = u.ObjectMeta.Name
@@ -82,7 +82,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 				return utils.LogLine{
 					Objects: objects,
 					Error:   err2.Error(),
-					Status:  "failure",
+					Status:  utils.FailureStr,
 				}, nil, err2
 			}
 			owner = u.ObjectMeta.Name
@@ -93,7 +93,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 				return utils.LogLine{
 					Objects: objects,
 					Error:   err2.Error(),
-					Status:  "failure",
+					Status:  utils.FailureStr,
 				}, nil, err2
 			}
 			owner = u.ObjectMeta.Name
@@ -109,7 +109,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err3.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err3
 	}
 
@@ -162,7 +162,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err2.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err2
 	}
 
@@ -183,7 +183,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 				return utils.LogLine{
 					Objects: objects,
 					Error:   err2.Error(),
-					Status:  "failure",
+					Status:  utils.FailureStr,
 				}, nil, err2
 			}
 			netpol, err = calicoClient.ProjectcalicoV3().NetworkPolicies(namespace).Get(context.Background(), owner, metav1.GetOptions{})
@@ -192,7 +192,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 			return utils.LogLine{
 				Objects: objects,
 				Output:  output,
-				Status:  "success",
+				Status:  utils.SuccessStr,
 			}, nil, nil
 		}
 	}
@@ -200,7 +200,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 	payload.ObjectMeta.ResourceVersion = netpol.ObjectMeta.ResourceVersion
@@ -225,7 +225,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 	objects["caliconetworpolicy"] = owner
@@ -234,7 +234,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 	return utils.LogLine{
 		Objects: objects,
 		Output:  output,
-		Status:  "success",
+		Status:  utils.SuccessStr,
 	}, nil, nil
 }
 

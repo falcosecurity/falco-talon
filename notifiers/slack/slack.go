@@ -14,8 +14,6 @@ const (
 	Green string = "#23ba47"
 	Grey  string = "#a4a8b1"
 
-	successStr string = "success"
-	failureStr string = "failure"
 	ignoredStr string = "ignored"
 )
 
@@ -89,24 +87,24 @@ func NewPayload(log utils.LogLine) Payload {
 
 	var color string
 	switch log.Status {
-	case failureStr:
+	case utils.FailureStr:
 		color = Red
-	case successStr:
+	case utils.SuccessStr:
 		color = Green
 	case ignoredStr:
 		color = Grey
 	}
 	attachment.Color = color
 
-	text := fmt.Sprintf("[%v][%v] ", log.Status, log.Message)
-	if log.Target != "" {
-		text += fmt.Sprintf("Target '%v' ", log.Target)
+	text := fmt.Sprintf("[*%v*][*%v*] ", strings.ToUpper(log.Status), strings.ToUpper(log.Message))
+	if log.Rule != "" {
+		text += fmt.Sprintf("Rule: `%v` ", log.Rule)
 	}
 	if log.Action != "" {
-		text += fmt.Sprintf("Action '%v' ", log.Action)
+		text += fmt.Sprintf("Action: `%v` ", log.Action)
 	}
-	if log.Rule != "" {
-		text += fmt.Sprintf("Rule '%v' ", log.Rule)
+	if log.OutputTarget != "" {
+		text += fmt.Sprintf("OutputTarget: `%v` ", log.OutputTarget)
 	}
 
 	text = strings.TrimSuffix(text, " ")
@@ -164,9 +162,9 @@ func NewPayload(log utils.LogLine) Payload {
 			field.Short = false
 			fields = append(fields, field)
 		}
-		if log.Target != "" {
-			field.Title = "Target"
-			field.Value = "`" + log.Target + "`"
+		if log.OutputTarget != "" {
+			field.Title = "OutputTarget"
+			field.Value = "`" + log.OutputTarget + "`"
 			field.Short = false
 			fields = append(fields, field)
 		}

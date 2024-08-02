@@ -31,7 +31,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		return utils.LogLine{
 			Objects: nil,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
@@ -45,7 +45,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
@@ -62,13 +62,13 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
-	status := "success"
+	status := utils.SuccessStr
 	if lambdaOutput.StatusCode != http.StatusOK && lambdaOutput.StatusCode != http.StatusNoContent {
-		status = "failure"
+		status = utils.FailureStr
 	}
 	return utils.LogLine{
 		Objects: objects,

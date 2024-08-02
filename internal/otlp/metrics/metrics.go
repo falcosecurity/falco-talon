@@ -142,8 +142,8 @@ func getMeasurementOption(log utils.LogLine) metric.MeasurementOption {
 	if log.Status != "" {
 		attrs = append(attrs, attribute.Key("status").String(log.Status))
 	}
-	if log.Target != "" {
-		attrs = append(attrs, attribute.Key("target").String(log.Target))
+	if log.OutputTarget != "" {
+		attrs = append(attrs, attribute.Key("target").String(log.OutputTarget))
 	}
 	if len(log.Objects) > 0 {
 		for i, j := range log.Objects {
