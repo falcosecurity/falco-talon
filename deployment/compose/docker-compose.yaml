@@ -1,13 +1,9 @@
-version: "3"
-
 volumes:
   postgres_data:
 services:
-
   # open telemetry collector
   collector:
-#    image: otel/opentelemetry-collector-contrib:0.72.0
-    image: otel/opentelemetry-collector-contrib:0.103.0
+    image: otel/opentelemetry-collector-contrib
     command: ["--config=/otel/collector-config.yaml"]
     environment:
       GRAFANA_SAAS_USERNAME: $GRAFANA_SAAS_USERNAME
@@ -19,7 +15,7 @@ services:
       - "9464:9464"
       - "4317:4317"
       - "4318:4318"
-
+  # minio
   minio:
     image: quay.io/minio/minio
     command: server /data --console-address ":9001"
@@ -31,7 +27,6 @@ services:
     ports:
       - "9000:9000"
       - "9001:9001"
-
   # prometheus
   prometheus:
     container_name: prometheus
@@ -42,17 +37,17 @@ services:
       - "9090:9090"
   # grafana
   grafana:
-    image: grafana/grafana:9.0.1
+    image: grafana/grafana-oss
     container_name: grafana
     volumes:
       - ./grafana/grafana.ini:/etc/grafana/grafana.ini
       - ./grafana/provisioning/:/etc/grafana/provisioning/
     ports:
+      - "3000:3000"
       - "3001:3001"
-
   # jaeger
   jaeger:
-    image: jaegertracing/all-in-one:1.58.0
+    image: jaegertracing/all-in-one
     ports:
       - 16686:16686
       - 14250:14250

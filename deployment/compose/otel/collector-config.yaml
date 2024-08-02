@@ -1,8 +1,8 @@
 extensions:
-  basicauth/otlp:
-    client_auth:
-      username: $GRAFANA_SAAS_USERNAME
-      password: $GRAFANA_SAAS_TOKEN
+  # basicauth/otlp:
+  #   client_auth:
+  #     username: ${GRAFANA_SAAS_USERNAME}
+  #     password: ${GRAFANA_SAAS_TOKEN}
 
 receivers:
   otlp:
@@ -15,10 +15,10 @@ receivers:
             - https://*
 
 exporters:
-  otlphttp:
-    auth:
-      authenticator: basicauth/otlp
-    endpoint: $GRAFANA_SAAS_ENDPOINT
+  # otlphttp/grafana:
+  #   auth:
+  #     authenticator: basicauth/otlp
+  #   endpoint: ${GRAFANA_SAAS_ENDPOINT}
   prometheus:
     endpoint: "0.0.0.0:9464"
   otlp/jaeger:
@@ -30,14 +30,15 @@ processors:
 
 service:
   extensions:
-    - basicauth/otlp
+    # - basicauth/otlp
   telemetry:
     logs:
       level: "debug"
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [otlp/jaeger, otlphttp]
+      # exporters: [otlphttp/grafana]
+      exporters: [otlp/jaeger]
       processors: [batch]
     metrics:
       receivers: [otlp]
