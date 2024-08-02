@@ -17,17 +17,21 @@ const (
 	defaultPrintAllEvents               bool   = false
 	defaultDeduplicationLeaderElection  bool   = true
 	defaultDeduplicationTimeWindow      int    = 5
-	defaultOtelCollectorEnabled         bool   = false
+	defaultOtelCollectorTracesEnabled   bool   = false
+	defaultOtelCollectorMetricsEnabled  bool   = false
 	defaultOtelCollectorEndpoint        string = "localhost"
 	defaultOtelCollectorUseInsecureGrpc bool   = false
 	defaultOtelCollectorPort            int    = 4317
+	defaultOtelCollectorGRPCTimeout            = 10
 )
 
 type Otel struct {
 	CollectorEndpoint        string `mapstructure:"collector_endpoint"`
 	CollectorPort            string `mapstructure:"collector_port"`
 	CollectorUseInsecureGrpc bool   `mapstructure:"collector_use_insecure_grpc"`
-	Enabled                  bool   `mapstructure:"enabled"`
+	TracesEnabled            bool   `mapstructure:"traces_enabled"`
+	MetricsEnabled           bool   `mapstructure:"metrics_enabled"`
+	Timeout                  int    `mapstructure:"timeout"`
 }
 
 type Configuration struct {
@@ -84,9 +88,11 @@ func CreateConfiguration(configFile string) *Configuration {
 	v.SetDefault("print_all_events", defaultPrintAllEvents)
 	v.SetDefault("deduplication.leader_election", defaultDeduplicationLeaderElection)
 	v.SetDefault("deduplication.time_window_seconds", defaultDeduplicationTimeWindow)
-	v.SetDefault("otel.enabled", defaultOtelCollectorEnabled)
+	v.SetDefault("otel.traces_enabled", defaultOtelCollectorTracesEnabled)
+	v.SetDefault("otel.metrics_enabled", defaultOtelCollectorMetricsEnabled)
 	v.SetDefault("otel.collector_endpoint", defaultOtelCollectorEndpoint)
 	v.SetDefault("otel.collector_port", defaultOtelCollectorPort)
+	v.Set("otel.timeout", defaultOtelCollectorGRPCTimeout)
 	v.SetDefault("otel.collector_use_insecure_grpc", defaultOtelCollectorUseInsecureGrpc)
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
