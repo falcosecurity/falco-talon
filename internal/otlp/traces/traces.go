@@ -67,7 +67,7 @@ func newPropagator() propagation.TextMapPropagator {
 func newTraceProvider() (*trace.TracerProvider, error) {
 	config := configuration.GetConfiguration()
 
-	traceExporter, err := newOtlpGrpcExporter(config, context.Background())
+	traceExporter, err := newOtlpGrpcExporter(context.Background(), config)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func newTraceProvider() (*trace.TracerProvider, error) {
 	return traceProvider, nil
 }
 
-func newOtlpGrpcExporter(cfg *configuration.Configuration, ctx context.Context) (trace.SpanExporter, error) {
+func newOtlpGrpcExporter(ctx context.Context, cfg *configuration.Configuration) (trace.SpanExporter, error) {
 	endpoint := fmt.Sprintf("%s:%s", configuration.GetConfiguration().Otel.CollectorEndpoint, configuration.GetConfiguration().Otel.CollectorPort)
 	insecure := configuration.GetConfiguration().Otel.CollectorUseInsecureGrpc
 

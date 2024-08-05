@@ -76,7 +76,6 @@ func Init() {
 }
 
 func newOtlpMetricExporter(cfg *configuration.Configuration) (sdk.Exporter, error) {
-
 	endpoint := fmt.Sprintf("%s:%s", configuration.GetConfiguration().Otel.CollectorEndpoint, configuration.GetConfiguration().Otel.CollectorPort)
 	insecure := cfg.Otel.CollectorUseInsecureGrpc
 
