@@ -28,24 +28,24 @@ const (
 type Otel struct {
 	CollectorEndpoint        string `mapstructure:"collector_endpoint"`
 	CollectorPort            string `mapstructure:"collector_port"`
+	Timeout                  int    `mapstructure:"timeout"`
 	CollectorUseInsecureGrpc bool   `mapstructure:"collector_use_insecure_grpc"`
 	TracesEnabled            bool   `mapstructure:"traces_enabled"`
 	MetricsEnabled           bool   `mapstructure:"metrics_enabled"`
-	Timeout                  int    `mapstructure:"timeout"`
 }
 
 type Configuration struct {
 	Notifiers        map[string]map[string]interface{} `mapstructure:"notifiers"`
 	AwsConfig        AwsConfig                         `mapstructure:"aws"`
-	MinioConfig      MinioConfig                       `mapstructure:"minio"`
-	Otel             Otel                              `mapstructure:"otel"`
 	LogFormat        string                            `mapstructure:"log_format"`
 	KubeConfig       string                            `mapstructure:"kubeconfig"`
 	ListenAddress    string                            `mapstructure:"listen_address"`
+	MinioConfig      MinioConfig                       `mapstructure:"minio"`
 	RulesFiles       []string                          `mapstructure:"rules_files"`
 	DefaultNotifiers []string                          `mapstructure:"default_notifiers"`
-	ListenPort       int                               `mapstructure:"listen_port"`
+	Otel             Otel                              `mapstructure:"otel"`
 	Deduplication    deduplication                     `mapstructure:"deduplication"`
+	ListenPort       int                               `mapstructure:"listen_port"`
 	WatchRules       bool                              `mapstructure:"watch_rules"`
 	PrintAllEvents   bool                              `mapstructure:"print_all_events"`
 }
