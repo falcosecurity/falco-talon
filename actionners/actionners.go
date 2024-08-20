@@ -448,7 +448,7 @@ func runAction(ectx context.Context, rule *rules.Rule, action *rules.Action, eve
 		span.SetStatus(codes.Error, err.Error())
 		span.RecordError(err)
 		utils.PrintLog("error", log)
-		notifiers.Notify(actx, rule, action, event, log)
+		go notifiers.Notify(actx, rule, action, event, log)
 		return err
 	}
 	log.Status = utils.SuccessStr
@@ -456,7 +456,7 @@ func runAction(ectx context.Context, rule *rules.Rule, action *rules.Action, eve
 	span.SetStatus(codes.Ok, "action successfully completed")
 
 	utils.PrintLog("info", log)
-	notifiers.Notify(actx, rule, action, event, log)
+	go notifiers.Notify(actx, rule, action, event, log)
 
 	if actionner.IsOutputRequired() {
 		octx, span := tracer.Start(actx, "output")
@@ -476,7 +476,7 @@ func runAction(ectx context.Context, rule *rules.Rule, action *rules.Action, eve
 			metrics.IncreaseCounter(log)
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
-			notifiers.Notify(octx, rule, action, event, log)
+			go notifiers.Notify(octx, rule, action, event, log)
 			span.End()
 			return err
 		}
@@ -489,7 +489,7 @@ func runAction(ectx context.Context, rule *rules.Rule, action *rules.Action, eve
 			metrics.IncreaseCounter(log)
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
-			notifiers.Notify(octx, rule, action, event, log)
+			go notifiers.Notify(octx, rule, action, event, log)
 			span.End()
 			return err
 		}
@@ -506,7 +506,7 @@ func runAction(ectx context.Context, rule *rules.Rule, action *rules.Action, eve
 			span.SetAttributes(attribute.String("output.target", target))
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
-			notifiers.Notify(octx, rule, action, event, log)
+			go notifiers.Notify(octx, rule, action, event, log)
 			span.End()
 			return err
 		}
@@ -527,7 +527,7 @@ func runAction(ectx context.Context, rule *rules.Rule, action *rules.Action, eve
 					metrics.IncreaseCounter(log)
 					span.SetStatus(codes.Error, err2.Error())
 					span.RecordError(err2)
-					notifiers.Notify(octx, rule, action, event, log)
+					go notifiers.Notify(octx, rule, action, event, log)
 					span.End()
 					return err
 				}
@@ -554,7 +554,7 @@ func runAction(ectx context.Context, rule *rules.Rule, action *rules.Action, eve
 			utils.PrintLog("error", log)
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
-			notifiers.Notify(octx, rule, action, event, log)
+			go notifiers.Notify(octx, rule, action, event, log)
 			span.End()
 			return err
 		}
@@ -562,7 +562,7 @@ func runAction(ectx context.Context, rule *rules.Rule, action *rules.Action, eve
 		span.AddEvent(result.Output)
 
 		utils.PrintLog("info", log)
-		notifiers.Notify(octx, rule, action, event, log)
+		go notifiers.Notify(octx, rule, action, event, log)
 		span.End()
 		return nil
 	}
@@ -588,7 +588,7 @@ func runAction(ectx context.Context, rule *rules.Rule, action *rules.Action, eve
 			span.SetAttributes(attribute.String("output.target", target))
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
-			notifiers.Notify(octx, rule, action, event, log)
+			go notifiers.Notify(octx, rule, action, event, log)
 			span.End()
 			return err
 		}
@@ -608,7 +608,7 @@ func runAction(ectx context.Context, rule *rules.Rule, action *rules.Action, eve
 			metrics.IncreaseCounter(log)
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
-			notifiers.Notify(octx, rule, action, event, log)
+			go notifiers.Notify(octx, rule, action, event, log)
 			span.End()
 			return err
 		}
@@ -633,7 +633,7 @@ func runAction(ectx context.Context, rule *rules.Rule, action *rules.Action, eve
 			utils.PrintLog("error", log)
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
-			notifiers.Notify(octx, rule, action, event, log)
+			go notifiers.Notify(octx, rule, action, event, log)
 			span.End()
 			return err
 		}
@@ -641,7 +641,7 @@ func runAction(ectx context.Context, rule *rules.Rule, action *rules.Action, eve
 		span.AddEvent(result.Output)
 
 		utils.PrintLog("info", log)
-		notifiers.Notify(octx, rule, action, event, log)
+		go notifiers.Notify(octx, rule, action, event, log)
 		span.End()
 		return nil
 	}

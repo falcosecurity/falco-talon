@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -67,21 +66,25 @@ func newPropagator() propagation.TextMapPropagator {
 func newTraceProvider() (*trace.TracerProvider, error) {
 	config := configuration.GetConfiguration()
 
-	traceExporter, err := newOtlpGrpcExporter(context.Background(), config)
+	if !config.Otel.Enabled {
+		return trace.NewTracerProvider(), nil
+	}
+
+	traceExporter, err := newOtlpGrpcExporter(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	traceProvidersOpts := []trace.TracerProviderOption{
-		trace.WithResource(newResource()),
+	traceProvidersOpts := []trace.TracerProviderOption{}
+	res := newResource()
+	if res != nil {
+		traceProvidersOpts = append(traceProvidersOpts, trace.WithResource(res))
 	}
 
-	if config.Otel.TracesEnabled {
-		traceProvidersOpts = append(traceProvidersOpts, trace.WithBatcher(traceExporter,
-			trace.WithBatchTimeout(time.Second*5),
-			trace.WithExportTimeout(time.Second*30),
-		))
-	}
+	traceProvidersOpts = append(traceProvidersOpts, trace.WithBatcher(traceExporter,
+		trace.WithBatchTimeout(time.Second*5),
+		trace.WithExportTimeout(time.Second*30),
+	))
 
 	traceProvider := trace.NewTracerProvider(traceProvidersOpts...)
 
@@ -123,7 +126,7 @@ func newResource() *resource.Resource {
 		),
 	)
 	if err != nil {
-		log.Fatalf("failed to create resource: %v", err)
+		return nil
 	}
 	return res
 }
