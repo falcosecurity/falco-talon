@@ -715,6 +715,9 @@ func StartConsumer(eventsC <-chan nats.MessageWithContext) {
 								Error:     err.Error(),
 							}
 							utils.PrintLog("error", log)
+							if a.IgnoreErrors != trueStr {
+								break
+							}
 						} else {
 							e.AddContext(elements)
 						}
