@@ -82,8 +82,8 @@ func checkSettings(settings *Settings) error {
 
 func NewPayload(log utils.LogLine) (Payload, error) {
 	subject := fmt.Sprintf("Subject: [falco-talon][%v][%v] ", log.Status, log.Message)
-	if log.Target != "" {
-		subject += fmt.Sprintf("Target '%v' ", log.Target)
+	if log.OutputTarget != "" {
+		subject += fmt.Sprintf("OutputTarget '%v' ", log.OutputTarget)
 	}
 	if log.Action != "" {
 		subject += fmt.Sprintf("Action '%v' ", log.Action)

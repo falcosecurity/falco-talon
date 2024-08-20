@@ -60,7 +60,7 @@ func Action(_ *rules.Action, event *events.Event) (utils.LogLine, *model.Data, e
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
@@ -74,6 +74,6 @@ func Action(_ *rules.Action, event *events.Event) (utils.LogLine, *model.Data, e
 	return utils.LogLine{
 		Objects: objects,
 		Output:  output,
-		Status:  "success",
+		Status:  utils.SuccessStr,
 	}, nil, nil
 }

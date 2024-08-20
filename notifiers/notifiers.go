@@ -99,10 +99,10 @@ func Init() {
 			if strings.ToLower(i) == j.Name {
 				if j.Init != nil {
 					if err := j.Init(config.Notifiers[i]); err != nil {
-						utils.PrintLog("error", utils.LogLine{Notifier: i, Message: "init", Error: err.Error(), Status: "failure"})
+						utils.PrintLog("error", utils.LogLine{Notifier: i, Message: "init", Error: err.Error(), Status: utils.FailureStr})
 						continue
 					}
-					utils.PrintLog("info", utils.LogLine{Notifier: i, Message: "init", Status: "success"})
+					utils.PrintLog("info", utils.LogLine{Notifier: i, Message: "init", Status: utils.SuccessStr})
 				}
 				enabledNotifiers.Add(j)
 			}
@@ -114,11 +114,11 @@ func GetNotifiers() *Notifiers {
 	return enabledNotifiers
 }
 
-func Notify(ictx context.Context, rule *rules.Rule, action *rules.Action, event *events.Event, log utils.LogLine) context.Context {
+func Notify(actx context.Context, rule *rules.Rule, action *rules.Action, event *events.Event, log utils.LogLine) {
 	config := configuration.GetConfiguration()
 
 	if len(rule.Notifiers) == 0 && len(config.DefaultNotifiers) == 0 {
-		return ictx
+		return
 	}
 
 	enabledNotifiers := map[string]bool{}
@@ -139,8 +139,8 @@ func Notify(ictx context.Context, rule *rules.Rule, action *rules.Action, event 
 	}
 
 	logN.Stage = "action"
-	if log.Target != "" {
-		logN.Target = log.Target
+	if log.OutputTarget != "" {
+		logN.OutputTarget = log.OutputTarget
 		logN.Stage = "output"
 	}
 
@@ -150,35 +150,30 @@ func Notify(ictx context.Context, rule *rules.Rule, action *rules.Action, event 
 	}
 	log.Objects = obj
 
-	var ctx context.Context
-	var span trace.Span
-
 	for i := range enabledNotifiers {
 		if n := GetNotifiers().FindNotifier(i); n != nil {
 			logN.Notifier = i
 			tracer := traces.GetTracer()
-			ctx, span = tracer.Start(ictx, "notification",
+			_, span := tracer.Start(actx, "notification",
 				trace.WithAttributes(attribute.String("notifier.name", n.Name)),
 			)
-			defer span.End()
+
 			if err := n.Notification(log); err != nil {
-				span.SetStatus(codes.Error, "notification send failed")
+				span.SetStatus(codes.Error, err.Error())
 				span.RecordError(err)
-				defer span.End()
-				logN.Status = "failure"
+				logN.Status = utils.FailureStr
 				logN.Error = err.Error()
 				utils.PrintLog("error", logN)
 				metrics.IncreaseCounter(log)
 			} else {
-				span.SetStatus(codes.Ok, "notification send success")
-				logN.Status = "success"
+				span.SetStatus(codes.Ok, "notification successfully sent")
+				logN.Status = utils.SuccessStr
 				utils.PrintLog("info", logN)
 				metrics.IncreaseCounter(log)
 			}
+			span.End()
 		}
 	}
-
-	return ctx
 }
 
 func (notifiers *Notifiers) FindNotifier(name string) *Notifier {

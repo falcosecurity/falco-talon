@@ -3,6 +3,7 @@ package context
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -15,38 +16,35 @@ import (
 	"github.com/falco-talon/falco-talon/internal/events"
 )
 
-func GetContext(ctx context.Context, source string, event *events.Event) (map[string]interface{}, error) {
+func GetContext(actx context.Context, source string, event *events.Event) (map[string]interface{}, error) {
 	tracer := traces.GetTracer()
 
-	_, span := tracer.Start(ctx, "context", oteltrace.WithAttributes(attribute.String("source", source)))
+	_, span := tracer.Start(actx, "context",
+		oteltrace.WithAttributes(attribute.String("context.source", source)),
+	)
 	defer span.End()
+
+	context := make(map[string]interface{})
+	var err error
 
 	switch source {
 	case "aws":
-		awsContext, err := aws.GetAwsContext(event)
-		if err != nil {
-			span.SetStatus(codes.Error, "Failed to add context")
-			span.RecordError(err)
-			return nil, err
-		}
-		enrichSpanWithAttributesFromContext(span, awsContext)
-		return awsContext, nil
+		context, err = aws.GetAwsContext(event)
 	case "k8snode":
-		nodeContext, err := kubernetes.GetNodeContext(event)
-		if err != nil {
-			span.SetStatus(codes.Error, "Failed to add context")
-			span.RecordError(err)
-			return nil, err
-		}
-		enrichSpanWithAttributesFromContext(span, nodeContext)
-		return nodeContext, nil
+		context, err = kubernetes.GetNodeContext(event)
 	default:
-		return nil, fmt.Errorf("unknown context '%v'", source)
+		err = fmt.Errorf("unknown context '%v'", source)
 	}
-}
 
-func enrichSpanWithAttributesFromContext(span oteltrace.Span, context map[string]interface{}) {
-	for k, v := range context {
-		span.SetAttributes(attribute.String(k, fmt.Sprintf("%v", v)))
+	if err != nil {
+		span.SetStatus(codes.Error, "failed to add context")
+		span.RecordError(err)
+		return nil, err
 	}
+
+	for k, v := range context {
+		span.SetAttributes(attribute.String(strings.ToLower(k), fmt.Sprintf("%v", v)))
+	}
+
+	return context, nil
 }

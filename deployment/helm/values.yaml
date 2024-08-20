@@ -2,78 +2,108 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+# -- number of running pods
 replicaCount: 2
 
+# -- image parameters
 image:
+  # -- The image registry to pull from
   registry: falco.docker.scarf.sh
+  # -- The image repository to pull from
   repository: issif/falco-talon
+  # -- The image tag to pull
   tag: latest
+  # -- The image pull policy
   pullPolicy: Always
 
+# -- pod security policy
 podSecurityPolicy:
+  # -- enable the creation of the PSP
   create: false
 
+# -- pod security context
 podSecurityContext:
+  # -- user id
   runAsUser: 1234
+  # -- group
   fsGroup: 1234
 
-# One or more secrets to be used when pulling images
+# -- one or more secrets to be used when pulling images
 imagePullSecrets: []
 # - registrySecretName
 
+# -- override name
 nameOverride: ""
 
+# -- extra env
 extraEnv:
   - name: LOG_LEVEL
     value: warning
 #  - name: AWS_REGION # Specify if running on EKS, ECS or EC2
 #    value: us-east-1
 
+# -- priority class name
 priorityClassName: ""
 
+# -- pod annotations
 podAnnotations: {}
 
+# -- service parameters
 service:
+  # -- type of service
   type: ClusterIP
+  # -- port of the service
   port: 2803
+  # -- annotations of the service
   annotations: {}
     # networking.gke.io/load-balancer-type: Internal
 
+# -- ingress parameters
 ingress:
+  # -- enable the ingress
   enabled: false
+  # -- annotations of the ingress
   annotations: {}
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true"
+  # -- hosts
   hosts:
     - host: falco-talon.local
       paths:
         - path: /
           # -- pathType (e.g. ImplementationSpecific, Prefix, .. etc.)
           # pathType: Prefix
-
+  # -- tls
   tls: []
   #  - secretName: chart-example-tls
   #    hosts:
   #      - chart-example.local
 
+# -- resources
 resources: {}
-  # We usually recommend not to specify default resources and to leave this as a conscious
-  # choice for the user. This also increases chances charts run on environments with little
-  # resources, such as Minikube. If you do want to specify resources, uncomment the following
-  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # -- limits
   # limits:
+  #   # -- cpu limit
   #   cpu: 100m
+  #   # -- memory limit
   #   memory: 128Mi
+  # -- requests
   # requests:
+  #   # -- cpu request
   #   cpu: 100m
+  #   # -- memory request
   #   memory: 128Mi
 
+# -- node selector
 nodeSelector: {}
 
+# -- tolerations
 tolerations: []
 
+# -- affinity
 affinity: {}
 
+# -- rbac
 rbac:
   namespaces: ["get"]
   pods: ["get", "update", "patch", "delete", "list"]
@@ -95,68 +125,129 @@ rbac:
   secrets: ["get", "delete"]
   leases: ["get", "update", "patch", "watch", "create"]
 
+# -- config of Falco Talon (See https://docs.falco-talon.org/docs/configuration/)
 config:
-# listenAddress: 0.0.0.0
-# listenPort: 2803
+  # -- listen address
+  listenAddress: 0.0.0.0
+  # -- listen port
+  listenPort: 2803
 
-  defaultNotifiers: # these notifiers will be enabled for all rules
+  # -- default notifiers for all rules
+  defaultNotifiers:
     #  - slack
     - k8sevents
 
-  watchRules: true # reload if the rules file changes (default: true)
+  # -- auto reload the rules when the files change
+  watchRules: true
 
+  # -- list of rules to load
   rulesFiles: # list of locale rules files to use, they will be concatenated into a single config map
     - rules.yaml
     - rules_override.yaml
 
+  # -- deduplication of the Falco events
   deduplication:
-    leaderElection: true # enable the leader election for cluster mode
-    timeWindowSeconds: 5 # duration in seconds for the deduplication time window
+    # -- enable the leader election for cluster mode
+    leaderElection: true
+    # -- duration in seconds for the deduplication time window
+    timeWindowSeconds: 5
 
-  printAllEvents: false # print in stdout all received events, not only those which match a rule
+  # -- print in stdout all received events, not only those which match a rule
+  printAllEvents: false
 
-  # See https://docs.falco-talon.org/docs/notifiers/list/ for the settings
+  # -- open telemetry parameters
+  otel:
+    # -- enable otel traces
+    tracesEnabled: false
+    # -- enable otel metrics
+    metricsEnabled: false
+    # -- collector port
+    collectorPort: 4317
+    # -- collector endpoint
+    collectorEndpoint: ""
+    # -- use insecure grpc
+    collectorUseInsecureGrpc: false 
+
+  # -- notifiers (See https://docs.falco-talon.org/docs/notifiers/list/ for the settings)
   notifiers:
+    # -- slack
     slack:
+      # -- webhook url
       webhookUrl: ""
+      # -- icon
       icon: "https://upload.wikimedia.org/wikipedia/commons/2/26/Circaetus_gallicus_claw.jpg"
+      # -- username
       username: "Falco Talon"
+      # -- footer
       footer: "https://github.com/falco-talon/falco-talon"
+      # -- format
       format: "long"
+    # -- webhook
     webhook:
+      # -- url
       url: ""
+    # -- smtp
     smtp:
+      # -- host:port
       hostPort: ""
+      # -- from
       from: ""
+      # -- to
       to: ""
+      # -- user
       user: ""
+      # -- password
       password: ""
+      # -- format
       format: "html"
+      # -- enable tls
       tls: false
+    # -- loki
     loki:
+      # -- host:port
       hostPort: ""
+      # -- user
       user: ""
+      # -- api key
       apiKey: ""
+      # -- tenant
       tenant: ""
+      # -- custom headers
       customHeaders: []
+    # -- elasticsearch
     elasticsearch:
+      # -- url
       url: ""
+      # -- create the index template
       createIndexTemplate: true
+      # -- number of shards
       numberOfShards: 1
+      # -- number of replicas
       numberOfReplicas: 1
 
+  # -- aws
   aws:
+    # -- role arn
     roleArn: ""
+    # -- external id
     externalId: ""
-    region: "" # if not specified, default region from provider credential chain will be used
-    accesKey: "" # if not specified, default access_key from provider credential chain will be used
-    secretKey: "" # if not specified, default secret_key from provider credential chain will be used
+    # -- region (if not specified, default region from provider credential chain will be used)
+    region: ""
+    # -- access key (if not specified, default access_key from provider credential chain will be used)
+    accesKey: ""
+    # -- secret key (if not specified, default secret_key from provider credential chain will be used)
+    secretKey: ""
 
+  # -- minio
   minio:
-    endpoint: "" # endpoint
-    accessKy: "" # access key
-    secretKey: "" # secret key
-    useSsl: false # Use SSL
+    # -- endpoint
+    endpoint: ""
+    # -- access key
+    accessKy: ""
+    # -- secret key
+    secretKey: ""
+    # -- use ssl
+    useSsl: false
 
 # -- serviceMonitor holds the configuration for the ServiceMonitor CRD.
 serviceMonitor:

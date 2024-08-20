@@ -122,6 +122,12 @@
     rules:
       - Test download
   actions:
+    - action: Test exec
+      actionner: kubernetes:exec
+      additional_contexts:
+        - k8snode
+      parameters:
+        command: echo "${NODE_HOSTNAME}"
     - action: Test log
       actionner: kubernetes:log
       output:

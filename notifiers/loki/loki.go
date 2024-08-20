@@ -89,8 +89,8 @@ func NewPayload(log utils.LogLine) Payload {
 	if log.Actionner != "" {
 		s["actionner"] = log.Actionner
 	}
-	if log.Target != "" {
-		s["target"] = log.Target
+	if log.OutputTarget != "" {
+		s["outputtarget"] = log.OutputTarget
 	}
 	s["message"] = log.Message
 	s["traceid"] = log.TraceID

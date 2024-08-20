@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -67,34 +66,39 @@ func newPropagator() propagation.TextMapPropagator {
 func newTraceProvider() (*trace.TracerProvider, error) {
 	config := configuration.GetConfiguration()
 
-	traceExporter, err := newOtlpGrpcExporter(context.Background(), config)
+	if !config.Otel.TracesEnabled {
+		return trace.NewTracerProvider(), nil
+	}
+
+	traceExporter, err := newOtlpGrpcExporter(context.Background())
 	if err != nil {
 		return nil, err
 	}
 
-	traceProvidersOpts := []trace.TracerProviderOption{
-		trace.WithResource(newResource()),
+	traceProvidersOpts := []trace.TracerProviderOption{}
+	res := newResource()
+	if res != nil {
+		traceProvidersOpts = append(traceProvidersOpts, trace.WithResource(res))
 	}
 
-	if config.Otel.TracesEnabled {
-		traceProvidersOpts = append(traceProvidersOpts, trace.WithBatcher(traceExporter,
-			trace.WithBatchTimeout(time.Second*5),
-			trace.WithExportTimeout(time.Second*30),
-		))
-	}
+	traceProvidersOpts = append(traceProvidersOpts, trace.WithBatcher(traceExporter,
+		trace.WithBatchTimeout(time.Second*5),
+		trace.WithExportTimeout(time.Second*30),
+	))
 
 	traceProvider := trace.NewTracerProvider(traceProvidersOpts...)
 
 	return traceProvider, nil
 }
 
-func newOtlpGrpcExporter(ctx context.Context, cfg *configuration.Configuration) (trace.SpanExporter, error) {
-	endpoint := fmt.Sprintf("%s:%s", configuration.GetConfiguration().Otel.CollectorEndpoint, configuration.GetConfiguration().Otel.CollectorPort)
+func newOtlpGrpcExporter(ctx context.Context) (trace.SpanExporter, error) {
+	config := configuration.GetConfiguration()
+	endpoint := fmt.Sprintf("%s:%s", config.Otel.CollectorEndpoint, configuration.GetConfiguration().Otel.CollectorPort)
 	insecure := configuration.GetConfiguration().Otel.CollectorUseInsecureGrpc
 
 	opts := []otlptracegrpc.Option{
 		otlptracegrpc.WithEndpoint(endpoint),
-		otlptracegrpc.WithTimeout(time.Duration(cfg.Otel.Timeout) * time.Second),
+		otlptracegrpc.WithTimeout(time.Duration(config.Otel.Timeout) * time.Second),
 		otlptracegrpc.WithRetry(otlptracegrpc.RetryConfig{
 			Enabled:        true,
 			MaxInterval:    2 * time.Second,
@@ -123,7 +127,7 @@ func newResource() *resource.Resource {
 		),
 	)
 	if err != nil {
-		log.Fatalf("failed to create resource: %v", err)
+		return nil
 	}
 	return res
 }

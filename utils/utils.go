@@ -37,6 +37,9 @@ const (
 	textStr  string = "text"
 	colorStr string = "color"
 
+	SuccessStr string = "success"
+	FailureStr string = "failure"
+
 	ansiChars string = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
 )
 
@@ -48,14 +51,15 @@ type LogLine struct {
 	Event             string            `json:"event,omitempty"`
 	Message           string            `json:"message,omitempty"`
 	Priority          string            `json:"priority,omitempty"`
-	Target            string            `json:"target,omitempty"`
 	Source            string            `json:"source,omitempty"`
 	Result            string            `json:"result,omitempty"`
 	Notifier          string            `json:"notifier,omitempty"`
 	Context           string            `json:"context,omitempty"`
 	Output            string            `json:"output,omitempty"`
 	ActionnerCategory string            `json:"actionner_category,omitempty"`
+	OutputName        string            `json:"output_name,omitempty"`
 	OutputCategory    string            `json:"output_category,omitempty"`
+	OutputTarget      string            `json:"output_target,omitempty"`
 	Actionner         string            `json:"actionner,omitempty"`
 	Action            string            `json:"action,omitempty"`
 	Error             string            `json:"error,omitempty"`
@@ -140,14 +144,14 @@ func PrintLog(level string, line LogLine) {
 	if line.OutputCategory != "" {
 		l.Str("output_category", line.OutputCategory)
 	}
+	if line.OutputTarget != "" {
+		l.Str("output_target", line.OutputTarget)
+	}
 	if line.Action != "" {
 		l.Str("action", line.Action)
 	}
 	if line.Status != "" {
 		l.Str("status", line.Status)
-	}
-	if line.Target != "" {
-		l.Str("target", line.Target)
 	}
 	if line.Result != "" {
 		l.Str("result", line.Result)

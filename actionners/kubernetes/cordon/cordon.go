@@ -33,7 +33,7 @@ func Action(_ *rules.Action, event *events.Event) (utils.LogLine, *model.Data, e
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
@@ -42,7 +42,7 @@ func Action(_ *rules.Action, event *events.Event) (utils.LogLine, *model.Data, e
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
@@ -53,13 +53,13 @@ func Action(_ *rules.Action, event *events.Event) (utils.LogLine, *model.Data, e
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
 	return utils.LogLine{
 		Objects: objects,
 		Output:  fmt.Sprintf("the node '%v' has been cordoned", node.Name),
-		Status:  "success",
+		Status:  utils.SuccessStr,
 	}, nil, nil
 }

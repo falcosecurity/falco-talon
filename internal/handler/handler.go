@@ -3,10 +3,13 @@ package handler
 import (
 	"crypto/md5" //nolint:gosec
 	"encoding/hex"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 
@@ -46,10 +49,15 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, span := tracer.Start(requestContext, "event",
 		trace.WithAttributes(attribute.String("event.rule", event.Rule)),
 		trace.WithAttributes(attribute.String("event.source", event.Source)),
+		trace.WithAttributes(attribute.String("event.priority", event.Priority)),
+		trace.WithAttributes(attribute.String("event.output", event.Output)),
+		trace.WithAttributes(attribute.String("event.tags", strings.ReplaceAll(strings.Trim(fmt.Sprint(event.Tags), "[]"), " ", ", "))),
 	)
+	span.AddEvent(event.Output, trace.EventOption(trace.WithTimestamp(event.Time)))
 	defer span.End()
 	event.TraceID = span.SpanContext().TraceID().String()
 	span.SetAttributes(attribute.String("event.traceid", event.TraceID))
+	span.SetStatus(codes.Ok, "event received")
 
 	log := utils.LogLine{
 		Message:  "event",

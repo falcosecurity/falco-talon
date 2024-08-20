@@ -25,7 +25,7 @@ func Output(output *rules.Output, data *model.Data) (utils.LogLine, error) {
 		return utils.LogLine{
 			Objects: nil,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, err
 	}
 
@@ -47,14 +47,14 @@ func Output(output *rules.Output, data *model.Data) (utils.LogLine, error) {
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, err
 	}
 
 	return utils.LogLine{
 		Objects: objects,
 		Output:  fmt.Sprintf("the file '%v' has been copied to '%v'", filepath.Base(data.Name), dstfile),
-		Status:  "success",
+		Status:  utils.SuccessStr,
 	}, nil
 }
 

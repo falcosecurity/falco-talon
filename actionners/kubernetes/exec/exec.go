@@ -33,7 +33,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		return utils.LogLine{
 			Objects: nil,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
@@ -59,7 +59,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
@@ -72,7 +72,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 				return utils.LogLine{
 					Objects: objects,
 					Error:   err.Error(),
-					Status:  "failure",
+					Status:  utils.FailureStr,
 				}, nil, err
 			}
 			continue
@@ -82,7 +82,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 	return utils.LogLine{
 		Objects: objects,
 		Output:  utils.RemoveAnsiCharacters(output.String()),
-		Status:  "success",
+		Status:  utils.SuccessStr,
 	}, nil, nil
 }
 

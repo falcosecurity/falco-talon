@@ -157,7 +157,7 @@ func ParseRules(files []string) *[]*Rule {
 							continue
 						}
 						if rule.Actions[n].Output.Parameters[k] != nil && ru.Kind() != rt.Kind() {
-							utils.PrintLog("error", utils.LogLine{Error: "mismatch of type for a parameter", Message: "rules", Rule: rule.GetName(), Action: action.GetName(), Target: action.Output.GetTarget()})
+							utils.PrintLog("error", utils.LogLine{Error: "mismatch of type for a parameter", Message: "rules", Rule: rule.GetName(), Action: action.GetName(), OutputTarget: action.Output.GetTarget()})
 							continue
 						}
 						switch rt.Kind() {
@@ -425,7 +425,7 @@ func (rule *Rule) isValid() bool {
 				valid = false
 			}
 			if i.Output.Target != "" && len(i.Output.Parameters) == 0 {
-				utils.PrintLog("error", utils.LogLine{Error: "missing 'parameters' for the output", Message: "rules", Action: i.Name, Actionner: i.Actionner, Rule: rule.Name, Target: i.Output.Target})
+				utils.PrintLog("error", utils.LogLine{Error: "missing 'parameters' for the output", Message: "rules", Action: i.Name, Actionner: i.Actionner, Rule: rule.Name, OutputTarget: i.Output.Target})
 				valid = false
 			}
 		}
@@ -489,6 +489,10 @@ func (action *Action) GetName() string {
 
 func (action *Action) GetActionner() string {
 	return action.Actionner
+}
+
+func (action *Action) GetDescription() string {
+	return action.Description
 }
 
 func (action *Action) GetActionnerCategory() string {

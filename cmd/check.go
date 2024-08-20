@@ -59,16 +59,16 @@ var checkCmd = &cobra.Command{
 						if o != nil {
 							output := defaultOutputs.FindOutput(o.GetTarget())
 							if output == nil {
-								utils.PrintLog("error", utils.LogLine{Error: "unknown target", Rule: i.GetName(), Action: j.GetName(), Target: o.GetTarget(), Message: "rules"})
+								utils.PrintLog("error", utils.LogLine{Error: "unknown target", Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
 								valid = false
 							}
 							if len(o.Parameters) == 0 {
-								utils.PrintLog("error", utils.LogLine{Error: "missing parameters for the output", Rule: i.GetName(), Action: j.GetName(), Target: o.GetTarget(), Message: "rules"})
+								utils.PrintLog("error", utils.LogLine{Error: "missing parameters for the output", Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
 								valid = false
 							}
 							if output != nil && output.CheckParameters != nil {
 								if err := output.CheckParameters(o); err != nil {
-									utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), Target: o.GetTarget(), Message: "rules"})
+									utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
 									valid = false
 								}
 							}

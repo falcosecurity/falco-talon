@@ -38,7 +38,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		return utils.LogLine{
 			Objects: nil,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
@@ -55,7 +55,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
@@ -66,7 +66,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
@@ -77,7 +77,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
@@ -87,7 +87,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
@@ -97,14 +97,14 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
 	return utils.LogLine{
 		Objects: objects,
 		Output:  fmt.Sprintf("a tcpdump '%v' has been created", "tcpdump.pcap"),
-		Status:  "success",
+		Status:  utils.SuccessStr,
 	}, &model.Data{Name: "tcpdump.pcap", Namespace: event.GetNamespaceName(), Pod: event.GetPodName(), Hostname: event.GetHostname(), Bytes: output.Bytes()}, nil
 }
 

@@ -37,7 +37,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		return utils.LogLine{
 			Objects: nil,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
@@ -50,7 +50,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		return utils.LogLine{
 				Objects: objects,
 				Error:   err.Error(),
-				Status:  "failure",
+				Status:  utils.FailureStr,
 			},
 			nil,
 			err
@@ -61,7 +61,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		return utils.LogLine{
 				Objects: objects,
 				Error:   err.Error(),
-				Status:  "failure",
+				Status:  utils.FailureStr,
 			},
 			nil,
 			err
@@ -89,7 +89,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		if err2 != nil {
 			return utils.LogLine{
 				Objects: objects,
-				Status:  "failure",
+				Status:  utils.FailureStr,
 				Error:   err2.Error(),
 			}, nil, nil
 		}
@@ -98,7 +98,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 			if err2 != nil {
 				return utils.LogLine{
 					Objects: objects,
-					Status:  "failure",
+					Status:  utils.FailureStr,
 					Error:   err2.Error(),
 				}, nil, nil
 			}
@@ -106,7 +106,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 			if err2 != nil {
 				return utils.LogLine{
 					Objects: objects,
-					Status:  "failure",
+					Status:  utils.FailureStr,
 					Error:   err2.Error(),
 				}, nil, nil
 			}
@@ -116,7 +116,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 				if err2 != nil {
 					return utils.LogLine{
 						Objects: objects,
-						Status:  "failure",
+						Status:  utils.FailureStr,
 						Error:   err2.Error(),
 					}, nil, nil
 				}
@@ -132,7 +132,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 				if err2 != nil {
 					return utils.LogLine{
 						Objects: objects,
-						Status:  "failure",
+						Status:  utils.FailureStr,
 						Error:   err2.Error(),
 					}, nil, nil
 				}
@@ -151,7 +151,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 	if err != nil {
 		return utils.LogLine{
 				Objects: objects,
-				Status:  "failure",
+				Status:  utils.FailureStr,
 				Error:   err.Error(),
 			},
 			nil,
@@ -160,7 +160,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 	return utils.LogLine{
 			Objects: objects,
 			Output:  fmt.Sprintf("the pod '%v' in the namespace '%v' has been terminated", podName, namespace),
-			Status:  "success",
+			Status:  utils.SuccessStr,
 		},
 		nil, nil
 }
