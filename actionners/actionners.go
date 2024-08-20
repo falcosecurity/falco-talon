@@ -721,7 +721,7 @@ func StartConsumer(eventsC <-chan nats.MessageWithContext) {
 					}
 				}
 				err := runAction(ctx, i, a, e)
-				if err != nil && a.IgnoreErrors == falseStr {
+				if err != nil && a.IgnoreErrors != trueStr {
 					break
 				}
 				if a.Continue == falseStr || a.Continue != trueStr && !GetDefaultActionners().FindActionner(a.GetActionner()).MustDefaultContinue() {
