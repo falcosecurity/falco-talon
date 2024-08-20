@@ -12,6 +12,7 @@ otel:
   collector_port: 4317
   collector_endpoint: localhost
   collector_use_insecure_grpc: true
+  timeout: 10
 
 deduplication:
   leader_election: true # enable the leader election for cluster mode (in k8s only)
