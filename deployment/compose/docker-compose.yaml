@@ -10,7 +10,7 @@ services:
       - "10001:10001"
       - "/var/tempo"
     volumes:
-      - ./tempo-data:/var/tempo
+      - ./tempo/data:/var/tempo
   tempo:
     image: grafana/tempo
     command: [ "--config.file=/etc/tempo.yaml" ]
