@@ -157,8 +157,10 @@ config:
 
   # -- open telemetry parameters
   otel:
-    # -- enable otel
-    enabled: false
+    # -- enable otel traces
+    tracesEnabled: false
+    # -- enable otel metrics
+    metricsEnabled: false
     # -- collector port
     collectorPort: 4317
     # -- collector endpoint

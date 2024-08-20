@@ -66,7 +66,7 @@ func newPropagator() propagation.TextMapPropagator {
 func newTraceProvider() (*trace.TracerProvider, error) {
 	config := configuration.GetConfiguration()
 
-	if !config.Otel.Enabled {
+	if !config.Otel.TracesEnabled {
 		return trace.NewTracerProvider(), nil
 	}
 
@@ -91,13 +91,14 @@ func newTraceProvider() (*trace.TracerProvider, error) {
 	return traceProvider, nil
 }
 
-func newOtlpGrpcExporter(ctx context.Context, cfg *configuration.Configuration) (trace.SpanExporter, error) {
-	endpoint := fmt.Sprintf("%s:%s", configuration.GetConfiguration().Otel.CollectorEndpoint, configuration.GetConfiguration().Otel.CollectorPort)
+func newOtlpGrpcExporter(ctx context.Context) (trace.SpanExporter, error) {
+	config := configuration.GetConfiguration()
+	endpoint := fmt.Sprintf("%s:%s", config.Otel.CollectorEndpoint, configuration.GetConfiguration().Otel.CollectorPort)
 	insecure := configuration.GetConfiguration().Otel.CollectorUseInsecureGrpc
 
 	opts := []otlptracegrpc.Option{
 		otlptracegrpc.WithEndpoint(endpoint),
-		otlptracegrpc.WithTimeout(time.Duration(cfg.Otel.Timeout) * time.Second),
+		otlptracegrpc.WithTimeout(time.Duration(config.Otel.Timeout) * time.Second),
 		otlptracegrpc.WithRetry(otlptracegrpc.RetryConfig{
 			Enabled:        true,
 			MaxInterval:    2 * time.Second,
