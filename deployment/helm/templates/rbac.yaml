@@ -50,7 +50,14 @@ rules:
     verbs:
 {{ toYaml .Values.rbac.nodes | indent 6 }}
   {{- end }}
-  {{- if .Values.rbac.podsExec }}
+  {{- if .Values.rbac.podsLog }}
+  - apiGroups:
+      - ""
+    resources:
+      - pods/log
+    verbs:
+{{ toYaml .Values.rbac.podsLog | indent 6 }}
+  {{- end }}
   - apiGroups:
       - ""
     resources:
