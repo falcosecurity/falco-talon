@@ -344,7 +344,7 @@ func (actionner *Actionner) AllowAdditionalContext() bool {
 	return actionner.AllowAdditionalContexts
 }
 
-func runAction(ectx context.Context, rule *rules.Rule, action *rules.Action, event *events.Event) (err error) {
+func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, event *events.Event) (err error) {
 	tracer := traces.GetTracer()
 
 	actionners := GetActionners()
@@ -377,7 +377,7 @@ func runAction(ectx context.Context, rule *rules.Rule, action *rules.Action, eve
 
 	if checks := actionner.Checks; len(checks) != 0 {
 		for _, i := range checks {
-			_, span := tracer.Start(ectx, "checks",
+			_, span := tracer.Start(mctx, "checks",
 				trace.WithAttributes(attribute.String("check.name", runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name())))
 			if err = i(event, action); err != nil {
 				log.Status = utils.FailureStr
@@ -405,7 +405,7 @@ func runAction(ectx context.Context, rule *rules.Rule, action *rules.Action, eve
 		cont, _ = strconv.ParseBool(action.IgnoreErrors) // can't trigger an error, cause the value is validated before
 	}
 
-	actx, span := tracer.Start(ectx, "action",
+	actx, span := tracer.Start(mctx, "action",
 		trace.WithAttributes(attribute.String("action.name", action.GetName())),
 		trace.WithAttributes(attribute.String("action.actionner", action.GetActionner())),
 		trace.WithAttributes(attribute.String("action.description", action.GetDescription())),
@@ -568,7 +568,7 @@ func runAction(ectx context.Context, rule *rules.Rule, action *rules.Action, eve
 	}
 
 	if actionner.IsOutputAllowed() && output != nil && data != nil {
-		octx, span := tracer.Start(ectx, "output")
+		octx, span := tracer.Start(actx, "output")
 
 		log = utils.LogLine{
 			Message: "output",
@@ -654,7 +654,7 @@ func StartConsumer(eventsC <-chan nats.MessageWithContext) {
 	for {
 		m := <-eventsC
 		e := m.Data
-		ctx := m.Ctx
+		ectx := m.Ctx
 		var event *events.Event
 		err := json.Unmarshal(e, &event)
 		if err != nil {
@@ -693,6 +693,19 @@ func StartConsumer(eventsC <-chan nats.MessageWithContext) {
 			log.Message = "match"
 			log.Rule = i.GetName()
 
+			tracer := traces.GetTracer()
+			mctx, span := tracer.Start(ectx, "match",
+				trace.WithAttributes(attribute.String("event.rule", event.Rule)),
+				trace.WithAttributes(attribute.String("event.output", event.Output)),
+				trace.WithAttributes(attribute.String("event.source", event.Source)),
+				trace.WithAttributes(attribute.String("event.source", event.TraceID)),
+				trace.WithAttributes(attribute.String("rule.name", i.GetName())),
+				trace.WithAttributes(attribute.String("rule.description", i.GetDescription())),
+			)
+			span.AddEvent(event.Output, trace.EventOption(trace.WithTimestamp(event.Time)))
+			span.SetStatus(codes.Ok, "match detected")
+			span.End()
+
 			utils.PrintLog("info", log)
 			metrics.IncreaseCounter(log)
 
@@ -703,7 +716,7 @@ func StartConsumer(eventsC <-chan nats.MessageWithContext) {
 				if GetDefaultActionners().FindActionner(a.GetActionner()).AllowAdditionalContext() &&
 					len(a.GetAdditionalContexts()) != 0 {
 					for _, j := range a.GetAdditionalContexts() {
-						elements, err := talonContext.GetContext(ctx, j, e)
+						elements, err := talonContext.GetContext(mctx, j, e)
 						if err != nil {
 							log := utils.LogLine{
 								Message:   "context",
@@ -723,7 +736,7 @@ func StartConsumer(eventsC <-chan nats.MessageWithContext) {
 						}
 					}
 				}
-				err := runAction(ctx, i, a, e)
+				err := runAction(mctx, i, a, e)
 				if err != nil && a.IgnoreErrors != trueStr {
 					break
 				}
