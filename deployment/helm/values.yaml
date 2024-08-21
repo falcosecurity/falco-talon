@@ -109,6 +109,7 @@ rbac:
   pods: ["get", "update", "patch", "delete", "list"]
   podsEphemeralcontainers: ["patch", "create"]
   nodes: ["get", "update", "patch", "watch", "create"]
+  podsLog: ["get"]
   podsExec: ["get", "create"]
   podsEviction: ["get", "create"]
   events: ["get", "update", "patch", "create"]
@@ -243,7 +244,7 @@ config:
     # -- endpoint
     endpoint: ""
     # -- access key
-    accessKy: ""
+    accessKey: ""
     # -- secret key
     secretKey: ""
     # -- use ssl
