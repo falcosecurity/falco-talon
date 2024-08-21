@@ -13,7 +13,10 @@ exporters:
       insecure: true
   prometheus:
     endpoint: 0.0.0.0:9464
-
+  otlp/jaeger:
+    endpoint: "http://jaeger:4317"
+    tls:
+      insecure: true
 processors:
   batch:
   tail_sampling:
@@ -39,8 +42,8 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [otlp/tempo]
       processors: [tail_sampling, batch]
+      exporters: [otlp/tempo, otlp/jaeger]
     metrics:
       receivers: [otlp]
       exporters: [prometheus]
