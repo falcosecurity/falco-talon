@@ -475,6 +475,10 @@ func (rule *Rule) GetName() string {
 	return rule.Name
 }
 
+func (rule *Rule) GetDescription() string {
+	return rule.Description
+}
+
 func (rule *Rule) GetActions() []*Action {
 	return rule.Actions
 }

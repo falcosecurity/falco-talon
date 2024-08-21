@@ -16,7 +16,22 @@ exporters:
 
 processors:
   batch:
-
+  tail_sampling:
+    decision_wait: 1s
+    num_traces: 200
+    policies:
+      [
+        {
+          name: ignore-unmatched,
+          type: ottl_condition,
+          ottl_condition: {
+            error_mode: ignore,
+            span: [
+              "name == \"match\""
+            ]
+          }
+        }
+      ]
 service:
   telemetry:
     logs:
@@ -25,7 +40,7 @@ service:
     traces:
       receivers: [otlp]
       exporters: [otlp/tempo]
-      processors: [batch]
+      processors: [tail_sampling, batch]
     metrics:
       receivers: [otlp]
       exporters: [prometheus]
