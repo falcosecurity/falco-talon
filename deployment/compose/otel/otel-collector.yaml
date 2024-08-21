@@ -27,7 +27,7 @@ processors:
           ottl_condition: {
             error_mode: ignore,
             span: [
-              "name == \"match\""
+              "IsMatch(name, \"match\")"
             ]
           }
         }
