@@ -45,6 +45,12 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 
 	rctx := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
 
+	tags := []string{}
+
+	for _, i := range event.Tags {
+		tags = append(tags, fmt.Sprintf("%v", i))
+	}
+
 	tracer := traces.GetTracer()
 	ctx, span := tracer.Start(rctx, "event",
 		trace.WithAttributes(attribute.String("event.rule", event.Rule)),
@@ -52,10 +58,14 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 		trace.WithAttributes(attribute.String("event.priority", event.Priority)),
 		trace.WithAttributes(attribute.String("event.output", event.Output)),
 		trace.WithAttributes(attribute.String("event.tags", strings.ReplaceAll(strings.Trim(fmt.Sprint(event.Tags), "[]"), " ", ", "))),
+		trace.WithAttributes(attribute.StringSlice("event.tags", tags)),
 	)
-	span.AddEvent(event.String(), trace.EventOption(trace.WithTimestamp(event.Time)))
+	for i, j := range event.OutputFields {
+		span.SetAttributes(attribute.String("event.output_fields[\""+i+"\"]", fmt.Sprintf("%v", j)))
+	}
 	defer span.End()
 	event.TraceID = span.SpanContext().TraceID().String()
+	span.AddEvent(event.String(), trace.EventOption(trace.WithTimestamp(event.Time)))
 	span.SetAttributes(attribute.String("event.traceid", event.TraceID))
 	span.SetStatus(codes.Ok, "event received")
 
@@ -93,25 +103,30 @@ func HealthHandler(w http.ResponseWriter, _ *http.Request) {
 func RulesHandler(w http.ResponseWriter, _ *http.Request) {
 	r := rules.GetRules()
 	type yamlFile struct {
-		Name        string   `yaml:"rule,omitempty"`
+		Name        string   `yaml:"rule"`
 		Description string   `yaml:"description,omitempty"`
 		Continue    string   `yaml:"continue,omitempty"`
 		DryRun      string   `yaml:"dry_run,omitempty"`
-		Notifiers   []string `yaml:"notifiers"`
+		Notifiers   []string `yaml:"notifiers,omitempty"`
 		Actions     []struct {
-			Name         string                 `yaml:"action,omitempty"`
-			Description  string                 `yaml:"description,omitempty"`
-			Actionner    string                 `yaml:"actionner,omitempty"`
-			Parameters   map[string]interface{} `yaml:"parameters,omitempty"`
-			Continue     string                 `yaml:"continue,omitempty"`
-			IgnoreErrors string                 `yaml:"ignore_errors,omitempty"`
+			Parameters map[string]interface{} `yaml:"parameters,omitempty"`
+			Output     struct {
+				Parameters map[string]interface{} `yaml:"parameters"`
+				Target     string                 `yaml:"target"`
+			} `yaml:"output,omitempty"`
+			Name               string   `yaml:"action"`
+			Description        string   `yaml:"description,omitempty"`
+			Actionner          string   `yaml:"actionner"`
+			Continue           string   `yaml:"continue,omitempty"`
+			IgnoreErrors       string   `yaml:"ignore_errors,omitempty"`
+			AdditionalContexts []string `yaml:"additional_contexts,omitempty"`
 		} `yaml:"actions"`
 		Match struct {
-			OutputFields []string `yaml:"output_fields"`
+			OutputFields []string `yaml:"output_fields,omitempty"`
 			Priority     string   `yaml:"priority,omitempty"`
 			Source       string   `yaml:"source,omitempty"`
-			Rules        []string `yaml:"rules"`
-			Tags         []string `yaml:"tags"`
+			Rules        []string `yaml:"rules,omitempty"`
+			Tags         []string `yaml:"tags,omitempty"`
 		} `yaml:"match"`
 	}
 

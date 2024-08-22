@@ -11,7 +11,7 @@ import (
 )
 
 type Event struct {
-	TraceID      string
+	TraceID      string                 `json:"trace_id"`
 	Output       string                 `json:"output"`
 	Priority     string                 `json:"priority"`
 	Rule         string                 `json:"rule"`
