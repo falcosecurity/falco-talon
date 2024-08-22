@@ -43,17 +43,17 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	requestContext := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
+	rctx := otel.GetTextMapPropagator().Extract(r.Context(), propagation.HeaderCarrier(r.Header))
 
 	tracer := traces.GetTracer()
-	ctx, span := tracer.Start(requestContext, "event",
+	ctx, span := tracer.Start(rctx, "event",
 		trace.WithAttributes(attribute.String("event.rule", event.Rule)),
 		trace.WithAttributes(attribute.String("event.source", event.Source)),
 		trace.WithAttributes(attribute.String("event.priority", event.Priority)),
 		trace.WithAttributes(attribute.String("event.output", event.Output)),
 		trace.WithAttributes(attribute.String("event.tags", strings.ReplaceAll(strings.Trim(fmt.Sprint(event.Tags), "[]"), " ", ", "))),
 	)
-	span.AddEvent(event.Output, trace.EventOption(trace.WithTimestamp(event.Time)))
+	span.AddEvent(event.String(), trace.EventOption(trace.WithTimestamp(event.Time)))
 	defer span.End()
 	event.TraceID = span.SpanContext().TraceID().String()
 	span.SetAttributes(attribute.String("event.traceid", event.TraceID))

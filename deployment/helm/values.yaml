@@ -105,7 +105,7 @@ affinity: {}
 
 # -- rbac
 rbac:
-  namespaces: ["get"]
+  namespaces: ["get", "delete"]
   pods: ["get", "update", "patch", "delete", "list"]
   podsEphemeralcontainers: ["patch", "create"]
   nodes: ["get", "update", "patch", "watch", "create"]

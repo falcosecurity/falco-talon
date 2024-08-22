@@ -58,7 +58,10 @@ func CheckTargetResource(event *events.Event, _ *rules.Action) error {
 }
 
 func CheckTargetNamespace(event *events.Event, _ *rules.Action) error {
-	if event.OutputFields["ka.target.resource"] == "namespaces" {
+	switch event.OutputFields["ka.target.resource"] {
+	case "namespaces":
+		return nil
+	case "clusterroles":
 		return nil
 	}
 	if event.OutputFields["ka.target.namespace"] == nil {
