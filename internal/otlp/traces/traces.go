@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -119,11 +120,13 @@ func newOtlpGrpcExporter(ctx context.Context) (trace.SpanExporter, error) {
 }
 
 func newResource() *resource.Resource {
+	hostname, _ := os.Hostname()
 	res, err := resource.New(
 		context.Background(),
 		resource.WithAttributes(
 			semconv.ServiceNameKey.String("falco-talon"),
 			semconv.ServiceVersionKey.String(configuration.GetInfo().GitVersion),
+			semconv.ServiceInstanceID(hostname),
 		),
 	)
 	if err != nil {
