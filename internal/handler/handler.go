@@ -13,15 +13,11 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/jinzhu/copier"
-	"gopkg.in/yaml.v2"
-
 	"github.com/falco-talon/falco-talon/configuration"
 	"github.com/falco-talon/falco-talon/internal/events"
 	"github.com/falco-talon/falco-talon/internal/nats"
 	"github.com/falco-talon/falco-talon/internal/otlp/metrics"
 	"github.com/falco-talon/falco-talon/internal/otlp/traces"
-	"github.com/falco-talon/falco-talon/internal/rules"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
@@ -97,45 +93,4 @@ func MainHandler(w http.ResponseWriter, r *http.Request) {
 func HealthHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	_, _ = w.Write([]byte(`{"status": "ok"}`))
-}
-
-// Download the rule files
-func RulesHandler(w http.ResponseWriter, _ *http.Request) {
-	r := rules.GetRules()
-	type yamlFile struct {
-		Name        string   `yaml:"rule"`
-		Description string   `yaml:"description,omitempty"`
-		Continue    string   `yaml:"continue,omitempty"`
-		DryRun      string   `yaml:"dry_run,omitempty"`
-		Notifiers   []string `yaml:"notifiers,omitempty"`
-		Actions     []struct {
-			Parameters map[string]interface{} `yaml:"parameters,omitempty"`
-			Output     struct {
-				Parameters map[string]interface{} `yaml:"parameters"`
-				Target     string                 `yaml:"target"`
-			} `yaml:"output,omitempty"`
-			Name               string   `yaml:"action"`
-			Description        string   `yaml:"description,omitempty"`
-			Actionner          string   `yaml:"actionner"`
-			Continue           string   `yaml:"continue,omitempty"`
-			IgnoreErrors       string   `yaml:"ignore_errors,omitempty"`
-			AdditionalContexts []string `yaml:"additional_contexts,omitempty"`
-		} `yaml:"actions"`
-		Match struct {
-			OutputFields []string `yaml:"output_fields,omitempty"`
-			Priority     string   `yaml:"priority,omitempty"`
-			Source       string   `yaml:"source,omitempty"`
-			Rules        []string `yaml:"rules,omitempty"`
-			Tags         []string `yaml:"tags,omitempty"`
-		} `yaml:"match"`
-	}
-
-	var q []yamlFile
-	if err := copier.Copy(&q, &r); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-
-	w.Header().Add("Content-Type", "text/yaml")
-	b, _ := yaml.Marshal(q)
-	_, _ = w.Write(b)
 }

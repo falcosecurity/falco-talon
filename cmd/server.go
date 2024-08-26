@@ -28,8 +28,8 @@ import (
 
 var serverCmd = &cobra.Command{
 	Use:   "server",
-	Short: "Start Falco Talon",
-	Long:  "Start Falco Talon",
+	Short: "Start Falco Talon server",
+	Long:  "Start Falco Talon server.",
 	Run: func(cmd *cobra.Command, _ []string) {
 		configFile, _ := cmd.Flags().GetString("config")
 		config := configuration.CreateConfiguration(configFile)
@@ -284,7 +284,6 @@ func newHTTPHandler() http.Handler {
 
 	handleFunc("/", handler.MainHandler)
 	handleFunc("/healthz", handler.HealthHandler)
-	handleFunc("/rules", handler.RulesHandler)
 
 	otelHandler := otelhttp.NewHandler(
 		mux,
