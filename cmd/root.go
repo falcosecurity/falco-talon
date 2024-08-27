@@ -11,7 +11,7 @@ var RootCmd = &cobra.Command{
 	Short: "Falco Talon is a Response Engine for managing threats in Kubernetes",
 	Long: `Falco Talon is a Response Engine for managing threats in Kubernetes 
 It enhances the solutions proposed by Falco community with a dedicated, 
-no-code solution. With easy rules, you can perform actions over compromised pods`,
+no-code solution. With easy rules, you can perform actions over compromised pods.`,
 }
 
 func Execute() {
