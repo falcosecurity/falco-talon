@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/falco-talon/falco-talon/configuration"
+	"github.com/falco-talon/falco-talon/utils"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -75,6 +76,10 @@ func Init() error {
 
 		awsClient = &AWSClient{
 			cfg: cfg,
+		}
+
+		if initErr == nil {
+			utils.PrintLog("info", utils.LogLine{Message: "init", Category: "aws", Status: utils.SuccessStr})
 		}
 	})
 

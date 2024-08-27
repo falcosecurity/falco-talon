@@ -43,8 +43,8 @@ var serverCmd = &cobra.Command{
 			utils.PrintLog("fatal", utils.LogLine{Error: "invalid rules", Message: "rules"})
 		}
 
-		defaultActionners := actionners.GetDefaultActionners()
-		defaultOutputs := outputs.GetDefaultOutputs()
+		defaultActionners := actionners.ListDefaultActionners()
+		defaultOutputs := outputs.ListDefaultOutputs()
 
 		valid := true
 		if rules != nil {
@@ -55,16 +55,14 @@ var serverCmd = &cobra.Command{
 						utils.PrintLog("error", utils.LogLine{Error: "unknown actionner", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
 						valid = false
 					} else {
-						if actionner.CheckParameters != nil {
-							if err := actionner.CheckParameters(j); err != nil {
-								utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
-								valid = false
-							}
+						if err := actionner.CheckParameters(j); err != nil {
+							utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
+							valid = false
 						}
 					}
 					if actionner != nil {
 						o := j.GetOutput()
-						if o == nil && actionner.IsOutputRequired() {
+						if o == nil && actionner.Information().RequireOutput {
 							utils.PrintLog("error", utils.LogLine{Error: "an output is required", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
 							valid = false
 						}
@@ -78,11 +76,9 @@ var serverCmd = &cobra.Command{
 								utils.PrintLog("error", utils.LogLine{Error: "missing parameters for the output", Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
 								valid = false
 							}
-							if output != nil && output.CheckParameters != nil {
-								if err := output.CheckParameters(o); err != nil {
-									utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
-									valid = false
-								}
+							if err := output.CheckParameters(o); err != nil {
+								utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
+								valid = false
 							}
 						}
 					}
@@ -152,8 +148,8 @@ var serverCmd = &cobra.Command{
 								break
 							}
 
-							defaultActionners := actionners.GetDefaultActionners()
-							defaultOutputs := outputs.GetDefaultOutputs()
+							defaultActionners := actionners.ListDefaultActionners()
+							defaultOutputs := outputs.ListDefaultOutputs()
 
 							if newRules != nil {
 								valid := true
@@ -163,14 +159,12 @@ var serverCmd = &cobra.Command{
 										if actionner == nil {
 											break
 										}
-										if actionner.CheckParameters != nil {
-											if err := actionner.CheckParameters(j); err != nil {
-												utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Message: "rules"})
-												valid = false
-											}
+										if err := actionner.CheckParameters(j); err != nil {
+											utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Message: "rules"})
+											valid = false
 										}
 										o := j.GetOutput()
-										if o == nil && actionner.IsOutputRequired() {
+										if o == nil && actionner.Information().RequireOutput {
 											utils.PrintLog("error", utils.LogLine{Error: "an output is required", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
 											valid = false
 										}
@@ -184,11 +178,9 @@ var serverCmd = &cobra.Command{
 												utils.PrintLog("error", utils.LogLine{Error: "missing parameters for the output", Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
 												valid = false
 											}
-											if output != nil && output.CheckParameters != nil {
-												if err := output.CheckParameters(o); err != nil {
-													utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
-													valid = false
-												}
+											if err := output.CheckParameters(o); err != nil {
+												utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
+												valid = false
 											}
 										}
 									}
@@ -292,8 +284,4 @@ func newHTTPHandler() http.Handler {
 			return req.URL.Path == "/"
 		}))
 	return otelHandler
-}
-
-func init() {
-	RootCmd.AddCommand(serverCmd)
 }

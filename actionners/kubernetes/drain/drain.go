@@ -10,10 +10,55 @@ import (
 
 	helpers "github.com/falco-talon/falco-talon/actionners/kubernetes/helpers"
 	"github.com/falco-talon/falco-talon/internal/events"
-	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	k8sChecks "github.com/falco-talon/falco-talon/internal/kubernetes/checks"
+	k8s "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	"github.com/falco-talon/falco-talon/internal/models"
 	"github.com/falco-talon/falco-talon/internal/rules"
-	"github.com/falco-talon/falco-talon/outputs/model"
 	"github.com/falco-talon/falco-talon/utils"
+)
+
+const (
+	Name          string = "drain"
+	Category      string = "kubernetes"
+	Description   string = "Drain a pod"
+	Source        string = "syscalls"
+	Continue      bool   = true
+	UseContext    bool   = false
+	AllowOutput   bool   = false
+	RequireOutput bool   = false
+	Permissions   string = `apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: falco-talon
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - pods/eviction
+  verbs:
+  - get
+  - create
+- apiGroups:
+  - apps
+  resources:
+  - replicasets
+  verbs:
+  - get
+`
+	Example string = `- action: Drain the node
+  actionner: kubernetes:drain
+`
+)
+
+var (
+	RequiredOutputFields = []string{"k8s.ns.name", "k8s.pod.name"}
 )
 
 const (
@@ -23,7 +68,7 @@ const (
 	EvictionSubresource = "pods/eviction"
 )
 
-type Config struct {
+type Parameters struct {
 	MinHealthyReplicas string `mapstructure:"min_healthy_replicas" validate:"omitempty,is_absolut_or_percent"`
 	IgnoreErrors       bool   `mapstructure:"ignore_errors" validate:"omitempty"`
 	IgnoreDaemonsets   bool   `mapstructure:"ignore_daemonsets" validate:"omitempty"`
@@ -31,14 +76,52 @@ type Config struct {
 	GracePeriodSeconds int    `mapstructure:"grace_period_seconds" validate:"omitempty"`
 }
 
-func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Data, error) {
+type Actionner struct{}
+
+func Register() *Actionner {
+	return new(Actionner)
+}
+
+func (a Actionner) Init() error {
+	return k8s.Init()
+}
+
+func (a Actionner) Information() models.Information {
+	return models.Information{
+		Name:                 Name,
+		FullName:             Category + ":" + Name,
+		Category:             Category,
+		Description:          Description,
+		Source:               Source,
+		RequiredOutputFields: RequiredOutputFields,
+		Permissions:          Permissions,
+		Example:              Example,
+		Continue:             Continue,
+		AllowOutput:          AllowOutput,
+		RequireOutput:        RequireOutput,
+	}
+}
+func (a Actionner) Parameters() models.Parameters {
+	return Parameters{
+		MinHealthyReplicas: "",
+		IgnoreErrors:       false,
+		IgnoreDaemonsets:   false,
+		IgnoreStatefulSets: false,
+		GracePeriodSeconds: 0,
+	}
+}
+
+func (a Actionner) Checks(event *events.Event, _ *rules.Action) error {
+	return k8sChecks.CheckPodExist(event)
+}
+
+func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine, *models.Data, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 	objects := map[string]string{}
 
-	parameters := action.GetParameters()
-	var config Config
-	err := utils.DecodeParams(parameters, &config)
+	var parameters Parameters
+	err := utils.DecodeParams(action.GetParameters(), &parameters)
 	if err != nil {
 		return utils.LogLine{
 			Objects: nil,
@@ -48,9 +131,9 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 	}
 
 	gracePeriodSeconds := new(int64)
-	*gracePeriodSeconds = int64(config.GracePeriodSeconds)
+	*gracePeriodSeconds = int64(parameters.GracePeriodSeconds)
 
-	client := kubernetes.GetClient()
+	client := k8s.GetClient()
 	pod, err := client.GetPod(podName, namespace)
 	if err != nil {
 		objects["pod"] = podName
@@ -96,7 +179,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		go func() {
 			defer wg.Done()
 
-			ownerKind, err := kubernetes.GetOwnerKind(p)
+			ownerKind, err := k8s.GetOwnerKind(p)
 			if err != nil {
 				utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting pod '%v' owner kind: %v", p.Name, err)})
 				otherErrorsCount++
@@ -105,27 +188,27 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 
 			switch ownerKind {
 			case "DaemonSet":
-				if config.IgnoreDaemonsets {
+				if parameters.IgnoreDaemonsets {
 					ignoredPodsCount++
 				}
 			case "StatefulSet":
-				if config.IgnoreStatefulSets {
+				if parameters.IgnoreStatefulSets {
 					ignoredPodsCount++
 				}
 			case "ReplicaSet":
-				replicaSetName, err := kubernetes.GetOwnerName(p)
+				replicaSetName, err := k8s.GetOwnerName(p)
 				if err != nil {
 					utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting pod owner name: %v", err)})
 					otherErrorsCount++
 				}
-				if config.MinHealthyReplicas != "" {
+				if parameters.MinHealthyReplicas != "" {
 					replicaSet, err := client.GetReplicaSet(replicaSetName, p.Namespace)
 					if err != nil {
 						utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting replica set for pod '%v': %v", p.Name, err)})
 						otherErrorsCount++
 						return
 					}
-					minHealthyReplicasValue, kind, err := helpers.ParseMinHealthyReplicas(config.MinHealthyReplicas)
+					minHealthyReplicasValue, kind, err := helpers.ParseMinHealthyReplicas(parameters.MinHealthyReplicas)
 					if err != nil {
 						utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error parsing min_healthy_replicas: %v", err)})
 						otherErrorsCount++
@@ -133,7 +216,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 					}
 					switch kind {
 					case "absolut":
-						healthyReplicasCount, err := kubernetes.GetHealthyReplicasCount(replicaSet)
+						healthyReplicasCount, err := k8s.GetHealthyReplicasCount(replicaSet)
 						if err != nil {
 							utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
 							otherErrorsCount++
@@ -143,7 +226,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 							return
 						}
 					case "percent":
-						healthyReplicasValue, err := kubernetes.GetHealthyReplicasCount(replicaSet)
+						healthyReplicasValue, err := k8s.GetHealthyReplicasCount(replicaSet)
 						minHealthyReplicasAbsoluteValue := int64(float64(minHealthyReplicasValue) / 100.0 * float64(healthyReplicasValue))
 						if err != nil {
 							utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
@@ -176,7 +259,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 
 	wg.Wait()
 
-	if config.IgnoreErrors || (evictionErrorsCount == 0 && otherErrorsCount == 0) {
+	if parameters.IgnoreErrors || (evictionErrorsCount == 0 && otherErrorsCount == 0) {
 		return utils.LogLine{
 			Objects: objects,
 			Output:  fmt.Sprintf("the node '%v' has been drained, errors are ignored: %v ignored pods, %v eviction errors, %v other errors", nodeName, ignoredPodsCount, evictionErrorsCount, otherErrorsCount),
@@ -190,11 +273,9 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 	}, nil, fmt.Errorf("the node '%v' has not been fully drained: %v eviction errors, %v other errors", nodeName, evictionErrorsCount, otherErrorsCount)
 }
 
-func CheckParameters(action *rules.Action) error {
-	parameters := action.GetParameters()
-
-	var config Config
-	err := utils.DecodeParams(parameters, &config)
+func (a Actionner) CheckParameters(action *rules.Action) error {
+	var parameters Parameters
+	err := utils.DecodeParams(action.GetParameters(), &parameters)
 	if err != nil {
 		return err
 	}
@@ -204,7 +285,7 @@ func CheckParameters(action *rules.Action) error {
 		return err
 	}
 
-	err = utils.ValidateStruct(config)
+	err = utils.ValidateStruct(parameters)
 	if err != nil {
 		return err
 	}

@@ -6,13 +6,69 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/falco-talon/falco-talon/internal/events"
-	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	k8sChecks "github.com/falco-talon/falco-talon/internal/kubernetes/checks"
+	k8s "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	"github.com/falco-talon/falco-talon/internal/models"
 	"github.com/falco-talon/falco-talon/internal/rules"
-	"github.com/falco-talon/falco-talon/outputs/model"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
-type Config struct {
+const (
+	Name          string = "tcpdump"
+	Category      string = "kubernetes"
+	Description   string = "Capture the network packets in a pod"
+	Source        string = "syscalls"
+	Continue      bool   = false
+	UseContext    bool   = false
+	AllowOutput   bool   = false
+	RequireOutput bool   = true
+	Permissions   string = `apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: falco-talon
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - update
+  - patch
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - pods/ephemeralcontainers
+  verbs:
+  - patch
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - pods/exec
+  verbs:
+  - get
+  - create
+`
+	Example string = `- action: Get logs of the pod
+  actionner: kubernetes:tcpdump
+  parameters:
+    duration: 10
+    snaplen: 1024
+  output:
+    target: aws:s3
+    parameters:
+      bucket: my-bucket
+      prefix: /captures/
+`
+)
+
+var (
+	RequiredOutputFields = []string{"k8s.ns.name", "k8s.pod.name"}
+)
+
+type Parameters struct {
 	Duration int `mapstructure:"duration" validate:"gte=0"`
 	Snaplen  int `mapstructure:"snaplen" validate:"gte=0"`
 }
@@ -22,7 +78,44 @@ const (
 	defaultTTL int    = 300
 )
 
-func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Data, error) {
+type Actionner struct{}
+
+func Register() *Actionner {
+	return new(Actionner)
+}
+
+func (a Actionner) Init() error {
+	return k8s.Init()
+}
+
+func (a Actionner) Information() models.Information {
+	return models.Information{
+		Name:                 Name,
+		FullName:             Category + ":" + Name,
+		Category:             Category,
+		Description:          Description,
+		Source:               Source,
+		RequiredOutputFields: RequiredOutputFields,
+		Permissions:          Permissions,
+		Example:              Example,
+		Continue:             Continue,
+		AllowOutput:          AllowOutput,
+		RequireOutput:        RequireOutput,
+	}
+}
+
+func (a Actionner) Parameters() models.Parameters {
+	return Parameters{
+		Duration: 20,
+		Snaplen:  4096,
+	}
+}
+
+func (a Actionner) Checks(event *events.Event, _ *rules.Action) error {
+	return k8sChecks.CheckPodExist(event)
+}
+
+func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine, *models.Data, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
@@ -31,9 +124,8 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		"namespace": namespace,
 	}
 
-	parameters := action.GetParameters()
-	var config Config
-	err := utils.DecodeParams(parameters, &config)
+	var parameters Parameters
+	err := utils.DecodeParams(action.GetParameters(), &parameters)
 	if err != nil {
 		return utils.LogLine{
 			Objects: nil,
@@ -42,14 +134,14 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		}, nil, err
 	}
 
-	if config.Duration == 0 {
-		config.Duration = 5
+	if parameters.Duration == 0 {
+		parameters.Duration = 5
 	}
 
-	client := kubernetes.GetClient()
+	client := k8s.GetClient()
 
 	pod, _ := client.GetPod(podName, namespace)
-	containers := kubernetes.GetContainers(pod)
+	containers := k8s.GetContainers(pod)
 	if len(containers) == 0 {
 		err = fmt.Errorf("no container found")
 		return utils.LogLine{
@@ -71,7 +163,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 	}
 
 	command := []string{"tee", "/tmp/talon-script.sh", ">", "/dev/null"}
-	script := fmt.Sprintf("timeout %vs tcpdump -n -i any -s %v -w /tmp/tcpdump.pcap || [ $? -eq 124 ] && echo OK || exit 1", config.Duration, config.Snaplen)
+	script := fmt.Sprintf("timeout %vs tcpdump -n -i any -s %v -w /tmp/tcpdump.pcap || [ $? -eq 124 ] && echo OK || exit 1", parameters.Duration, parameters.Snaplen)
 	_, err = client.Exec(namespace, podName, ephemeralContainerName, command, script)
 	if err != nil {
 		return utils.LogLine{
@@ -105,20 +197,18 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		Objects: objects,
 		Output:  fmt.Sprintf("a tcpdump '%v' has been created", "tcpdump.pcap"),
 		Status:  utils.SuccessStr,
-	}, &model.Data{Name: "tcpdump.pcap", Namespace: event.GetNamespaceName(), Pod: event.GetPodName(), Hostname: event.GetHostname(), Bytes: output.Bytes()}, nil
+	}, &models.Data{Name: "tcpdump.pcap", Objects: objects, Bytes: output.Bytes()}, nil
 }
 
-func CheckParameters(action *rules.Action) error {
-	parameters := action.GetParameters()
+func (a Actionner) CheckParameters(action *rules.Action) error {
+	var parameters Parameters
 
-	var config Config
-
-	err := utils.DecodeParams(parameters, &config)
+	err := utils.DecodeParams(action.GetParameters(), &parameters)
 	if err != nil {
 		return err
 	}
 
-	err = utils.ValidateStruct(config)
+	err = utils.ValidateStruct(parameters)
 	if err != nil {
 		return err
 	}

@@ -38,7 +38,7 @@ func Init() {
 
 	exporter, err := prometheus.New()
 	if err != nil {
-		utils.PrintLog("fatal", utils.LogLine{Error: err.Error(), Message: "init"})
+		utils.PrintLog("fatal", utils.LogLine{Error: err.Error(), Message: "init", Category: "otlp"})
 		log.Fatal(err)
 	}
 
@@ -53,7 +53,7 @@ func Init() {
 	if config.Otel.MetricsEnabled {
 		otlpExporter, err2 := newOtlpMetricExporter(config)
 		if err2 != nil {
-			utils.PrintLog("fatal", utils.LogLine{Error: err2.Error(), Message: "init"})
+			utils.PrintLog("fatal", utils.LogLine{Error: err2.Error(), Message: "init", Category: "otlp"})
 			log.Fatal(err2)
 		}
 		metricOpts = append(metricOpts, sdk.WithReader(sdk.NewPeriodicReader(otlpExporter)))
@@ -133,8 +133,8 @@ func getMeasurementOption(log utils.LogLine) metric.MeasurementOption {
 	if log.Actionner != "" {
 		attrs = append(attrs, attribute.Key("actionner").String(log.Actionner))
 	}
-	if log.ActionnerCategory != "" {
-		attrs = append(attrs, attribute.Key("actionner_category").String(log.ActionnerCategory))
+	if log.Category != "" {
+		attrs = append(attrs, attribute.Key("category").String(log.Category))
 	}
 	if log.Action != "" {
 		attrs = append(attrs, attribute.Key("action").String(log.Action))

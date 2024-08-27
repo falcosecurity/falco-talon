@@ -12,13 +12,32 @@ import (
 	textTemplate "text/template"
 
 	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	"github.com/falco-talon/falco-talon/internal/models"
 	"github.com/falco-talon/falco-talon/utils"
+)
+
+const (
+	Name        string = "k8sevents"
+	Description string = "Create a Kubernetes Event"
+	Permissions string = `- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - get
+  - update
+  - patch
+  - create
+`
+	Example string = ``
 )
 
 const (
 	falcoTalon string = "falco-talon"
 	defaultStr string = "default"
 )
+
+type Parameters struct{}
 
 var plaintextTmpl = `Status: {{ .Status }}
 Message: {{ .Message }}
@@ -52,7 +71,25 @@ OutputTarget: {{ .OutputTarget }}
 TraceID: {{ .TraceID }}
 `
 
-func Notify(log utils.LogLine) error {
+type Notifier struct{}
+
+func Register() *Notifier {
+	return new(Notifier)
+}
+
+func (n Notifier) Init(_ map[string]interface{}) error { return nil }
+
+func (n Notifier) Information() models.Information {
+	return models.Information{
+		Name:        Name,
+		Description: Description,
+		Permissions: Permissions,
+		Example:     Example,
+	}
+}
+func (n Notifier) Parameters() models.Parameters { return Parameters{} }
+
+func (n Notifier) Run(log utils.LogLine) error {
 	var err error
 	var message string
 	ttmpl := textTemplate.New("message")

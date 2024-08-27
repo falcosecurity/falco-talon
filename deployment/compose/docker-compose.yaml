@@ -66,7 +66,16 @@ services:
       - ./grafana/provisioning/:/etc/grafana/provisioning/
     ports:
       - "3000:3000"
-
+  # loki
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/loki.yaml
+    volumes:
+      - ./loki:/etc/loki
+  # jaeger
   jaeger:
     image: jaegertracing/all-in-one
     ports:

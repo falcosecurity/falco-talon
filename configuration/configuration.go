@@ -116,6 +116,6 @@ func GetConfiguration() *Configuration {
 	return config
 }
 
-func (c *Configuration) GetDefaultNotifiers() []string {
+func (c *Configuration) ListDefaultNotifiers() []string {
 	return c.DefaultNotifiers
 }

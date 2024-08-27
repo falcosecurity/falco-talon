@@ -9,4 +9,5 @@ tmp
 DO-NOT-COMMIT-local-setup.yaml
 deployment/compose/minio/data
 deployment/compose/tempo/data
+deployment/compose/loki/data
 .env

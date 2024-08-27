@@ -7,6 +7,7 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 
 	"github.com/falco-talon/falco-talon/configuration"
+	"github.com/falco-talon/falco-talon/utils"
 )
 
 type MinioClient struct {
@@ -39,6 +40,10 @@ func Init() error {
 
 		minioClient = &MinioClient{
 			minioClient: c,
+		}
+
+		if initErr == nil {
+			utils.PrintLog("info", utils.LogLine{Message: "init", Category: "minio", Status: utils.SuccessStr})
 		}
 	})
 

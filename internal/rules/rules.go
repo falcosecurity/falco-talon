@@ -483,7 +483,7 @@ func (rule *Rule) GetActions() []*Action {
 	return rule.Actions
 }
 
-func (rule *Rule) GetNotifiers() []string {
+func (rule *Rule) ListNotifiers() []string {
 	return rule.Notifiers
 }
 
