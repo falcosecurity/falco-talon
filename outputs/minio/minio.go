@@ -79,11 +79,11 @@ func (o Output) Checks(output *rules.Output) error {
 	if err != nil {
 		return err
 	}
-	if exist {
-		return nil
+	if !exist {
+		return fmt.Errorf("the bucket '%v' does not exist", parameters.Bucket)
 	}
 
-	return fmt.Errorf("the bucket '%v' does not exist", parameters.Bucket)
+	return nil
 }
 
 func (o Output) Run(output *rules.Output, data *models.Data) (utils.LogLine, error) {
