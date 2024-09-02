@@ -7,20 +7,73 @@ import (
 	"strings"
 	"time"
 
-	"github.com/falco-talon/falco-talon/internal/events"
+	"github.com/falco-talon/falco-talon/internal/models"
 	"github.com/falco-talon/falco-talon/internal/rules"
-	"github.com/falco-talon/falco-talon/outputs/model"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
-type Config struct {
+const (
+	Name        string = "file"
+	Category    string = "local"
+	Description string = "Store on local file system"
+	Permissions string = ``
+	Example     string = `- action: Get logs of the pod
+  actionner: kubernetes:download
+  parameters:
+    tail_lines: 200
+  output:
+    target: local:file
+    parameters:
+      destination: /var/logs/falco-talon/
+`
+)
+
+type Parameters struct {
 	Destination string `mapstructure:"destination" validate:"required"`
 }
 
-func Output(output *rules.Output, data *model.Data) (utils.LogLine, error) {
-	parameters := output.GetParameters()
-	var config Config
-	err := utils.DecodeParams(parameters, &config)
+type Output struct{}
+
+func Register() *Output {
+	return new(Output)
+}
+
+func (o Output) Init() error { return nil }
+
+func (o Output) Information() models.Information {
+	return models.Information{
+		Name:        Name,
+		FullName:    Category + ":" + Name,
+		Category:    Category,
+		Description: Description,
+		Permissions: Permissions,
+		Example:     Example,
+	}
+}
+func (o Output) Parameters() models.Parameters {
+	return Parameters{
+		Destination: "",
+	}
+}
+
+func (o Output) Checks(output *rules.Output) error {
+	var parameters Parameters
+	err := utils.DecodeParams(output.GetParameters(), &parameters)
+	if err != nil {
+		return err
+	}
+
+	dstFolder := os.ExpandEnv(parameters.Destination)
+	if _, err := os.Open(dstFolder); os.IsNotExist(err) {
+		return fmt.Errorf("folder '%v' does not exist", dstFolder)
+	}
+
+	return nil
+}
+
+func (o Output) Run(output *rules.Output, data *models.Data) (utils.LogLine, error) {
+	var parameters Parameters
+	err := utils.DecodeParams(output.GetParameters(), &parameters)
 	if err != nil {
 		return utils.LogLine{
 			Objects: nil,
@@ -30,13 +83,22 @@ func Output(output *rules.Output, data *model.Data) (utils.LogLine, error) {
 	}
 
 	var key string
-	if data.Namespace != "" && data.Pod != "" {
-		key = fmt.Sprintf("%v_%v_%v_%v", time.Now().Format("2006-01-02T15-04-05Z"), data.Namespace, data.Pod, strings.ReplaceAll(data.Name, "/", "_"))
-	} else {
-		key = fmt.Sprintf("%v_%v_%v", time.Now().Format("2006-01-02T15-04-05Z"), data.Hostname, strings.ReplaceAll(data.Name, "/", "_"))
+	switch {
+	case data.Objects["namespace"] != "" && data.Objects["pod"] != "":
+		key = fmt.Sprintf("%v_%v_%v_%v", time.Now().Format("2006-01-02T15-04-05Z"), data.Objects["namespace"], data.Objects["pod"], strings.ReplaceAll(data.Name, "/", "_"))
+	case data.Objects["hostname"] != "":
+		key = fmt.Sprintf("%v_%v_%v", time.Now().Format("2006-01-02T15-04-05Z"), data.Objects["hostname"], strings.ReplaceAll(data.Name, "/", "_"))
+	default:
+		var s string
+		for i, j := range data.Objects {
+			if i != "file" {
+				s += j + "_"
+			}
+		}
+		key = fmt.Sprintf("%v_%v%v", time.Now().Format("2006-01-02T15-04-05Z"), s, strings.ReplaceAll(data.Name, "/", "_"))
 	}
 
-	dstfile := fmt.Sprintf("%v/%v", strings.TrimSuffix(config.Destination, "/"), key)
+	dstfile := fmt.Sprintf("%v/%v", strings.TrimSuffix(parameters.Destination, "/"), key)
 
 	objects := map[string]string{
 		"file":        data.Name,
@@ -58,37 +120,16 @@ func Output(output *rules.Output, data *model.Data) (utils.LogLine, error) {
 	}, nil
 }
 
-func CheckParameters(output *rules.Output) error {
-	parameters := output.GetParameters()
-
-	var config Config
-
-	err := utils.DecodeParams(parameters, &config)
+func (o Output) CheckParameters(output *rules.Output) error {
+	var parameters Parameters
+	err := utils.DecodeParams(output.GetParameters(), &parameters)
 	if err != nil {
 		return err
 	}
 
-	err = utils.ValidateStruct(config)
+	err = utils.ValidateStruct(parameters)
 	if err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func CheckFolderExist(output *rules.Output, event *events.Event) error {
-	parameters := output.GetParameters()
-	var config Config
-	err := utils.DecodeParams(parameters, &config)
-	if err != nil {
-		return err
-	}
-
-	event.ExportEnvVars()
-
-	dstFolder := os.ExpandEnv(config.Destination)
-	if _, err := os.Open(dstFolder); os.IsNotExist(err) {
-		return fmt.Errorf("folder '%v' does not exist", dstFolder)
 	}
 
 	return nil

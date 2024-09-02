@@ -20,7 +20,7 @@ var rulesCmd = &cobra.Command{
 	Long:  `Manage the rules loaded by Falco Talon. You can print them in the stdout or check their validity.`,
 }
 
-var checkCmd = &cobra.Command{
+var rulesChecksCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Check Falco Talon Rules file",
 	Long:  "Check Falco Talon Rules file",
@@ -36,8 +36,8 @@ var checkCmd = &cobra.Command{
 		if rules == nil {
 			utils.PrintLog("fatal", utils.LogLine{Error: "invalid rules", Message: "rules"})
 		}
-		defaultActionners := actionners.GetDefaultActionners()
-		defaultOutputs := outputs.GetDefaultOutputs()
+		defaultActionners := actionners.ListDefaultActionners()
+		defaultOutputs := outputs.ListDefaultOutputs()
 
 		valid := true
 		if rules != nil {
@@ -47,22 +47,20 @@ var checkCmd = &cobra.Command{
 					if actionner == nil {
 						utils.PrintLog("error", utils.LogLine{Error: "unknown actionner", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
 						valid = false
-					} else {
-						if actionner.CheckParameters != nil {
-							if err := actionner.CheckParameters(j); err != nil {
-								utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
-								valid = false
-							}
-						}
+						continue
+					}
+					if err := actionner.CheckParameters(j); err != nil {
+						utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
+						valid = false
 					}
 					o := j.GetOutput()
-					if o == nil && actionner.IsOutputRequired() {
+					if o == nil && actionner.Information().RequireOutput {
 						utils.PrintLog("error", utils.LogLine{Error: "an output is required", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
 						valid = false
 					}
 					if actionner != nil {
 						o := j.GetOutput()
-						if o == nil && actionner.IsOutputRequired() {
+						if o == nil && actionner.Information().RequireOutput {
 							utils.PrintLog("error", utils.LogLine{Error: "an output is required", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
 							valid = false
 						}
@@ -76,11 +74,9 @@ var checkCmd = &cobra.Command{
 								utils.PrintLog("error", utils.LogLine{Error: "missing parameters for the output", Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
 								valid = false
 							}
-							if output != nil && output.CheckParameters != nil {
-								if err := output.CheckParameters(o); err != nil {
-									utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
-									valid = false
-								}
+							if err := output.CheckParameters(o); err != nil {
+								utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
+								valid = false
 							}
 						}
 					}
@@ -94,7 +90,7 @@ var checkCmd = &cobra.Command{
 	},
 }
 
-var printCmd = &cobra.Command{
+var rulesPrintCmd = &cobra.Command{
 	Use:   "print",
 	Short: "Print the loaded by Falco Talon in the stdout",
 	Long:  "Print the loaded by Falco Talon in the stdout.",
@@ -146,10 +142,4 @@ var printCmd = &cobra.Command{
 		b, _ := yaml.Marshal(q)
 		fmt.Printf("---\n%s", b)
 	},
-}
-
-func init() {
-	rulesCmd.AddCommand(checkCmd)
-	rulesCmd.AddCommand(printCmd)
-	RootCmd.AddCommand(rulesCmd)
 }

@@ -11,10 +11,48 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/falco-talon/falco-talon/internal/events"
-	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	k8sChecks "github.com/falco-talon/falco-talon/internal/kubernetes/checks"
+	k8s "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	"github.com/falco-talon/falco-talon/internal/models"
 	"github.com/falco-talon/falco-talon/internal/rules"
-	"github.com/falco-talon/falco-talon/outputs/model"
 	"github.com/falco-talon/falco-talon/utils"
+)
+
+const (
+	Name          string = "label"
+	Category      string = "kubernetes"
+	Description   string = "Add, modify or delete the labels of the pod"
+	Source        string = "syscalls"
+	Continue      bool   = true
+	UseContext    bool   = false
+	AllowOutput   bool   = false
+	RequireOutput bool   = false
+	Permissions   string = `apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: falco-talon
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - update
+  - patch
+  - list
+`
+	Example string = `- action: Label the pod
+  actionner: kubernetes:label
+  parameters:
+    level: pod
+    labels:
+      suspicious: true
+`
+)
+
+var (
+	RequiredOutputFields = []string{"k8s.ns.name", "k8s.pod.name"}
 )
 
 type patch struct {
@@ -23,7 +61,7 @@ type patch struct {
 	Value string `json:"value,omitempty"`
 }
 
-type Config struct {
+type Parameters struct {
 	Labels map[string]string `mapstructure:"labels" validate:"required"`
 	Level  string            `mapstructure:"level" validate:"omitempty"`
 }
@@ -34,16 +72,52 @@ const (
 	nodeStr        = "node"
 )
 
-func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Data, error) {
+type Actionner struct{}
+
+func Register() *Actionner {
+	return new(Actionner)
+}
+
+func (a Actionner) Init() error {
+	return k8s.Init()
+}
+
+func (a Actionner) Information() models.Information {
+	return models.Information{
+		Name:                 Name,
+		FullName:             Category + ":" + Name,
+		Category:             Category,
+		Description:          Description,
+		Source:               Source,
+		RequiredOutputFields: RequiredOutputFields,
+		Permissions:          Permissions,
+		Example:              Example,
+		Continue:             Continue,
+		AllowOutput:          AllowOutput,
+		RequireOutput:        RequireOutput,
+	}
+}
+func (a Actionner) Parameters() models.Parameters {
+	return Parameters{
+		Labels: map[string]string{},
+		Level:  "pod",
+	}
+}
+
+func (a Actionner) Checks(event *events.Event, _ *rules.Action) error {
+	return k8sChecks.CheckPodExist(event)
+}
+
+func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine, *models.Data, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
 	objects := map[string]string{}
 
 	payload := make([]patch, 0)
-	parameters := action.GetParameters()
-	var config Config
-	err := utils.DecodeParams(parameters, &config)
+
+	var parameters Parameters
+	err := utils.DecodeParams(action.GetParameters(), &parameters)
 	if err != nil {
 		return utils.LogLine{
 			Objects: nil,
@@ -52,12 +126,12 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		}, nil, err
 	}
 
-	client := kubernetes.GetClient()
+	client := k8s.GetClient()
 
 	var kind string
 	var node *corev1.Node
 
-	if config.Level == nodeStr {
+	if parameters.Level == nodeStr {
 		kind = nodeStr
 		pod, err2 := client.GetPod(podName, namespace)
 		if err2 != nil {
@@ -82,7 +156,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		objects["namespace"] = namespace
 	}
 
-	for i, j := range config.Labels {
+	for i, j := range parameters.Labels {
 		if fmt.Sprintf("%v", j) == "" {
 			continue
 		}
@@ -110,7 +184,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 
 	payload = make([]patch, 0)
 	action.GetParameters()
-	for i, j := range config.Labels {
+	for i, j := range parameters.Labels {
 		if fmt.Sprintf("%v", j) != "" {
 			continue
 		}
@@ -148,22 +222,19 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 	}, nil, nil
 }
 
-func CheckParameters(action *rules.Action) error {
-	parameters := action.GetParameters()
-
-	var config Config
-
-	err := utils.DecodeParams(parameters, &config)
+func (a Actionner) CheckParameters(action *rules.Action) error {
+	var parameters Parameters
+	err := utils.DecodeParams(action.GetParameters(), &parameters)
 	if err != nil {
 		return err
 	}
 
-	err = utils.ValidateStruct(config)
+	err = utils.ValidateStruct(parameters)
 	if err != nil {
 		return err
 	}
 
-	if len(config.Labels) == 0 {
+	if len(parameters.Labels) == 0 {
 		return errors.New("parameter 'labels' should have at least one label")
 	}
 	return nil

@@ -13,29 +13,144 @@ import (
 	calico "github.com/falco-talon/falco-talon/internal/calico/client"
 
 	"github.com/falco-talon/falco-talon/internal/events"
-	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	k8sChecks "github.com/falco-talon/falco-talon/internal/kubernetes/checks"
+	k8s "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	"github.com/falco-talon/falco-talon/internal/models"
 	"github.com/falco-talon/falco-talon/internal/rules"
-	"github.com/falco-talon/falco-talon/outputs/model"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
-type Config struct {
+const (
+	Name          string = "networkpolicy"
+	Category      string = "calico"
+	Description   string = "Create a Calico Network Policy to block the egress traffic to a specific IP"
+	Source        string = "syscalls"
+	Continue      bool   = true
+	UseContext    bool   = false
+	AllowOutput   bool   = false
+	RequireOutput bool   = false
+	Permissions   string = `apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: falco-talon
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - projectcalico.org
+  resources:
+  - caliconetworkpolicies
+  verbs:
+  - get
+  - update
+  - patch
+  - create
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resources:
+  - replicasets
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  verbs:
+  - get
+`
+	Example string = `- action: Create Calico netpol
+  actionner: calico:networkpolicy
+  parameters:
+    order: 20
+    allow_cidr:
+      - "192.168.1.0/24"
+      - "172.17.0.0/16"
+    allow_namespaces:
+      - "green-ns"
+      - "blue-ns"
+`
+)
+
+var (
+	RequiredOutputFields = []string{"fd.sip / fd.rip"}
+)
+
+type Parameters struct {
 	AllowCIDR       []string `mapstructure:"allow_cidr" validate:"omitempty"`
 	AllowNamespaces []string `mapstructure:"allow_namespaces" validate:"omitempty"`
 	Order           int      `mapstructure:"order" validate:"omitempty"`
 }
 
 const mask32 string = "/32"
-const managedByStr string = "app.kubernetes.io/managed-by"
+const managedByStr string = "app.k8s.io/managed-by"
 
-func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Data, error) {
+type Actionner struct{}
+
+func Register() *Actionner {
+	return new(Actionner)
+}
+
+func (a Actionner) Init() error {
+	return k8s.Init()
+}
+
+func (a Actionner) Information() models.Information {
+	return models.Information{
+		Name:                 Name,
+		FullName:             Category + ":" + Name,
+		Category:             Category,
+		Description:          Description,
+		Source:               Source,
+		RequiredOutputFields: RequiredOutputFields,
+		Permissions:          Permissions,
+		Example:              Example,
+		Continue:             Continue,
+		AllowOutput:          AllowOutput,
+		RequireOutput:        RequireOutput,
+	}
+}
+func (a Actionner) Parameters() models.Parameters {
+	return Parameters{
+		AllowCIDR:       []string{"0.0.0.0/0"},
+		AllowNamespaces: []string{},
+		Order:           0,
+	}
+}
+
+func (a Actionner) Checks(event *events.Event, _ *rules.Action) error {
+	if err := k8sChecks.CheckPodExist(event); err != nil {
+		return err
+	}
+	if err := k8sChecks.CheckRemoteIP(event); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine, *models.Data, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
-	parameters := action.GetParameters()
-
-	var config Config
-	err := utils.DecodeParams(parameters, &config)
+	var parameters Parameters
+	err := utils.DecodeParams(action.GetParameters(), &parameters)
 	if err != nil {
 		return utils.LogLine{
 			Objects: nil,
@@ -48,7 +163,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		"pod":       podName,
 		"namespace": namespace,
 	}
-	k8sClient := kubernetes.GetClient()
+	k8sClient := k8s.GetClient()
 	calicoClient := calico.GetClient()
 
 	pod, err := k8sClient.GetPod(podName, namespace)
@@ -129,7 +244,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		},
 	}
 
-	order := float64(config.Order)
+	order := float64(parameters.Order)
 	payload.Spec.Order = &order
 
 	var selector string
@@ -143,7 +258,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 
 	var allowCIDRRule, allowNamespacesRule *networkingv3.Rule
 
-	if config.AllowCIDR == nil && config.AllowNamespaces == nil {
+	if parameters.AllowCIDR == nil && parameters.AllowNamespaces == nil {
 		allowCIDRRule = &networkingv3.Rule{
 			Action: "Allow",
 			Destination: networkingv3.EntityRule{
@@ -152,8 +267,8 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		}
 		allowNamespacesRule = nil
 	} else {
-		allowCIDRRule = createAllowCIDREgressRule(&config)
-		allowNamespacesRule = createAllowNamespaceEgressRule(&config)
+		allowCIDRRule = createAllowCIDREgressRule(&parameters)
+		allowNamespacesRule = createAllowNamespaceEgressRule(&parameters)
 	}
 
 	denyRule := createDenyEgressRule([]string{event.GetRemoteIP() + mask32})
@@ -238,8 +353,8 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 	}, nil, nil
 }
 
-func createAllowCIDREgressRule(config *Config) *networkingv3.Rule {
-	if len(config.AllowCIDR) == 0 {
+func createAllowCIDREgressRule(parameters *Parameters) *networkingv3.Rule {
+	if len(parameters.AllowCIDR) == 0 {
 		return nil
 	}
 
@@ -248,13 +363,13 @@ func createAllowCIDREgressRule(config *Config) *networkingv3.Rule {
 		Destination: networkingv3.EntityRule{},
 	}
 
-	rule.Destination.Nets = append(rule.Destination.Nets, config.AllowCIDR...)
+	rule.Destination.Nets = append(rule.Destination.Nets, parameters.AllowCIDR...)
 
 	return &rule
 }
 
-func createAllowNamespaceEgressRule(config *Config) *networkingv3.Rule {
-	if len(config.AllowNamespaces) == 0 {
+func createAllowNamespaceEgressRule(parameters *Parameters) *networkingv3.Rule {
+	if len(parameters.AllowNamespaces) == 0 {
 		return nil
 	}
 
@@ -264,9 +379,9 @@ func createAllowNamespaceEgressRule(config *Config) *networkingv3.Rule {
 	}
 
 	allowedNamespacesStr := []string{}
-	allowedNamespacesStr = append(allowedNamespacesStr, config.AllowNamespaces...)
+	allowedNamespacesStr = append(allowedNamespacesStr, parameters.AllowNamespaces...)
 
-	selector := "kubernetes.io/metadata.name in { '"
+	selector := "k8s.io/metadata.name in { '"
 	selector += strings.Join(allowedNamespacesStr, "', '")
 	selector += "' }"
 
@@ -286,23 +401,21 @@ func createDenyEgressRule(ips []string) *networkingv3.Rule {
 	return &r
 }
 
-func CheckParameters(action *rules.Action) error {
-	parameters := action.GetParameters()
+func (a Actionner) CheckParameters(action *rules.Action) error {
+	var parameters Parameters
 
-	var config Config
-
-	err := utils.DecodeParams(parameters, &config)
+	err := utils.DecodeParams(action.GetParameters(), &parameters)
 	if err != nil {
 		return err
 	}
 
-	for _, i := range config.AllowCIDR {
+	for _, i := range parameters.AllowCIDR {
 		if _, _, err2 := net.ParseCIDR(i); err2 != nil {
 			return fmt.Errorf("wrong CIDR '%v'", i)
 		}
 	}
 
-	err = utils.ValidateStruct(config)
+	err = utils.ValidateStruct(parameters)
 	if err != nil {
 		return err
 	}

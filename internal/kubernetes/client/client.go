@@ -85,6 +85,10 @@ func Init() error {
 			return
 		}
 		flag.Parse()
+
+		if initErr == nil {
+			utils.PrintLog("info", utils.LogLine{Message: "init", Category: "kubernetes", Status: utils.SuccessStr})
+		}
 	})
 
 	return initErr

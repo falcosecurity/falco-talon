@@ -21,14 +21,14 @@ import (
 )
 
 const meterName = "github.com/falco-talon/falco-talon"
-const metricPrefix = "falco_talon_"
+const metricPrefix = "falcosecurity_falco_talon_"
 
 var (
-	eventCounter        metric.Int64Counter
-	matchCounter        metric.Int64Counter
-	actionCounter       metric.Int64Counter
-	notificationCounter metric.Int64Counter
-	outputCounter       metric.Int64Counter
+	eventCounters        metric.Int64Counter
+	matchCounters        metric.Int64Counter
+	actionCounters       metric.Int64Counter
+	notificationCounters metric.Int64Counter
+	outputCounters       metric.Int64Counter
 )
 var ctx context.Context
 
@@ -38,7 +38,7 @@ func Init() {
 
 	exporter, err := prometheus.New()
 	if err != nil {
-		utils.PrintLog("fatal", utils.LogLine{Error: err.Error(), Message: "init"})
+		utils.PrintLog("fatal", utils.LogLine{Error: err.Error(), Message: "init", Category: "otlp"})
 		log.Fatal(err)
 	}
 
@@ -53,7 +53,7 @@ func Init() {
 	if config.Otel.MetricsEnabled {
 		otlpExporter, err2 := newOtlpMetricExporter(config)
 		if err2 != nil {
-			utils.PrintLog("fatal", utils.LogLine{Error: err2.Error(), Message: "init"})
+			utils.PrintLog("fatal", utils.LogLine{Error: err2.Error(), Message: "init", Category: "otlp"})
 			log.Fatal(err2)
 		}
 		metricOpts = append(metricOpts, sdk.WithReader(sdk.NewPeriodicReader(otlpExporter)))
@@ -69,11 +69,11 @@ func Init() {
 		metric.WithInstrumentationVersion(configuration.GetInfo().GitVersion),
 	)
 
-	eventCounter, _ = meter.Int64Counter(metricPrefix+"event", metric.WithDescription("number of received events"))
-	matchCounter, _ = meter.Int64Counter(metricPrefix+"match", metric.WithDescription("number of matched events"))
-	actionCounter, _ = meter.Int64Counter(metricPrefix+"action", metric.WithDescription("number of actions"))
-	notificationCounter, _ = meter.Int64Counter(metricPrefix+"notification", metric.WithDescription("number of notifications"))
-	outputCounter, _ = meter.Int64Counter(metricPrefix+"output", metric.WithDescription("number of outputs"))
+	eventCounters, _ = meter.Int64Counter(metricPrefix+"events", metric.WithDescription("number of received events"))
+	matchCounters, _ = meter.Int64Counter(metricPrefix+"matches", metric.WithDescription("number of matched events"))
+	actionCounters, _ = meter.Int64Counter(metricPrefix+"actions", metric.WithDescription("number of actions"))
+	notificationCounters, _ = meter.Int64Counter(metricPrefix+"notifications", metric.WithDescription("number of notifications"))
+	outputCounters, _ = meter.Int64Counter(metricPrefix+"outputs", metric.WithDescription("number of outputs"))
 }
 
 func newOtlpMetricExporter(cfg *configuration.Configuration) (sdk.Exporter, error) {
@@ -101,15 +101,15 @@ func IncreaseCounter(log utils.LogLine) {
 	opts := getMeasurementOption(log)
 	switch log.Message {
 	case "event":
-		eventCounter.Add(ctx, 1, opts)
+		eventCounters.Add(ctx, 1, opts)
 	case "match":
-		matchCounter.Add(ctx, 1, opts)
+		matchCounters.Add(ctx, 1, opts)
 	case "action":
-		actionCounter.Add(ctx, 1, opts)
+		actionCounters.Add(ctx, 1, opts)
 	case "notification":
-		notificationCounter.Add(ctx, 1, opts)
+		notificationCounters.Add(ctx, 1, opts)
 	case "output":
-		outputCounter.Add(ctx, 1, opts)
+		outputCounters.Add(ctx, 1, opts)
 	}
 }
 
@@ -133,8 +133,8 @@ func getMeasurementOption(log utils.LogLine) metric.MeasurementOption {
 	if log.Actionner != "" {
 		attrs = append(attrs, attribute.Key("actionner").String(log.Actionner))
 	}
-	if log.ActionnerCategory != "" {
-		attrs = append(attrs, attribute.Key("actionner_category").String(log.ActionnerCategory))
+	if log.Category != "" {
+		attrs = append(attrs, attribute.Key("category").String(log.Category))
 	}
 	if log.Action != "" {
 		attrs = append(attrs, attribute.Key("action").String(log.Action))

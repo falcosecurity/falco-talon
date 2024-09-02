@@ -10,26 +10,85 @@ import (
 
 	miniosdk "github.com/minio/minio-go/v7"
 
-	"github.com/falco-talon/falco-talon/internal/events"
 	minio "github.com/falco-talon/falco-talon/internal/minio/client"
+	"github.com/falco-talon/falco-talon/internal/models"
 	"github.com/falco-talon/falco-talon/internal/rules"
-	"github.com/falco-talon/falco-talon/outputs/model"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
-type Config struct {
+const (
+	Name        string = "s3"
+	Category    string = "minio"
+	Description string = "Store on Minio"
+	Permissions string = ``
+	Example     string = `- action: Get logs of the pod
+  actionner: kubernetes:download
+  parameters:
+    tail_lines: 200
+  output:
+    target: minio:s3
+    parameters:
+      bucket: falco-talon
+      prefix: /files
+`
+)
+
+const (
+	defaultContentType string = "text/plain; charset=UTF-8"
+)
+
+type Parameters struct {
 	Bucket string `mapstructure:"bucket" validate:"required"`
 	Prefix string `mapstructure:"prefix" validate:""`
 }
 
-const (
-	defaultContentType string = "text/plain; charset=utf-8"
-)
+type Output struct{}
 
-func Output(output *rules.Output, data *model.Data) (utils.LogLine, error) {
-	parameters := output.GetParameters()
-	var config Config
-	err := utils.DecodeParams(parameters, &config)
+func Register() *Output {
+	return new(Output)
+}
+
+func (o Output) Init() error { return minio.Init() }
+
+func (o Output) Information() models.Information {
+	return models.Information{
+		Name:        Name,
+		FullName:    Category + ":" + Name,
+		Category:    Category,
+		Description: Description,
+		Permissions: Permissions,
+		Example:     Example,
+	}
+}
+func (o Output) Parameters() models.Parameters {
+	return Parameters{
+		Prefix: "",
+		Bucket: "",
+	}
+}
+
+func (o Output) Checks(output *rules.Output) error {
+	var parameters Parameters
+	err := utils.DecodeParams(output.GetParameters(), &parameters)
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+	exist, err := minio.GetClient().BucketExists(ctx, parameters.Bucket)
+	if err != nil {
+		return err
+	}
+	if !exist {
+		return fmt.Errorf("the bucket '%v' does not exist", parameters.Bucket)
+	}
+
+	return nil
+}
+
+func (o Output) Run(output *rules.Output, data *models.Data) (utils.LogLine, error) {
+	var parameters Parameters
+	err := utils.DecodeParams(output.GetParameters(), &parameters)
 	if err != nil {
 		return utils.LogLine{
 			Objects: nil,
@@ -38,23 +97,32 @@ func Output(output *rules.Output, data *model.Data) (utils.LogLine, error) {
 		}, err
 	}
 
-	config.Prefix = strings.TrimSuffix(config.Prefix, "/") + "/"
+	parameters.Prefix = strings.TrimSuffix(parameters.Prefix, "/") + "/"
 
 	var key string
-	if data.Namespace != "" && data.Pod != "" {
-		key = fmt.Sprintf("%v_%v_%v_%v", time.Now().Format("2006-01-02T15-04-05Z"), data.Namespace, data.Pod, strings.ReplaceAll(data.Name, "/", "_"))
-	} else {
-		key = fmt.Sprintf("%v_%v_%v", time.Now().Format("2006-01-02T15-04-05Z"), data.Hostname, strings.ReplaceAll(data.Name, "/", "_"))
+	switch {
+	case data.Objects["namespace"] != "" && data.Objects["pod"] != "":
+		key = fmt.Sprintf("%v_%v_%v_%v", time.Now().Format("2006-01-02T15-04-05Z"), data.Objects["namespace"], data.Objects["pod"], strings.ReplaceAll(data.Name, "/", "_"))
+	case data.Objects["hostname"] != "":
+		key = fmt.Sprintf("%v_%v_%v", time.Now().Format("2006-01-02T15-04-05Z"), data.Objects["hostname"], strings.ReplaceAll(data.Name, "/", "_"))
+	default:
+		var s string
+		for i, j := range data.Objects {
+			if i != "file" {
+				s += j + "_"
+			}
+		}
+		key = fmt.Sprintf("%v_%v%v", time.Now().Format("2006-01-02T15-04-05Z"), s, strings.ReplaceAll(data.Name, "/", "_"))
 	}
 
 	objects := map[string]string{
 		"file":   data.Name,
-		"bucket": config.Bucket,
-		"prefix": config.Prefix,
+		"bucket": parameters.Bucket,
+		"prefix": parameters.Prefix,
 		"key":    key,
 	}
 
-	if err := putObject(config.Bucket, config.Prefix, key, *data); err != nil {
+	if err := putObject(parameters.Bucket, parameters.Prefix, key, *data); err != nil {
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
@@ -64,22 +132,20 @@ func Output(output *rules.Output, data *model.Data) (utils.LogLine, error) {
 
 	return utils.LogLine{
 		Objects: objects,
-		Output:  fmt.Sprintf("the file '%v' has been uploaded as the key '%v' to the bucket '%v'", data.Name, config.Prefix+key, config.Bucket),
+		Output:  fmt.Sprintf("the file '%v' has been uploaded as the key '%v' to the bucket '%v'", data.Name, parameters.Prefix+key, parameters.Bucket),
 		Status:  utils.SuccessStr,
 	}, nil
 }
 
-func CheckParameters(output *rules.Output) error {
-	parameters := output.GetParameters()
+func (o Output) CheckParameters(output *rules.Output) error {
+	var parameters Parameters
 
-	var config Config
-
-	err := utils.DecodeParams(parameters, &config)
+	err := utils.DecodeParams(output.GetParameters(), &parameters)
 	if err != nil {
 		return err
 	}
 
-	err = utils.ValidateStruct(config)
+	err = utils.ValidateStruct(parameters)
 	if err != nil {
 		return err
 	}
@@ -87,27 +153,7 @@ func CheckParameters(output *rules.Output) error {
 	return nil
 }
 
-func CheckBucketExist(output *rules.Output, _ *events.Event) error {
-	parameters := output.GetParameters()
-	var config Config
-	err := utils.DecodeParams(parameters, &config)
-	if err != nil {
-		return err
-	}
-
-	ctx := context.Background()
-	exist, err := minio.GetClient().BucketExists(ctx, config.Bucket)
-	if err != nil {
-		return err
-	}
-	if exist {
-		return nil
-	}
-
-	return fmt.Errorf("the bucket '%v' does not exist", config.Bucket)
-}
-
-func putObject(bucket, prefix, key string, data model.Data) error {
+func putObject(bucket, prefix, key string, data models.Data) error {
 	client := minio.GetClient()
 	if client == nil {
 		return errors.New("client error")

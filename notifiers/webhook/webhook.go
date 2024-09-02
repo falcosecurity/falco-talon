@@ -3,11 +3,27 @@ package webhook
 import (
 	"errors"
 
+	"github.com/falco-talon/falco-talon/internal/models"
 	"github.com/falco-talon/falco-talon/notifiers/http"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
-type Configuration struct {
+const (
+	Name        string = "webhook"
+	Description string = "Send a message to an HTTP endpoint"
+	Permissions string = ""
+	Example     string = `notifiers:
+  webhook:
+    url: "http://xxxxx"
+    http_method: "POST"
+    user_agent: "Falco-Talon"
+    content_type: "application/json; charset=utf-8"
+    custom_headers:
+      Authorization: "Bearer xxxxx"
+`
+)
+
+type Parameters struct {
 	CustomHeaders map[string]string `field:"custom_headers"`
 	URL           string            `field:"url"`
 	HTTPMethod    string            `field:"http_method" default:"POST"`
@@ -15,37 +31,66 @@ type Configuration struct {
 	UserAgent     string            `field:"user_agent" default:"falco-talon"`
 }
 
-var config *Configuration
+var parameters *Parameters
 
-func Init(fields map[string]interface{}) error {
-	config = new(Configuration)
-	config = utils.SetFields(config, fields).(*Configuration)
-	return nil
+type Notifier struct{}
+
+func Register() *Notifier {
+	return new(Notifier)
 }
 
-func CheckParameters(settings map[string]interface{}) error {
-	if settings["url"].(string) == "" {
-		return errors.New("wrong `url` setting")
-	}
-
-	if err := http.CheckURL(settings["url"].(string)); err != nil {
+func (n Notifier) Init(fields map[string]interface{}) error {
+	parameters = new(Parameters)
+	parameters = utils.SetFields(parameters, fields).(*Parameters)
+	if err := checkParameters(parameters); err != nil {
 		return err
 	}
-
 	return nil
 }
 
-func Notify(log utils.LogLine) error {
+func (n Notifier) Information() models.Information {
+	return models.Information{
+		Name:        Name,
+		Description: Description,
+		Permissions: Permissions,
+		Example:     Example,
+	}
+}
+func (n Notifier) Parameters() models.Parameters {
+	return Parameters{
+		HTTPMethod:  "POST",
+		ContentType: "application/json; charset=utf-8",
+		UserAgent:   "falco-talon",
+	}
+}
+
+func (n Notifier) Run(log utils.LogLine) error {
 	client := http.NewClient(
-		config.HTTPMethod,
-		config.ContentType,
-		config.UserAgent,
-		config.CustomHeaders,
+		parameters.HTTPMethod,
+		parameters.ContentType,
+		parameters.UserAgent,
+		parameters.CustomHeaders,
 	)
 
-	err := client.Request(config.URL, log)
+	err := client.Request(parameters.URL, log)
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func checkParameters(parameters *Parameters) error {
+	if parameters.URL == "" {
+		return errors.New("wrong `url` setting")
+	}
+
+	if err := http.CheckURL(parameters.URL); err != nil {
+		return err
+	}
+
+	if err := utils.ValidateStruct(parameters); err != nil {
+		return err
+	}
+
 	return nil
 }

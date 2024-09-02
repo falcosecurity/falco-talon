@@ -13,7 +13,24 @@ import (
 	sasl "github.com/emersion/go-sasl"
 	gosmtp "github.com/emersion/go-smtp"
 
+	"github.com/falco-talon/falco-talon/internal/models"
 	"github.com/falco-talon/falco-talon/utils"
+)
+
+const (
+	Name        string = "smtp"
+	Description string = "Send an email with SMTP"
+	Permissions string = ""
+	Example     string = `notifiers:
+  smtp:
+    host_port: "localhost:1025"
+    from: "falco@falcosecurity.org"
+    to: "user@test.com, other@test.com"
+    user: "xxxxx"
+    password: "xxxxx"
+    format: "html"
+    tls: false
+`
 )
 
 const (
@@ -25,12 +42,12 @@ const (
 	rfc2822 string = "Mon Jan 02 15:04:05 -0700 2006"
 )
 
-type Settings struct {
-	HostPort string `field:"host_port"`
+type Parameters struct {
+	HostPort string `field:"host_port" validate:"required"`
 	User     string `field:"user"`
 	Password string `field:"password"`
-	From     string `field:"from"`
-	To       string `field:"to"`
+	From     string `field:"from" validate:"required"`
+	To       string `field:"to" validate:"required"`
 	Format   string `field:"format" default:"html"`
 	TLS      bool   `field:"tls" default:"false"`
 }
@@ -45,19 +62,39 @@ type Payload struct {
 	Date    string
 }
 
-var settings *Settings
+var parameters *Parameters
 
-func Init(fields map[string]interface{}) error {
-	settings = new(Settings)
-	settings = utils.SetFields(settings, fields).(*Settings)
-	if err := checkSettings(settings); err != nil {
+type Notifier struct{}
+
+func Register() *Notifier {
+	return new(Notifier)
+}
+
+func (n Notifier) Init(fields map[string]interface{}) error {
+	parameters = new(Parameters)
+	parameters = utils.SetFields(parameters, fields).(*Parameters)
+	if err := checkParameters(parameters); err != nil {
 		return err
 	}
 	return nil
 }
 
-func Notify(log utils.LogLine) error {
-	if settings.HostPort == "" {
+func (n Notifier) Information() models.Information {
+	return models.Information{
+		Name:        Name,
+		Description: Description,
+		Permissions: Permissions,
+		Example:     Example,
+	}
+}
+func (n Notifier) Parameters() models.Parameters {
+	return Parameters{
+		Format: "html",
+	}
+}
+
+func (n Notifier) Run(log utils.LogLine) error {
+	if parameters.HostPort == "" {
 		return errors.New("wrong `host_port` setting")
 	}
 
@@ -72,9 +109,13 @@ func Notify(log utils.LogLine) error {
 	return nil
 }
 
-func checkSettings(settings *Settings) error {
-	if settings.HostPort == "" {
+func checkParameters(parameters *Parameters) error {
+	if parameters.HostPort == "" {
 		return errors.New("wrong `host_port` setting")
+	}
+
+	if err := utils.ValidateStruct(parameters); err != nil {
+		return err
 	}
 
 	return nil
@@ -94,14 +135,14 @@ func NewPayload(log utils.LogLine) (Payload, error) {
 	subject = strings.TrimSuffix(subject, " ")
 
 	payload := Payload{
-		From:    fmt.Sprintf("From: %v", settings.From),
-		To:      fmt.Sprintf("To: %v", settings.To),
+		From:    fmt.Sprintf("From: %v", parameters.From),
+		To:      fmt.Sprintf("To: %v", parameters.To),
 		Subject: subject,
 		Mime:    "MIME-version: 1.0;",
 		Date:    "Date: " + time.Now().Format(rfc2822),
 	}
 
-	if settings.Format != Text {
+	if parameters.Format != Text {
 		payload.Mime += "\nContent-Type: multipart/alternative; boundary=4t74weu9byeSdJTM\n\n\n--4t74weu9byeSdJTM"
 	}
 
@@ -120,7 +161,7 @@ func NewPayload(log utils.LogLine) (Payload, error) {
 		return Payload{}, err
 	}
 
-	if settings.Format == Text {
+	if parameters.Format == Text {
 		return payload, nil
 	}
 
@@ -150,19 +191,19 @@ func NewPayload(log utils.LogLine) (Payload, error) {
 }
 
 func Send(payload Payload) error {
-	to := strings.Split(strings.ReplaceAll(settings.To, " ", ""), ",")
-	auth := sasl.NewPlainClient("", settings.User, settings.Password)
+	to := strings.Split(strings.ReplaceAll(parameters.To, " ", ""), ",")
+	auth := sasl.NewPlainClient("", parameters.User, parameters.Password)
 
 	var smtpClient *gosmtp.Client
 	var err error
-	if settings.TLS {
+	if parameters.TLS {
 		tlsCfg := &tls.Config{
-			ServerName: strings.Split(settings.HostPort, ":")[0],
+			ServerName: strings.Split(parameters.HostPort, ":")[0],
 			MinVersion: tls.VersionTLS12,
 		}
-		smtpClient, err = gosmtp.DialStartTLS(settings.HostPort, tlsCfg)
+		smtpClient, err = gosmtp.DialStartTLS(parameters.HostPort, tlsCfg)
 	} else {
-		smtpClient, err = gosmtp.Dial(settings.HostPort)
+		smtpClient, err = gosmtp.Dial(parameters.HostPort)
 	}
 	if err != nil {
 		return err
@@ -172,7 +213,7 @@ func Send(payload Payload) error {
 	if err != nil {
 		return err
 	}
-	err = smtpClient.SendMail(settings.From, to, strings.NewReader(payload.Body))
+	err = smtpClient.SendMail(parameters.From, to, strings.NewReader(payload.Body))
 	if err != nil {
 		return err
 	}

@@ -3,29 +3,30 @@ package checks
 import (
 	"context"
 
+	awssdk "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
 
-	lambdaActionner "github.com/falco-talon/falco-talon/actionners/aws/lambda"
 	aws "github.com/falco-talon/falco-talon/internal/aws/client"
-	"github.com/falco-talon/falco-talon/internal/events"
-	"github.com/falco-talon/falco-talon/internal/rules"
-	"github.com/falco-talon/falco-talon/utils"
 )
 
-func CheckLambdaExist(_ *events.Event, action *rules.Action) error {
-	client := aws.GetLambdaClient()
-	parameters := action.GetParameters()
+type CheckLambdaExist struct{}
 
-	var lambdaConfig lambdaActionner.Config
-	err := utils.DecodeParams(parameters, &lambdaConfig)
-	if err != nil {
-		return err
-	}
-	_, err = client.GetFunction(context.Background(), &lambda.GetFunctionInput{
-		FunctionName: &lambdaConfig.AWSLambdaName,
+func (c CheckLambdaExist) Name() string {
+	return "CheckLambdaExist"
+}
+
+func (c CheckLambdaExist) Run(functionName string) error {
+	client := aws.GetLambdaClient()
+
+	_, err := client.GetFunction(context.Background(), &lambda.GetFunctionInput{
+		FunctionName: awssdk.String(functionName),
 	})
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func (c CheckLambdaExist) ListPermissions() string {
+	return "permissions"
 }

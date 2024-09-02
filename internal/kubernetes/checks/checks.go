@@ -5,13 +5,11 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/falco-talon/falco-talon/internal/rules"
-
 	"github.com/falco-talon/falco-talon/internal/events"
-	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	k8s "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 )
 
-func CheckPodName(event *events.Event, _ *rules.Action) error {
+func CheckPodName(event *events.Event) error {
 	pod := event.GetPodName()
 	if pod == "" {
 		return errors.New("missing pod name")
@@ -19,7 +17,7 @@ func CheckPodName(event *events.Event, _ *rules.Action) error {
 	return nil
 }
 
-func CheckNamespace(event *events.Event, _ *rules.Action) error {
+func CheckNamespace(event *events.Event) error {
 	namespace := event.GetNamespaceName()
 	if namespace == "" {
 		return errors.New("missing namespace")
@@ -27,15 +25,15 @@ func CheckNamespace(event *events.Event, _ *rules.Action) error {
 	return nil
 }
 
-func CheckPodExist(event *events.Event, _ *rules.Action) error {
-	if err := CheckPodName(event, nil); err != nil {
+func CheckPodExist(event *events.Event) error {
+	if err := CheckPodName(event); err != nil {
 		return err
 	}
-	if err := CheckNamespace(event, nil); err != nil {
+	if err := CheckNamespace(event); err != nil {
 		return err
 	}
 
-	client := kubernetes.GetClient()
+	client := k8s.GetClient()
 	if client == nil {
 		return errors.New("wrong k8s client")
 	}
@@ -43,21 +41,21 @@ func CheckPodExist(event *events.Event, _ *rules.Action) error {
 	return err
 }
 
-func CheckTargetName(event *events.Event, _ *rules.Action) error {
+func CheckTargetName(event *events.Event) error {
 	if event.OutputFields["ka.target.name"] == nil {
 		return errors.New("missing target name (ka.target.name)")
 	}
 	return nil
 }
 
-func CheckTargetResource(event *events.Event, _ *rules.Action) error {
+func CheckTargetResource(event *events.Event) error {
 	if event.OutputFields["ka.target.resource"] == nil {
 		return errors.New("missing target resource (ka.target.resource)")
 	}
 	return nil
 }
 
-func CheckTargetNamespace(event *events.Event, _ *rules.Action) error {
+func CheckTargetNamespace(event *events.Event) error {
 	switch event.OutputFields["ka.target.resource"] {
 	case "namespaces":
 		return nil
@@ -70,7 +68,7 @@ func CheckTargetNamespace(event *events.Event, _ *rules.Action) error {
 	return nil
 }
 
-func CheckRemoteIP(event *events.Event, _ *rules.Action) error {
+func CheckRemoteIP(event *events.Event) error {
 	if event.OutputFields["fd.sip"] == nil &&
 		event.OutputFields["fd.rip"] == nil {
 		return errors.New("missing IP field(s) (fd.sip or fd.rip)")
@@ -89,7 +87,7 @@ func CheckRemoteIP(event *events.Event, _ *rules.Action) error {
 	return nil
 }
 
-func CheckRemotePort(event *events.Event, _ *rules.Action) error {
+func CheckRemotePort(event *events.Event) error {
 	if event.OutputFields["fd.sport"] == nil &&
 		event.OutputFields["fd.rport"] == nil {
 		return errors.New("missing Port field(s) (fd.sport or fd.port)")
@@ -108,18 +106,18 @@ func CheckRemotePort(event *events.Event, _ *rules.Action) error {
 	return nil
 }
 
-func CheckTargetExist(event *events.Event, _ *rules.Action) error {
-	if err := CheckTargetResource(event, nil); err != nil {
+func CheckTargetExist(event *events.Event) error {
+	if err := CheckTargetResource(event); err != nil {
 		return err
 	}
-	if err := CheckTargetName(event, nil); err != nil {
+	if err := CheckTargetName(event); err != nil {
 		return err
 	}
-	if err := CheckTargetNamespace(event, nil); err != nil {
+	if err := CheckTargetNamespace(event); err != nil {
 		return err
 	}
 
-	client := kubernetes.GetClient()
+	client := k8s.GetClient()
 	if client == nil {
 		return errors.New("wrong k8s client")
 	}
