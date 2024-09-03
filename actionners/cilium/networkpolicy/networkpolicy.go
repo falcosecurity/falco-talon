@@ -76,13 +76,15 @@ rules:
   verbs:
   - get
 `
-	Example string = `- action: Terminate the pod
-  actionner: kubernetes:terminate
-  parameters:
-    grace_period_seconds: 5
-    ignore_daemonsets: true
-    ignore_statefulsets: true
-    min_healthy_replicas: 33%
+	Example string = `- action: Create Cilium netpol
+actionner: cilium:networkpolicy
+parameters:
+  allow_cidr:
+	- "192.168.1.0/24"
+	- "172.17.0.0/16"
+  allow_namespaces:
+	- "green-ns"
+	- "blue-ns"
 `
 )
 

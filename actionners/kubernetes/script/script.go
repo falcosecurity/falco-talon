@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	Name          string = "exec"
+	Name          string = "script"
 	Category      string = "kubernetes"
 	Description   string = "Run a script in a pod"
 	Source        string = "syscalls"
