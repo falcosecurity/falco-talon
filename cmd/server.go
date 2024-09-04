@@ -71,14 +71,14 @@ var serverCmd = &cobra.Command{
 							if output == nil {
 								utils.PrintLog("error", utils.LogLine{Error: "unknown target", Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
 								valid = false
-							}
-							if len(o.Parameters) == 0 {
+							} else if len(o.Parameters) == 0 {
 								utils.PrintLog("error", utils.LogLine{Error: "missing parameters for the output", Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
 								valid = false
-							}
-							if err := output.CheckParameters(o); err != nil {
-								utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
-								valid = false
+							} else {
+								if err := output.CheckParameters(o); err != nil {
+									utils.PrintLog("error", utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
+									valid = false
+								}
 							}
 						}
 					}
