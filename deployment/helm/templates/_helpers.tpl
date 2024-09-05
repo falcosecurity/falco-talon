@@ -34,8 +34,10 @@ helm.sh/chart: {{ include "falco-talon.chart" . }}
 app.kubernetes.io/part-of: {{ include "falco-talon.name" . }}
 app.kubernetes.io/managed-by: {{ .Release.Name }}
 {{ include "falco-talon.selectorLabels" . }}
-{{- if .Chart.AppVersion }}
-app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- if .Values.image.tag }}
+app.kubernetes.io/version: {{ .Values.image.tag }}
+{{- else }}
+app.kubernetes.io/version: {{ .Chart.AppVersion }}
 {{- end }}
 {{- end }}
 

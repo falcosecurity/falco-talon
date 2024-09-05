@@ -11,8 +11,8 @@ image:
   registry: falco.docker.scarf.sh
   # -- The image repository to pull from
   repository: issif/falco-talon
-  # -- The image tag to pull
-  tag: latest
+  # -- Override the image tag to pull
+  tag: ""
   # -- The image pull policy
   pullPolicy: Always
 
