@@ -58,6 +58,7 @@ rules:
     verbs:
 {{ toYaml .Values.rbac.podsLog | indent 6 }}
   {{- end }}
+  {{- if .Values.rbac.podsExec }}
   - apiGroups:
       - ""
     resources:
