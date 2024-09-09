@@ -16,7 +16,7 @@ require (
 	github.com/emersion/go-sasl v0.0.0-20231106173351-e73c9f7bad43
 	github.com/emersion/go-smtp v0.21.3
 	github.com/fsnotify/fsnotify v1.7.0
-	github.com/go-playground/validator/v10 v10.22.0
+	github.com/go-playground/validator/v10 v10.22.1
 	github.com/go-viper/mapstructure/v2 v2.1.0
 	github.com/google/uuid v1.6.0
 	github.com/jinzhu/copier v0.4.0
