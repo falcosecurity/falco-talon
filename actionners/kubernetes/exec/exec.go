@@ -6,18 +6,96 @@ import (
 	"os"
 
 	"github.com/falco-talon/falco-talon/internal/events"
-	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	k8sChecks "github.com/falco-talon/falco-talon/internal/kubernetes/checks"
+	k8s "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	"github.com/falco-talon/falco-talon/internal/models"
 	"github.com/falco-talon/falco-talon/internal/rules"
-	"github.com/falco-talon/falco-talon/outputs/model"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
-type Config struct {
-	Commannd string `mapstructure:"command" validate:"required"`
-	Shell    string `mapstructure:"shell" validate:"omitempty"`
+const (
+	Name          string = "exec"
+	Category      string = "kubernetes"
+	Description   string = "Exec a command in a pod"
+	Source        string = "syscalls"
+	Continue      bool   = true
+	UseContext    bool   = true
+	AllowOutput   bool   = false
+	RequireOutput bool   = false
+	Permissions   string = `apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: falco-talon
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - pods/exec
+  verbs:
+  - get
+  - create
+`
+	Example string = `- action: Exec a command into the pod
+  actionner: kubernetes:exec
+  parameters:
+    shell: /bin/bash
+    command: "cat ${FD_NAME}"
+`
+)
+
+var (
+	RequiredOutputFields = []string{"k8s.ns.name", "k8s.pod.name"}
+)
+
+type Parameters struct {
+	Command string `mapstructure:"command" validate:"required"`
+	Shell   string `mapstructure:"shell" validate:"omitempty"`
 }
 
-func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Data, error) {
+type Actionner struct{}
+
+func Register() *Actionner {
+	return new(Actionner)
+}
+
+func (a Actionner) Init() error {
+	return k8s.Init()
+}
+
+func (a Actionner) Information() models.Information {
+	return models.Information{
+		Name:                 Name,
+		FullName:             Category + ":" + Name,
+		Category:             Category,
+		Description:          Description,
+		Source:               Source,
+		RequiredOutputFields: RequiredOutputFields,
+		Permissions:          Permissions,
+		Example:              Example,
+		Continue:             Continue,
+		AllowOutput:          AllowOutput,
+		RequireOutput:        RequireOutput,
+	}
+}
+func (a Actionner) Parameters() models.Parameters {
+	return Parameters{
+		Command: "",
+		Shell:   "/bin/sh",
+	}
+}
+
+func (a Actionner) Checks(event *events.Event, _ *rules.Action) error {
+	return k8sChecks.CheckPodExist(event)
+}
+
+func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine, *models.Data, error) {
 	pod := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
@@ -26,40 +104,39 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 		"namespace": namespace,
 	}
 
-	parameters := action.GetParameters()
-	var config Config
-	err := utils.DecodeParams(parameters, &config)
+	var parameters Parameters
+	err := utils.DecodeParams(action.GetParameters(), &parameters)
 	if err != nil {
 		return utils.LogLine{
 			Objects: nil,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
 	shell := new(string)
-	if config.Shell != "" {
-		*shell = config.Shell
+	if parameters.Shell != "" {
+		*shell = parameters.Shell
 	} else {
 		*shell = "/bin/sh"
 	}
 
 	command := new(string)
-	*command = config.Commannd
+	*command = parameters.Command
 
 	event.ExportEnvVars()
 	*command = os.ExpandEnv(*command)
 
-	client := kubernetes.GetClient()
+	client := k8s.GetClient()
 
 	p, _ := client.GetPod(pod, namespace)
-	containers := kubernetes.GetContainers(p)
+	containers := k8s.GetContainers(p)
 	if len(containers) == 0 {
 		err = fmt.Errorf("no container found")
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
@@ -72,7 +149,7 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 				return utils.LogLine{
 					Objects: objects,
 					Error:   err.Error(),
-					Status:  "failure",
+					Status:  utils.FailureStr,
 				}, nil, err
 			}
 			continue
@@ -82,21 +159,18 @@ func Action(action *rules.Action, event *events.Event) (utils.LogLine, *model.Da
 	return utils.LogLine{
 		Objects: objects,
 		Output:  utils.RemoveAnsiCharacters(output.String()),
-		Status:  "success",
+		Status:  utils.SuccessStr,
 	}, nil, nil
 }
 
-func CheckParameters(action *rules.Action) error {
-	parameters := action.GetParameters()
-
-	var config Config
-
-	err := utils.DecodeParams(parameters, &config)
+func (a Actionner) CheckParameters(action *rules.Action) error {
+	var parameters Parameters
+	err := utils.DecodeParams(action.GetParameters(), &parameters)
 	if err != nil {
 		return err
 	}
 
-	err = utils.ValidateStruct(config)
+	err = utils.ValidateStruct(parameters)
 	if err != nil {
 		return err
 	}

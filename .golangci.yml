@@ -51,7 +51,7 @@ issues:
     - path: server/configuration.go
       linters:
         - unused
-    - path: _test\.go
+    - path: _test.go
       linters:
         - bodyclose
         - goconst

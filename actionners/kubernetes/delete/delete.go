@@ -8,15 +8,144 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/falco-talon/falco-talon/internal/events"
-	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	k8sChecks "github.com/falco-talon/falco-talon/internal/kubernetes/checks"
+	k8s "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	"github.com/falco-talon/falco-talon/internal/models"
 	"github.com/falco-talon/falco-talon/internal/rules"
-	"github.com/falco-talon/falco-talon/outputs/model"
 	"github.com/falco-talon/falco-talon/utils"
+)
+
+const (
+	Name          string = "delete"
+	Category      string = "kubernetes"
+	Description   string = "Delete a resource"
+	Source        string = "k8saudit"
+	Continue      bool   = false
+	UseContext    bool   = false
+	AllowOutput   bool   = false
+	RequireOutput bool   = false
+	Permissions   string = `apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: falco-talon
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - delete
+  - list
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  verbs:
+  - get
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - get
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - replicasets
+  verbs:
+  - get
+  - delete
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  verbs:
+  - get
+  - delete
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - roles
+  verbs:
+  - get
+  - delete
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterroles
+  verbs:
+  - get
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - delete
+`
+	Example string = `- action: Delete the suspicious resource
+  actionner: kubernetes:delete
+`
 )
 
 const namespaces string = "namespaces"
 
-func Action(_ *rules.Action, event *events.Event) (utils.LogLine, *model.Data, error) {
+var (
+	RequiredOutputFields = []string{"ka.target.resource", "ka.target.name", "ka.target.namespace"}
+)
+
+type Actionner struct{}
+
+func Register() *Actionner {
+	return new(Actionner)
+}
+
+func (a Actionner) Init() error {
+	return k8s.Init()
+}
+
+func (a Actionner) Information() models.Information {
+	return models.Information{
+		Name:                 Name,
+		FullName:             Category + ":" + Name,
+		Category:             Category,
+		Description:          Description,
+		Source:               Source,
+		RequiredOutputFields: RequiredOutputFields,
+		Permissions:          Permissions,
+		Example:              Example,
+		Continue:             Continue,
+		AllowOutput:          AllowOutput,
+		RequireOutput:        RequireOutput,
+	}
+}
+func (a Actionner) Parameters() models.Parameters {
+	return nil
+}
+
+func (a Actionner) Checks(event *events.Event, _ *rules.Action) error {
+	return k8sChecks.CheckTargetExist(event)
+}
+
+func (a Actionner) Run(event *events.Event, _ *rules.Action) (utils.LogLine, *models.Data, error) {
 	name := event.GetTargetName()
 	resource := event.GetTargetResource()
 	namespace := event.GetTargetNamespace()
@@ -27,7 +156,7 @@ func Action(_ *rules.Action, event *events.Event) (utils.LogLine, *model.Data, e
 		"namespace": namespace,
 	}
 
-	client := kubernetes.GetClient()
+	client := k8s.GetClient()
 
 	var err error
 
@@ -60,7 +189,7 @@ func Action(_ *rules.Action, event *events.Event) (utils.LogLine, *model.Data, e
 		return utils.LogLine{
 			Objects: objects,
 			Error:   err.Error(),
-			Status:  "failure",
+			Status:  utils.FailureStr,
 		}, nil, err
 	}
 
@@ -74,6 +203,8 @@ func Action(_ *rules.Action, event *events.Event) (utils.LogLine, *model.Data, e
 	return utils.LogLine{
 		Objects: objects,
 		Output:  output,
-		Status:  "success",
+		Status:  utils.SuccessStr,
 	}, nil, nil
 }
+
+func (a Actionner) CheckParameters(_ *rules.Action) error { return nil }

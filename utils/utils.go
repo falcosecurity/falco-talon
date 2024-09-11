@@ -12,7 +12,7 @@ import (
 	"time"
 
 	validator "github.com/go-playground/validator/v10"
-	"github.com/mitchellh/mapstructure"
+	mapstructure "github.com/go-viper/mapstructure/v2"
 	"github.com/rs/zerolog"
 )
 
@@ -37,6 +37,9 @@ const (
 	textStr  string = "text"
 	colorStr string = "color"
 
+	SuccessStr string = "success"
+	FailureStr string = "failure"
+
 	ansiChars string = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
 
 	DaemonSetStr   = "DaemonSet"
@@ -45,25 +48,26 @@ const (
 )
 
 type LogLine struct {
-	Time              string            `json:"time,omitempty"`
-	Objects           map[string]string `json:"objects,omitempty"`
-	TraceID           string            `json:"trace_id,omitempty"`
-	Rule              string            `json:"rule,omitempty"`
-	Event             string            `json:"event,omitempty"`
-	Message           string            `json:"message,omitempty"`
-	Priority          string            `json:"priority,omitempty"`
-	Target            string            `json:"target,omitempty"`
-	Source            string            `json:"source,omitempty"`
-	Result            string            `json:"result,omitempty"`
-	Notifier          string            `json:"notifier,omitempty"`
-	Context           string            `json:"context,omitempty"`
-	Output            string            `json:"output,omitempty"`
-	ActionnerCategory string            `json:"actionner_category,omitempty"`
-	OutputCategory    string            `json:"output_category,omitempty"`
-	Actionner         string            `json:"actionner,omitempty"`
-	Action            string            `json:"action,omitempty"`
-	Error             string            `json:"error,omitempty"`
-	Status            string            `json:"status,omitempty"`
+	Time         string            `json:"time,omitempty"`
+	Objects      map[string]string `json:"objects,omitempty"`
+	TraceID      string            `json:"trace_id,omitempty"`
+	Rule         string            `json:"rule,omitempty"`
+	Event        string            `json:"event,omitempty"`
+	Message      string            `json:"message,omitempty"`
+	Priority     string            `json:"priority,omitempty"`
+	Source       string            `json:"source,omitempty"`
+	Result       string            `json:"result,omitempty"`
+	Notifier     string            `json:"notifier,omitempty"`
+	Context      string            `json:"context,omitempty"`
+	Output       string            `json:"output,omitempty"`
+	Category     string            `json:"category,omitempty"`
+	OutputName   string            `json:"output_name,omitempty"`
+	OutputTarget string            `json:"output_target,omitempty"`
+	Actionner    string            `json:"actionner,omitempty"`
+	Action       string            `json:"action,omitempty"`
+	Error        string            `json:"error,omitempty"`
+	Status       string            `json:"status,omitempty"`
+	Stage        string            `json:"stage,omitempty"`
 }
 
 var validate *validator.Validate
@@ -131,23 +135,23 @@ func PrintLog(level string, line LogLine) {
 	if line.Output != "" {
 		l.Str("output", line.Output)
 	}
+	if line.Stage != "" {
+		l.Str("stage", line.Stage)
+	}
 	if line.Actionner != "" {
 		l.Str("actionner", line.Actionner)
 	}
-	if line.ActionnerCategory != "" {
-		l.Str("actionner_category", line.ActionnerCategory)
+	if line.Category != "" {
+		l.Str("category", line.Category)
 	}
-	if line.OutputCategory != "" {
-		l.Str("output_category", line.OutputCategory)
+	if line.OutputTarget != "" {
+		l.Str("output_target", line.OutputTarget)
 	}
 	if line.Action != "" {
 		l.Str("action", line.Action)
 	}
 	if line.Status != "" {
 		l.Str("status", line.Status)
-	}
-	if line.Target != "" {
-		l.Str("target", line.Target)
 	}
 	if line.Result != "" {
 		l.Str("result", line.Result)

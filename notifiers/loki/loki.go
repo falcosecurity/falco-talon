@@ -6,13 +6,26 @@ import (
 	"strings"
 	"time"
 
+	"github.com/falco-talon/falco-talon/internal/models"
 	"github.com/falco-talon/falco-talon/notifiers/http"
 	"github.com/falco-talon/falco-talon/utils"
 )
 
-type Settings struct {
+const (
+	Name        string = "loki"
+	Description string = "Send a log to Loki over HTTP"
+	Permissions string = ""
+	Example     string = `notifiers:
+  loki:
+    host_port: "https://lolcalhost:3100"
+    user: "xxxxx"
+    api_key: "xxxxx"
+`
+)
+
+type Parameters struct {
 	CustomHeaders map[string]string `field:"custom_headers"`
-	HostPort      string            `field:"host_port"`
+	URL           string            `field:"url" validate:"required"`
 	User          string            `field:"user"`
 	APIKey        string            `field:"api_key"`
 	Tenant        string            `field:"tenant"`
@@ -31,46 +44,68 @@ type Value []string
 
 const contentType = "application/json"
 
-var settings *Settings
+var parameters *Parameters
 
-func Init(fields map[string]interface{}) error {
-	settings = new(Settings)
-	settings = utils.SetFields(settings, fields).(*Settings)
-	if err := checkSettings(settings); err != nil {
+type Notifier struct{}
+
+func Register() *Notifier {
+	return new(Notifier)
+}
+
+func (n Notifier) Init(fields map[string]interface{}) error {
+	parameters = new(Parameters)
+	parameters = utils.SetFields(parameters, fields).(*Parameters)
+	if err := checkParameters(parameters); err != nil {
 		return err
 	}
 	return nil
 }
 
-func Notify(log utils.LogLine) error {
-	if settings.HostPort == "" {
+func (n Notifier) Information() models.Information {
+	return models.Information{
+		Name:        Name,
+		Description: Description,
+		Permissions: Permissions,
+		Example:     Example,
+	}
+}
+func (n Notifier) Parameters() models.Parameters {
+	return Parameters{}
+}
+
+func (n Notifier) Run(log utils.LogLine) error {
+	if parameters.URL == "" {
 		return errors.New("wrong `host_port` setting")
 	}
 
-	if err := http.CheckURL(settings.HostPort); err != nil {
+	if err := http.CheckURL(parameters.URL); err != nil {
 		return err
 	}
 
-	client := http.NewClient("", contentType, "", settings.CustomHeaders)
+	client := http.NewClient("", contentType, "", parameters.CustomHeaders)
 
-	if settings.User != "" && settings.APIKey != "" {
-		client.SetBasicAuth(settings.User, settings.APIKey)
+	if parameters.User != "" && parameters.APIKey != "" {
+		client.SetBasicAuth(parameters.User, parameters.APIKey)
 	}
 
-	if settings.Tenant != "" {
-		client.SetHeader("X-Scope-OrgID", settings.Tenant)
+	if parameters.Tenant != "" {
+		client.SetHeader("X-Scope-OrgID", parameters.Tenant)
 	}
 
-	err := client.Request(settings.HostPort+"/loki/api/v1/push", NewPayload(log))
+	err := client.Request(parameters.URL+"/loki/api/v1/push", NewPayload(log))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func checkSettings(settings *Settings) error {
-	if settings.HostPort == "" {
+func checkParameters(parameters *Parameters) error {
+	if parameters.URL == "" {
 		return errors.New("wrong `host_port` setting")
+	}
+
+	if err := utils.ValidateStruct(parameters); err != nil {
+		return err
 	}
 
 	return nil
@@ -89,8 +124,8 @@ func NewPayload(log utils.LogLine) Payload {
 	if log.Actionner != "" {
 		s["actionner"] = log.Actionner
 	}
-	if log.Target != "" {
-		s["target"] = log.Target
+	if log.OutputTarget != "" {
+		s["outputtarget"] = log.OutputTarget
 	}
 	s["message"] = log.Message
 	s["traceid"] = log.TraceID

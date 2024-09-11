@@ -19,6 +19,8 @@ spec:
       {{- if .Values.podAnnotations }}
         {{ toYaml .Values.podAnnotations | indent 8 }}
       {{- end }}
+      annotations:
+        timestamp: {{ now }}
     spec:
       serviceAccountName: {{ include "falco-talon.name" . }}
       {{- if .Values.priorityClassName }}
@@ -30,7 +32,7 @@ spec:
       restartPolicy: Always
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args: ["server", "-c", "/etc/falco-talon/config.yaml", "-r", "/etc/falco-talon/rules.yaml"]
           ports:
@@ -54,7 +56,7 @@ spec:
             periodSeconds: 5
           {{- if .Values.extraEnv }}
           env:
-            {{ toYaml .Values.extraEnv | nindent 12 }}
+            {{- toYaml .Values.extraEnv | nindent 12 }}
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

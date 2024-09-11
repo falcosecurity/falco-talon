@@ -5,8 +5,23 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/falco-talon/falco-talon/internal/models"
 	"github.com/falco-talon/falco-talon/notifiers/http"
 	"github.com/falco-talon/falco-talon/utils"
+)
+
+const (
+	Name        string = "slack"
+	Description string = "Send a message to Slack"
+	Permissions string = ""
+	Example     string = `notifiers:
+  slack:
+    webhook_url: "https://hooks.slack.com/services/XXXX"
+    icon: "https://upload.wikimedia.org/wikipedia/commons/2/26/Circaetus_gallicus_claw.jpg"
+    username: "Falco Talon"
+    footer: "https://github.com/Falco-Talon/falco-talon"
+    format: long
+`
 )
 
 const (
@@ -14,13 +29,11 @@ const (
 	Green string = "#23ba47"
 	Grey  string = "#a4a8b1"
 
-	successStr string = "success"
-	failureStr string = "failure"
 	ignoredStr string = "ignored"
 )
 
-type Settings struct {
-	WebhookURL string `field:"webhook_url"`
+type Parameters struct {
+	WebhookURL string `field:"webhook_url" validate:"required"`
 	Icon       string `field:"icon" default:"https://upload.wikimedia.org/wikipedia/commons/2/26/Circaetus_gallicus_claw.jpg"`
 	Username   string `field:"username" default:"Falco Talon"`
 	Footer     string `field:"footer" default:"http://github.com/falco-talon/falco-talon"`
@@ -50,68 +63,95 @@ type Payload struct {
 	Attachments []Attachment `json:"attachments,omitempty"`
 }
 
-var settings *Settings
+var parameters *Parameters
 
-func Init(fields map[string]interface{}) error {
-	settings = new(Settings)
-	settings = utils.SetFields(settings, fields).(*Settings)
-	if err := checkSettings(settings); err != nil {
+type Notifier struct{}
+
+func Register() *Notifier {
+	return new(Notifier)
+}
+
+func (n Notifier) Init(fields map[string]interface{}) error {
+	parameters = new(Parameters)
+	parameters = utils.SetFields(parameters, fields).(*Parameters)
+	if err := checkParameters(parameters); err != nil {
 		return err
 	}
 	return nil
 }
 
-func Notify(log utils.LogLine) error {
+func (n Notifier) Information() models.Information {
+	return models.Information{
+		Name:        Name,
+		Description: Description,
+		Permissions: Permissions,
+		Example:     Example,
+	}
+}
+func (n Notifier) Parameters() models.Parameters {
+	return Parameters{
+		Icon:     "https://upload.wikimedia.org/wikipedia/commons/2/26/Circaetus_gallicus_claw.jpg",
+		Username: "Falco Talon",
+		Footer:   "http://github.com/falco-talon/falco-talon",
+		Format:   "long",
+	}
+}
+
+func (n Notifier) Run(log utils.LogLine) error {
 	client := http.DefaultClient()
 
-	err := client.Request(settings.WebhookURL, NewPayload(log))
+	err := client.Request(parameters.WebhookURL, newPayload(log))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func checkSettings(settings *Settings) error {
-	if settings.WebhookURL == "" {
+func checkParameters(parameters *Parameters) error {
+	if parameters.WebhookURL == "" {
 		return errors.New("wrong `webhook_url` setting")
 	}
 
-	if err := http.CheckURL(settings.WebhookURL); err != nil {
+	if err := http.CheckURL(parameters.WebhookURL); err != nil {
+		return err
+	}
+
+	if err := utils.ValidateStruct(parameters); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func NewPayload(log utils.LogLine) Payload {
+func newPayload(log utils.LogLine) Payload {
 	var attachments []Attachment
 	var attachment Attachment
 
 	var color string
 	switch log.Status {
-	case failureStr:
+	case utils.FailureStr:
 		color = Red
-	case successStr:
+	case utils.SuccessStr:
 		color = Green
 	case ignoredStr:
 		color = Grey
 	}
 	attachment.Color = color
 
-	text := fmt.Sprintf("[%v][%v] ", log.Status, log.Message)
-	if log.Target != "" {
-		text += fmt.Sprintf("Target '%v' ", log.Target)
+	text := fmt.Sprintf("[*%v*][*%v*] ", strings.ToUpper(log.Status), strings.ToUpper(log.Message))
+	if log.Rule != "" {
+		text += fmt.Sprintf("Rule: `%v` ", log.Rule)
 	}
 	if log.Action != "" {
-		text += fmt.Sprintf("Action '%v' ", log.Action)
+		text += fmt.Sprintf("Action: `%v` ", log.Action)
 	}
-	if log.Rule != "" {
-		text += fmt.Sprintf("Rule '%v' ", log.Rule)
+	if log.OutputTarget != "" {
+		text += fmt.Sprintf("OutputTarget: `%v` ", log.OutputTarget)
 	}
 
 	text = strings.TrimSuffix(text, " ")
 
-	if settings.Format == "short" {
+	if parameters.Format == "short" {
 		attachment.Text = text
 		text = ""
 	} else {
@@ -164,9 +204,9 @@ func NewPayload(log utils.LogLine) Payload {
 			field.Short = false
 			fields = append(fields, field)
 		}
-		if log.Target != "" {
-			field.Title = "Target"
-			field.Value = "`" + log.Target + "`"
+		if log.OutputTarget != "" {
+			field.Title = "OutputTarget"
+			field.Value = "`" + log.OutputTarget + "`"
 			field.Short = false
 			fields = append(fields, field)
 		}
@@ -189,8 +229,8 @@ func NewPayload(log utils.LogLine) Payload {
 			fields = append(fields, field)
 		}
 
-		if settings.Footer != "" {
-			attachment.Footer = settings.Footer
+		if parameters.Footer != "" {
+			attachment.Footer = parameters.Footer
 		}
 
 		attachment.Fallback = ""
@@ -201,8 +241,8 @@ func NewPayload(log utils.LogLine) Payload {
 
 	s := Payload{
 		Text:        text,
-		Username:    settings.Username,
-		IconURL:     settings.Icon,
+		Username:    parameters.Username,
+		IconURL:     parameters.Icon,
 		Attachments: attachments,
 	}
 

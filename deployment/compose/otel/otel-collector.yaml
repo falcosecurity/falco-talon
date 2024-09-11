@@ -1,0 +1,50 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  prometheus:
+    endpoint: 0.0.0.0:9464
+  otlp/jaeger:
+    endpoint: "http://jaeger:4317"
+    tls:
+      insecure: true
+processors:
+  batch:
+  tail_sampling:
+    decision_wait: 1s
+    num_traces: 200
+    policies:
+      [
+        {
+          name: ignore-unmatched,
+          type: ottl_condition,
+          ottl_condition: {
+            error_mode: ignore,
+            span: [
+              "IsMatch(name, \"match\")"
+            ]
+          }
+        }
+      ]
+service:
+  telemetry:
+    logs:
+      level: "debug"
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [tail_sampling, batch]
+      exporters: [otlp/tempo, otlp/jaeger]
+    metrics:
+      receivers: [otlp]
+      exporters: [prometheus]
+      processors: [batch]

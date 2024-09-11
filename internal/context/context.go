@@ -1,21 +1,50 @@
 package context
 
 import (
+	"context"
 	"fmt"
+	"strings"
+
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	oteltrace "go.opentelemetry.io/otel/trace"
 
 	"github.com/falco-talon/falco-talon/internal/context/aws"
+	"github.com/falco-talon/falco-talon/internal/otlp/traces"
 
 	"github.com/falco-talon/falco-talon/internal/context/kubernetes"
 	"github.com/falco-talon/falco-talon/internal/events"
 )
 
-func GetContext(source string, event *events.Event) (map[string]interface{}, error) {
+func GetContext(actx context.Context, source string, event *events.Event) (map[string]interface{}, error) {
+	tracer := traces.GetTracer()
+
+	_, span := tracer.Start(actx, "context",
+		oteltrace.WithAttributes(attribute.String("context.source", source)),
+	)
+	defer span.End()
+
+	context := make(map[string]interface{})
+	var err error
+
 	switch source {
 	case "aws":
-		return aws.GetAwsContext(event)
+		context, err = aws.GetAwsContext(event)
 	case "k8snode":
-		return kubernetes.GetNodeContext(event)
+		context, err = kubernetes.GetNodeContext(event)
 	default:
-		return nil, fmt.Errorf("unknown context '%v'", source)
+		err = fmt.Errorf("unknown context '%v'", source)
 	}
+
+	if err != nil {
+		span.SetStatus(codes.Error, "failed to add context")
+		span.RecordError(err)
+		return nil, err
+	}
+
+	for k, v := range context {
+		span.SetAttributes(attribute.String(strings.ToLower(k), fmt.Sprintf("%v", v)))
+	}
+
+	return context, nil
 }

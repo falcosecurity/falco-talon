@@ -8,12 +8,10 @@ import (
 	"regexp"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type Event struct {
-	TraceID      string
+	TraceID      string                 `json:"trace_id"`
 	Output       string                 `json:"output"`
 	Priority     string                 `json:"priority"`
 	Rule         string                 `json:"rule"`
@@ -48,10 +46,6 @@ func DecodeEvent(payload io.Reader) (*Event, error) {
 
 	if event.Source == "" {
 		event.Source = "syscall"
-	}
-
-	if event.TraceID == "" {
-		event.TraceID = uuid.New().String()
 	}
 
 	event.Output = regTrimPrefix.ReplaceAllString(event.Output, "")

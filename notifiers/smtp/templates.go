@@ -27,8 +27,8 @@ Result: {{ .Result }}
 Output: 
 {{ .Output }}
 {{- end }}
-{{- if .Target }}
-Target: {{ .Target }}
+{{- if .OutputTarget }}
+OutputTarget: {{ .OutputTarget }}
 {{- end }}
 Trace ID: {{ .TraceID }}
 `
@@ -36,8 +36,8 @@ Trace ID: {{ .TraceID }}
 var htmlTmpl = `
 {{ $color := "#858585" }}
 {{ $prio := printf "%v" .Status }}
-{{ if eq $prio "success" }}{{ $color = "#23ba47" }}{{ end }}
-{{ if eq $prio "failure" }}{{ $color = "#e20b0b" }}{{ end }}
+{{ if eq $prio utils.SuccessStr }}{{ $color = "#23ba47" }}{{ end }}
+{{ if eq $prio utils.FailureStr }}{{ $color = "#e20b0b" }}{{ end }}
 {{ if eq $prio "ignored" }}{{ $color = "#a4a8b1" }}{{ end }}
 
 <meta http-equiv="Content-Type" content="text/html; charset=us-ascii">
@@ -93,10 +93,10 @@ var htmlTmpl = `
             <td style="background-color:#d1d6da">{{ .Event }}</td>
         </tr>
         {{ end }}
-        {{ if .Target }}
+        {{ if .OutputTarget }}
         <tr>
             <td style="background-color:#858585"><span style="font-size:14px;color:#fff;"><strong>Target</strong></span></td>
-            <td style="background-color:#d1d6da">{{ .Target }}</td>
+            <td style="background-color:#d1d6da">{{ .OutputTarget }}</td>
         </tr>
         {{ end }}
         <tr>

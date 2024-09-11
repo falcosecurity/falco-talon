@@ -85,6 +85,10 @@ func Init() error {
 			return
 		}
 		flag.Parse()
+
+		if initErr == nil {
+			utils.PrintLog("info", utils.LogLine{Message: "init", Category: "kubernetes", Status: utils.SuccessStr})
+		}
 	})
 
 	return initErr
@@ -488,6 +492,29 @@ func (client *Client) CreateEphemeralContainer(pod *corev1.Pod, container, name 
 		)
 	if err != nil {
 		return err
+	}
+
+	timeout := time.NewTimer(10 * time.Second)
+	ticker := time.NewTicker(300 * time.Millisecond)
+	defer timeout.Stop()
+	defer ticker.Stop()
+
+	var ready bool
+	for !ready {
+		select {
+		case <-timeout.C:
+			return fmt.Errorf("ephemeral container for the tcpdump not ready in the pod '%v' in the namespace '%v'", pod.Name, pod.Namespace)
+		case <-ticker.C:
+			p, err := client.GetPod(pod.Name, pod.Namespace)
+			if err != nil {
+				return err
+			}
+			for _, i := range p.Status.EphemeralContainerStatuses {
+				if i.Name == name && i.State.Running != nil {
+					ready = true
+				}
+			}
+		}
 	}
 
 	return nil
