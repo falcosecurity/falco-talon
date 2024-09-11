@@ -7,9 +7,10 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
-	"github.com/falco-talon/falco-talon/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/falco-talon/falco-talon/internal/models"
 
 	lambdaActionner "github.com/falco-talon/falco-talon/actionners/aws/lambda"
 	"github.com/falco-talon/falco-talon/internal/events"
@@ -22,12 +23,12 @@ type MockLambdaClient struct {
 	mock.Mock
 }
 
-func (m *MockLambdaClient) Invoke(ctx context.Context, input *lambda.InvokeInput, optFns ...func(*lambda.Options)) (*lambda.InvokeOutput, error) {
+func (m *MockLambdaClient) Invoke(ctx context.Context, input *lambda.InvokeInput, _ ...func(*lambda.Options)) (*lambda.InvokeOutput, error) {
 	args := m.Called(ctx, input)
 	return args.Get(0).(*lambda.InvokeOutput), args.Error(1)
 }
 
-func (m *MockLambdaClient) GetFunction(ctx context.Context, params *lambda.GetFunctionInput, optFns ...func(*lambda.Options)) (*lambda.GetFunctionOutput, error) {
+func (m *MockLambdaClient) GetFunction(_ context.Context, _ *lambda.GetFunctionInput, _ ...func(*lambda.Options)) (*lambda.GetFunctionOutput, error) {
 	return &lambda.GetFunctionOutput{}, nil
 }
 
@@ -37,8 +38,8 @@ type lambdaTestCase struct {
 	action           *rules.Action
 	mockInvokeOutput *lambda.InvokeOutput
 	mockInvokeError  error
-	expectedLogLine  utils.LogLine
 	expectedData     *models.Data
+	expectedLogLine  utils.LogLine
 	expectError      bool
 }
 
