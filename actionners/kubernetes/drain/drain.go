@@ -7,10 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/falco-talon/falco-talon/actionners/kubernetes/helpers"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/falco-talon/falco-talon/actionners/kubernetes/helpers"
 
 	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 
@@ -344,7 +345,7 @@ func verifyEvictionHasFinished(client *kubernetes.Client, waitPeriod int, evicte
 				}
 			}
 			if !anyEvictedPodsRemaining {
-				utils.PrintLog("info", utils.LogLine{Message: fmt.Sprintf("all pods on node '%v' have been evicted", nodeName)})
+				utils.PrintLog("info", utils.LogLine{Message: fmt.Sprintf("all pods on node '%v' have been evicted before the wait period %v.", nodeName, waitPeriod)})
 				return nil
 			}
 		}
