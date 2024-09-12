@@ -7,13 +7,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/falco-talon/falco-talon/actionners/kubernetes/helpers"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 
-	helpers "github.com/falco-talon/falco-talon/actionners/kubernetes/helpers"
 	"github.com/falco-talon/falco-talon/internal/events"
 	k8sChecks "github.com/falco-talon/falco-talon/internal/kubernetes/checks"
 	"github.com/falco-talon/falco-talon/internal/models"
@@ -102,11 +102,13 @@ func (a Actionner) Information() models.Information {
 }
 func (a Actionner) Parameters() models.Parameters {
 	return Parameters{
-		MinHealthyReplicas: "",
-		IgnoreErrors:       false,
-		IgnoreDaemonsets:   false,
-		IgnoreStatefulSets: false,
-		GracePeriodSeconds: 0,
+		MinHealthyReplicas:           "",
+		IgnoreErrors:                 false,
+		IgnoreDaemonsets:             false,
+		IgnoreStatefulSets:           false,
+		GracePeriodSeconds:           0,
+		WaitPeriod:                   0,
+		WaitPeriodExcludedNamespaces: []string{},
 	}
 }
 
