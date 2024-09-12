@@ -270,7 +270,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 	var errorWaitingPeriod error
 
 	if parameters.WaitPeriod > 0 {
-		errorWaitingPeriod = verifyEvictionHasFinished(client, parameters.WaitPeriod, evictedPods, nodeName, parameters)
+		errorWaitingPeriod = verifyEvictionHasFinished(client, parameters.WaitPeriod, evictedPods, nodeName, parameters.WaitPeriodExcludedNamespaces)
 	}
 
 	if parameters.IgnoreErrors || (evictionErrorsCount == 0 && otherErrorsCount == 0 && errorWaitingPeriod == nil) {
@@ -307,10 +307,10 @@ func (a Actionner) CheckParameters(action *rules.Action) error {
 	return nil
 }
 
-func verifyEvictionHasFinished(client *kubernetes.Client, period int, evictedPods []string, nodeName string, params Parameters) error {
-	tickerTiming := period / 10
+func verifyEvictionHasFinished(client *kubernetes.Client, waitPeriod int, evictedPods []string, nodeName string, waitPeriodExcludedNamespaces []string) error {
+	tickerTiming := waitPeriod / 10
 
-	timeout := time.After(time.Duration(period) * time.Second)
+	timeout := time.After(time.Duration(waitPeriod) * time.Second)
 	ticker := time.NewTicker(time.Duration(tickerTiming) * time.Second)
 	defer ticker.Stop()
 
@@ -330,13 +330,12 @@ func verifyEvictionHasFinished(client *kubernetes.Client, period int, evictedPod
 				for _, evictedPod := range evictedPods {
 					if pod.Name == evictedPod {
 						isExcluded := false
-						for _, excludedNamespace := range params.WaitPeriodExcludedNamespaces {
+						for _, excludedNamespace := range waitPeriodExcludedNamespaces {
 							if pod.Namespace == excludedNamespace {
 								isExcluded = true
 								break
 							}
 						}
-
 						if !isExcluded {
 							anyEvictedPodsRemaining = true
 							break
