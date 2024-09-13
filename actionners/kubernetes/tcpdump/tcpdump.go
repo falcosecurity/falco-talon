@@ -69,13 +69,16 @@ var (
 )
 
 type Parameters struct {
-	Duration int `mapstructure:"duration" validate:"gte=0"`
-	Snaplen  int `mapstructure:"snaplen" validate:"gte=0"`
+	Image    string `mapstructure:"image"`
+	Duration int    `mapstructure:"duration" validate:"gte=0"`
+	Snaplen  int    `mapstructure:"snaplen" validate:"gte=0"`
 }
 
 const (
-	baseName   string = "falco-talon-tcpdump-"
-	defaultTTL int    = 300
+	baseName        string = "falco-talon-tcpdump-"
+	defaultImage    string = "issif/tcpdump:latest"
+	defaultTTL      int    = 300
+	defaultDuration int    = 5
 )
 
 type Actionner struct{}
@@ -108,6 +111,7 @@ func (a Actionner) Parameters() models.Parameters {
 	return Parameters{
 		Duration: 20,
 		Snaplen:  4096,
+		Image:    "issif/tcpdump:latest",
 	}
 }
 
@@ -135,7 +139,11 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 	}
 
 	if parameters.Duration == 0 {
-		parameters.Duration = 5
+		parameters.Duration = defaultDuration
+	}
+
+	if parameters.Image == "" {
+		parameters.Image = defaultImage
 	}
 
 	client := k8s.GetClient()
@@ -153,7 +161,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 
 	ephemeralContainerName := fmt.Sprintf("%v%v", baseName, uuid.NewString()[:5])
 
-	err = client.CreateEphemeralContainer(pod, containers[0], ephemeralContainerName, defaultTTL)
+	err = client.CreateEphemeralContainer(pod, containers[0], ephemeralContainerName, parameters.Image, defaultTTL)
 	if err != nil {
 		return utils.LogLine{
 			Objects: objects,

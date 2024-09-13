@@ -448,12 +448,12 @@ func GetHealthyReplicasPercent(replicaset *appsv1.ReplicaSet) (int64, error) {
 	return 100 * (healthyReplicas / totalReplicas), nil
 }
 
-func (client *Client) CreateEphemeralContainer(pod *corev1.Pod, container, name string, ttl int) error {
+func (client *Client) CreateEphemeralContainer(pod *corev1.Pod, container, name, image string, ttl int) error {
 	ec := &corev1.EphemeralContainer{
 		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
 			Name:                     name,
-			Image:                    "dockersec/tcpdump",
-			ImagePullPolicy:          corev1.PullIfNotPresent,
+			Image:                    image,
+			ImagePullPolicy:          corev1.PullAlways,
 			Command:                  []string{"sleep", fmt.Sprintf("%v", ttl)},
 			Stdin:                    true,
 			TTY:                      false,
