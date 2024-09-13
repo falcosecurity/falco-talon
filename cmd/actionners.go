@@ -25,18 +25,18 @@ var actionnersListCmd = &cobra.Command{
 	Run: func(_ *cobra.Command, _ []string) {
 		defaultActionners := actionners.ListDefaultActionners()
 		type actionner struct { // nolint:govet
+			Parameters           map[string]any `yaml:"parameters"`
 			Name                 string         `yaml:"name"`
 			Category             string         `yaml:"category"`
 			Description          string         `yaml:"description"`
 			Source               string         `yaml:"source"`
+			Permissions          string         `yaml:"permissions,omitempty"`
+			Example              string         `yaml:"example,omitempty"`
+			RequiredOutputFields []string       `yaml:"required_output_fields"`
 			Continue             bool           `yaml:"continue"`
 			UseContext           bool           `yaml:"use_context"`
 			AllowOutput          bool           `yaml:"allow_output"`
 			RequireOutput        bool           `yaml:"require_output"`
-			RequiredOutputFields []string       `yaml:"required_output_fields"`
-			Parameters           map[string]any `yaml:"parameters"`
-			Permissions          string         `yaml:"permissions,omitempty"`
-			Example              string         `yaml:"example,omitempty"`
 		}
 
 		for _, i := range *defaultActionners {
