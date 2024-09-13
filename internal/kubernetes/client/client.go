@@ -14,6 +14,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -38,6 +39,39 @@ import (
 type Client struct {
 	*k8s.Clientset
 	RestConfig *rest.Config
+}
+
+// need to be renamed to Client
+// all the actionners need to depend on this interface so we can rename it to Client
+// without generating errors
+//
+//nolint:revive
+type KubernetesClient interface {
+	GetPod(pod, namespace string) (*corev1.Pod, error)
+	GetDeployment(name, namespace string) (*appsv1.Deployment, error)
+	GetDaemonSet(name, namespace string) (*appsv1.DaemonSet, error)
+	GetStatefulSet(name, namespace string) (*appsv1.StatefulSet, error)
+	GetReplicaSet(name, namespace string) (*appsv1.ReplicaSet, error)
+	GetNode(name string) (*corev1.Node, error)
+	GetDeploymentFromPod(pod *corev1.Pod) (*appsv1.Deployment, error)
+	GetDaemonsetFromPod(pod *corev1.Pod) (*appsv1.DaemonSet, error)
+	GetStatefulsetFromPod(pod *corev1.Pod) (*appsv1.StatefulSet, error)
+	GetReplicasetFromPod(pod *corev1.Pod) (*appsv1.ReplicaSet, error)
+	GetNodeFromPod(pod *corev1.Pod) (*corev1.Node, error)
+	GetTarget(resource, name, namespace string) (interface{}, error)
+	GetNamespace(name string) (*corev1.Namespace, error)
+	GetConfigMap(name, namespace string) (*corev1.ConfigMap, error)
+	GetSecret(name, namespace string) (*corev1.Secret, error)
+	GetService(name, namespace string) (*corev1.Service, error)
+	GetServiceAccount(name, namespace string) (*corev1.ServiceAccount, error)
+	GetRole(name, namespace string) (*rbacv1.Role, error)
+	GetClusterRole(name, namespace string) (*rbacv1.ClusterRole, error)
+	GetWatcherEndpointSlices(labelSelector, namespace string) (<-chan watch.Event, error)
+	GetLeaseHolder() (<-chan string, error)
+	Exec(namespace, pod, container string, command []string, script string) (*bytes.Buffer, error)
+	CreateEphemeralContainer(pod *corev1.Pod, container, name string, ttl int) error
+	ListPods(ctx context.Context, opts metav1.ListOptions) (*corev1.PodList, error)
+	EvictPod(pod corev1.Pod) error
 }
 
 var (
@@ -109,14 +143,6 @@ func (client Client) GetPod(pod, namespace string) (*corev1.Pod, error) {
 		return nil, fmt.Errorf("the pod '%v' in the namespace '%v' doesn't exist", pod, namespace)
 	}
 	return p, nil
-}
-
-func GetContainers(pod *corev1.Pod) []string {
-	c := make([]string, 0)
-	for _, i := range pod.Spec.Containers {
-		c = append(c, i.Name)
-	}
-	return c
 }
 
 func (client Client) GetDeployment(name, namespace string) (*appsv1.Deployment, error) {
@@ -417,38 +443,7 @@ func (client Client) Exec(namespace, pod, container string, command []string, sc
 	return buf, nil
 }
 
-func GetOwnerKind(pod corev1.Pod) (string, error) {
-	if len(pod.OwnerReferences) == 0 {
-		return "", fmt.Errorf("no owner reference found")
-	}
-	return pod.OwnerReferences[0].Kind, nil
-}
-
-func GetOwnerName(pod corev1.Pod) (string, error) {
-	if len(pod.OwnerReferences) == 0 {
-		return "", fmt.Errorf("no owner reference found")
-	}
-	return pod.OwnerReferences[0].Name, nil
-}
-
-func GetHealthyReplicasCount(replicaset *appsv1.ReplicaSet) (int64, error) {
-	if replicaset == nil {
-		return 0, fmt.Errorf("no replicaset found")
-	}
-	healthyReplicas := int64(replicaset.Status.ReadyReplicas)
-	return healthyReplicas, nil
-}
-
-func GetHealthyReplicasPercent(replicaset *appsv1.ReplicaSet) (int64, error) {
-	if replicaset == nil {
-		return 0, fmt.Errorf("no replicaset found")
-	}
-	healthyReplicas := int64(replicaset.Status.ReadyReplicas)
-	totalReplicas := int64(replicaset.Status.Replicas)
-	return 100 * (healthyReplicas / totalReplicas), nil
-}
-
-func (client *Client) CreateEphemeralContainer(pod *corev1.Pod, container, name string, ttl int) error {
+func (client Client) CreateEphemeralContainer(pod *corev1.Pod, container, name string, ttl int) error {
 	ec := &corev1.EphemeralContainer{
 		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
 			Name:                     name,
@@ -518,4 +513,52 @@ func (client *Client) CreateEphemeralContainer(pod *corev1.Pod, container, name 
 	}
 
 	return nil
+}
+
+func (client Client) ListPods(ctx context.Context, opts metav1.ListOptions) (*corev1.PodList, error) {
+	return client.CoreV1().Pods("").List(ctx, opts)
+}
+
+func (client Client) EvictPod(pod corev1.Pod) error {
+	eviction := &policyv1.Eviction{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      pod.Name,
+			Namespace: pod.Namespace,
+		},
+	}
+	err := client.PolicyV1().Evictions(pod.GetNamespace()).Evict(context.Background(), eviction)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func GetOwnerKind(pod corev1.Pod) (string, error) {
+	if len(pod.OwnerReferences) == 0 {
+		return "", fmt.Errorf("no owner reference found")
+	}
+	return pod.OwnerReferences[0].Kind, nil
+}
+
+func GetOwnerName(pod corev1.Pod) (string, error) {
+	if len(pod.OwnerReferences) == 0 {
+		return "", fmt.Errorf("no owner reference found")
+	}
+	return pod.OwnerReferences[0].Name, nil
+}
+
+func GetHealthyReplicasCount(replicaset *appsv1.ReplicaSet) (int64, error) {
+	if replicaset == nil {
+		return 0, fmt.Errorf("no replicaset found")
+	}
+	healthyReplicas := int64(replicaset.Status.ReadyReplicas)
+	return healthyReplicas, nil
+}
+
+func GetContainers(pod *corev1.Pod) []string {
+	c := make([]string, 0)
+	for _, i := range pod.Spec.Containers {
+		c = append(c, i.Name)
+	}
+	return c
 }

@@ -106,7 +106,7 @@
         force: true
         ignore_daemonsets: true
         ignore_statefulsets: true
-        wait_period: 30
+        max_wait_period: 90
 
 - rule: Delete namespace
   match:
@@ -150,15 +150,15 @@
         parameters:
           bucket: falcosidekick-tests
           prefix: logs/
-    - action: Test download
-      actionner: kubernetes:download
-      parameters:
-        file: "${FD_NAME}"
-      output:
-        target: minio:s3
-        parameters:
-          bucket: falco-talon
-          prefix: /files/
+#    - action: Test download
+#      actionner: kubernetes:download
+#      parameters:
+#        file: "${FD_NAME}"
+#      output:
+#        target: minio:s3
+#        parameters:
+#          bucket: falco-talon
+#          prefix: /files/
 
 - rule: Test tcpdump
   match:

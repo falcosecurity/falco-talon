@@ -2,13 +2,11 @@ package drain
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/falco-talon/falco-talon/actionners/kubernetes/helpers"
@@ -73,7 +71,7 @@ type Parameters struct {
 	IgnoreDaemonsets             bool     `mapstructure:"ignore_daemonsets" validate:"omitempty"`
 	IgnoreStatefulSets           bool     `mapstructure:"ignore_statefulsets" validate:"omitempty"`
 	GracePeriodSeconds           int      `mapstructure:"grace_period_seconds" validate:"omitempty"`
-	WaitPeriod                   int      `mapstructure:"wait_period" validate:"omitempty"`
+	MaxWaitPeriod                int      `mapstructure:"max_wait_period" validate:"omitempty"`
 }
 
 type Actionner struct{}
@@ -108,7 +106,7 @@ func (a Actionner) Parameters() models.Parameters {
 		IgnoreDaemonsets:             false,
 		IgnoreStatefulSets:           false,
 		GracePeriodSeconds:           0,
-		WaitPeriod:                   0,
+		MaxWaitPeriod:                0,
 		WaitPeriodExcludedNamespaces: []string{},
 	}
 }
@@ -118,6 +116,11 @@ func (a Actionner) Checks(event *events.Event, _ *rules.Action) error {
 }
 
 func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine, *models.Data, error) {
+	client := kubernetes.GetClient()
+	return a.runWithClient(*client, event, action)
+}
+
+func (a Actionner) runWithClient(client kubernetes.KubernetesClient, event *events.Event, action *rules.Action) (utils.LogLine, *models.Data, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 	objects := map[string]string{}
@@ -135,7 +138,6 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 	gracePeriodSeconds := new(int64)
 	*gracePeriodSeconds = int64(parameters.GracePeriodSeconds)
 
-	client := kubernetes.GetClient()
 	pod, err := client.GetPod(podName, namespace)
 	if err != nil {
 		objects["pod"] = podName
@@ -160,7 +162,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 	nodeName := node.GetName()
 	objects["node"] = nodeName
 
-	pods, err := client.Clientset.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{
+	pods, err := client.ListPods(context.Background(), metav1.ListOptions{
 		FieldSelector: fmt.Sprintf("spec.nodeName=%s", nodeName),
 	})
 	if err != nil {
@@ -171,9 +173,50 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 		}, nil, err
 	}
 
-	var ignoredPodsCount, evictionErrorsCount, otherErrorsCount int
+	var podState sync.Map
+	for _, p := range pods.Items {
+		key := fmt.Sprintf("%s/%s", p.Namespace, p.Name)
+		podState.Store(key, true)
+	}
 
-	var evictedPods []string
+	stopListingDone := make(chan struct{})
+
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-stopListingDone:
+				return
+			case <-ticker.C:
+				pods2, err2 := client.ListPods(context.Background(), metav1.ListOptions{
+					FieldSelector: fmt.Sprintf("spec.nodeName=%s", nodeName),
+				})
+				if err2 != nil {
+					utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error listing pods on node '%v': %v", nodeName, err)})
+					continue
+				}
+
+				podState.Range(func(key, _ interface{}) bool {
+					podState.Delete(key)
+					return true
+				})
+				for _, p := range pods2.Items {
+					key := fmt.Sprintf("%s/%s", p.Namespace, p.Name)
+					podState.Store(key, true)
+				}
+			}
+		}
+	}()
+
+	var (
+		ignoredPodsCount              int
+		evictionErrorsCount           int
+		evictionWaitPeriodErrorsCount int
+		otherErrorsCount              int
+		countersMutex                 sync.Mutex
+	)
 
 	var wg sync.WaitGroup
 
@@ -185,39 +228,51 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 			ownerKind, err := kubernetes.GetOwnerKind(p)
 			if err != nil {
 				utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting pod '%v' owner kind: %v", p.Name, err)})
+				countersMutex.Lock()
 				otherErrorsCount++
+				countersMutex.Unlock()
 				return
 			}
 
 			switch ownerKind {
 			case "DaemonSet":
 				if parameters.IgnoreDaemonsets {
+					countersMutex.Lock()
 					ignoredPodsCount++
+					countersMutex.Unlock()
 					return
 				}
 			case "StatefulSet":
 				if parameters.IgnoreStatefulSets {
+					countersMutex.Lock()
 					ignoredPodsCount++
+					countersMutex.Unlock()
 					return
 				}
 			case "ReplicaSet":
 				replicaSetName, err := kubernetes.GetOwnerName(p)
 				if err != nil {
 					utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting pod owner name: %v", err)})
+					countersMutex.Lock()
 					otherErrorsCount++
+					countersMutex.Unlock()
 					return
 				}
 				if parameters.MinHealthyReplicas != "" {
 					replicaSet, err := client.GetReplicaSet(replicaSetName, p.Namespace)
 					if err != nil {
 						utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting replica set for pod '%v': %v", p.Name, err)})
+						countersMutex.Lock()
 						otherErrorsCount++
+						countersMutex.Unlock()
 						return
 					}
 					minHealthyReplicasValue, kind, err := helpers.ParseMinHealthyReplicas(parameters.MinHealthyReplicas)
 					if err != nil {
 						utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error parsing min_healthy_replicas: %v", err)})
+						countersMutex.Lock()
 						otherErrorsCount++
+						countersMutex.Unlock()
 						return
 					}
 					switch kind {
@@ -225,11 +280,15 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 						healthyReplicasCount, err := kubernetes.GetHealthyReplicasCount(replicaSet)
 						if err != nil {
 							utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
+							countersMutex.Lock()
 							otherErrorsCount++
+							countersMutex.Unlock()
 							return
 						}
 						if healthyReplicasCount < minHealthyReplicasValue {
+							countersMutex.Lock()
 							ignoredPodsCount++
+							countersMutex.Unlock()
 							return
 						}
 					case "percent":
@@ -237,44 +296,58 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 						minHealthyReplicasAbsoluteValue := int64(float64(minHealthyReplicasValue) / 100.0 * float64(healthyReplicasValue))
 						if err != nil {
 							utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
+							countersMutex.Lock()
 							otherErrorsCount++
+							countersMutex.Unlock()
 							return
 						}
 						if healthyReplicasValue < minHealthyReplicasAbsoluteValue {
+							countersMutex.Lock()
 							ignoredPodsCount++
+							countersMutex.Unlock()
 							return
 						}
 					}
 				}
 			}
 
-			eviction := &policyv1.Eviction{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      p.GetName(),
-					Namespace: p.GetNamespace(),
-				},
-				DeleteOptions: &metav1.DeleteOptions{
-					GracePeriodSeconds: gracePeriodSeconds,
-				},
-			}
-			if err := client.PolicyV1().Evictions(pod.GetNamespace()).Evict(context.Background(), eviction); err != nil {
+			if err := client.EvictPod(p); err != nil {
 				utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error evicting pod '%v': %v", p.Name, err)})
+				countersMutex.Lock()
 				evictionErrorsCount++
+				countersMutex.Unlock()
 				return
 			}
-			evictedPods = append(evictedPods, p.GetName())
+
+			if parameters.MaxWaitPeriod > 0 {
+				timeout := time.After(time.Duration(parameters.MaxWaitPeriod) * time.Second)
+				ticker := time.NewTicker(5 * time.Second)
+				defer ticker.Stop()
+
+				for {
+					select {
+					case <-timeout:
+						utils.PrintLog("error", utils.LogLine{Message: fmt.Sprintf("pod '%v' did not terminate within the max_wait_period", pod.Name)})
+						countersMutex.Lock()
+						evictionWaitPeriodErrorsCount++
+						countersMutex.Unlock()
+						return
+
+					case <-ticker.C:
+						key := fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
+						if _, ok := podState.Load(key); !ok {
+							return
+						}
+					}
+				}
+			}
 		}(p)
 	}
 
 	wg.Wait()
+	close(stopListingDone)
 
-	var errorWaitingPeriod error
-
-	if parameters.WaitPeriod > 0 {
-		errorWaitingPeriod = verifyEvictionHasFinished(client, parameters.WaitPeriod, evictedPods, nodeName, parameters.WaitPeriodExcludedNamespaces)
-	}
-
-	if parameters.IgnoreErrors || (evictionErrorsCount == 0 && otherErrorsCount == 0 && errorWaitingPeriod == nil) {
+	if parameters.IgnoreErrors || (evictionErrorsCount == 0 && otherErrorsCount == 0 && evictionWaitPeriodErrorsCount == 0) {
 		return utils.LogLine{
 			Objects: objects,
 			Output:  fmt.Sprintf("the node '%v' has been drained, errors are ignored: %v ignored pods, %v eviction errors, %v other errors", nodeName, ignoredPodsCount, evictionErrorsCount, otherErrorsCount),
@@ -283,9 +356,9 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 	}
 	return utils.LogLine{
 		Objects: objects,
-		Error:   fmt.Sprintf("the node '%v' has not been fully drained: %v pods ignored, %v eviction errors, %v other errors", nodeName, ignoredPodsCount, evictionErrorsCount, otherErrorsCount),
+		Error:   fmt.Sprintf("the node '%v' has not been fully drained: %v pods ignored, %v eviction errors, %v were not evicted during max_wait_period, %v other errors", nodeName, ignoredPodsCount, evictionErrorsCount, evictionWaitPeriodErrorsCount, otherErrorsCount),
 		Status:  utils.FailureStr,
-	}, nil, fmt.Errorf("the node '%v' has not been fully drained: %v eviction errors, %v other errors", nodeName, evictionErrorsCount, otherErrorsCount)
+	}, nil, fmt.Errorf("the node '%v' has not been fully drained: %v pods ignored, %v eviction errors, %v were not evicted during max_wait_period, %v other errors", nodeName, ignoredPodsCount, evictionErrorsCount, evictionWaitPeriodErrorsCount, otherErrorsCount)
 }
 
 func (a Actionner) CheckParameters(action *rules.Action) error {
@@ -306,48 +379,4 @@ func (a Actionner) CheckParameters(action *rules.Action) error {
 	}
 
 	return nil
-}
-
-func verifyEvictionHasFinished(client *kubernetes.Client, waitPeriod int, evictedPods []string, nodeName string, waitPeriodExcludedNamespaces []string) error {
-	tickerTiming := waitPeriod / 10
-
-	timeout := time.After(time.Duration(waitPeriod) * time.Second)
-	ticker := time.NewTicker(time.Duration(tickerTiming) * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-timeout:
-			return errors.New("timeout reached before eviction finished")
-		case <-ticker.C:
-			pods, err := client.Clientset.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{
-				FieldSelector: fmt.Sprintf("spec.nodeName=%s", nodeName),
-			})
-			if err != nil {
-				return err
-			}
-			anyEvictedPodsRemaining := false
-			for _, pod := range pods.Items {
-				for _, evictedPod := range evictedPods {
-					if pod.Name == evictedPod {
-						isExcluded := false
-						for _, excludedNamespace := range waitPeriodExcludedNamespaces {
-							if pod.Namespace == excludedNamespace {
-								isExcluded = true
-								break
-							}
-						}
-						if !isExcluded {
-							anyEvictedPodsRemaining = true
-							break
-						}
-					}
-				}
-			}
-			if !anyEvictedPodsRemaining {
-				utils.PrintLog("info", utils.LogLine{Message: fmt.Sprintf("all pods on node '%v' have been evicted before the wait period %v.", nodeName, waitPeriod)})
-				return nil
-			}
-		}
-	}
 }
