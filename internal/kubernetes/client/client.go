@@ -74,6 +74,14 @@ type KubernetesClient interface {
 	EvictPod(pod corev1.Pod) error
 }
 
+type DrainClient interface {
+	GetPod(name, namespace string) (*corev1.Pod, error)
+	GetNodeFromPod(pod *corev1.Pod) (*corev1.Node, error)
+	ListPods(ctx context.Context, options metav1.ListOptions) (*corev1.PodList, error)
+	EvictPod(pod corev1.Pod) error
+	GetReplicaSet(name, namespace string) (*appsv1.ReplicaSet, error)
+}
+
 var (
 	client          *Client
 	leaseHolderChan chan string

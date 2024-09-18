@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -117,10 +118,10 @@ func (a Actionner) Checks(event *events.Event, _ *rules.Action) error {
 
 func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine, *models.Data, error) {
 	client := kubernetes.GetClient()
-	return a.runWithClient(*client, event, action)
+	return a.RunWithClient(*client, event, action)
 }
 
-func (a Actionner) runWithClient(client kubernetes.KubernetesClient, event *events.Event, action *rules.Action) (utils.LogLine, *models.Data, error) {
+func (a Actionner) RunWithClient(client kubernetes.DrainClient, event *events.Event, action *rules.Action) (utils.LogLine, *models.Data, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 	objects := map[string]string{}
@@ -173,12 +174,14 @@ func (a Actionner) runWithClient(client kubernetes.KubernetesClient, event *even
 		}, nil, err
 	}
 
-	var podState sync.Map
+	var podState atomic.Value
+
+	initialPodState := make(map[string]bool)
 	for _, p := range pods.Items {
 		key := fmt.Sprintf("%s/%s", p.Namespace, p.Name)
-		podState.Store(key, true)
+		initialPodState[key] = true
 	}
-
+	podState.Store(initialPodState)
 	stopListingDone := make(chan struct{})
 
 	go func() {
@@ -194,18 +197,16 @@ func (a Actionner) runWithClient(client kubernetes.KubernetesClient, event *even
 					FieldSelector: fmt.Sprintf("spec.nodeName=%s", nodeName),
 				})
 				if err2 != nil {
-					utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error listing pods on node '%v': %v", nodeName, err)})
+					utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error listing pods on node '%v': %v", nodeName, err2)})
 					continue
 				}
 
-				podState.Range(func(key, _ interface{}) bool {
-					podState.Delete(key)
-					return true
-				})
+				newPodState := make(map[string]bool)
 				for _, p := range pods2.Items {
 					key := fmt.Sprintf("%s/%s", p.Namespace, p.Name)
-					podState.Store(key, true)
+					newPodState[key] = true
 				}
+				podState.Store(newPodState)
 			}
 		}
 	}()
@@ -335,7 +336,8 @@ func (a Actionner) runWithClient(client kubernetes.KubernetesClient, event *even
 
 					case <-ticker.C:
 						key := fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)
-						if _, ok := podState.Load(key); !ok {
+						currentPodState := podState.Load().(map[string]bool)
+						if _, ok := currentPodState[key]; !ok {
 							return
 						}
 					}
