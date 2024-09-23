@@ -8,7 +8,7 @@ replicaCount: 2
 # -- image parameters
 image:
   # -- The image registry to pull from
-  registry: falco.docker.scarf.sh/
+  registry: falco.docker.scarf.sh
   # -- The image repository to pull from
   repository: issif/falco-talon
   # -- Override the image tag to pull

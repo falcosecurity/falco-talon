@@ -32,7 +32,11 @@ spec:
       restartPolicy: Always
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.registry }}{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          {{- if .Values.image.registry }}
+          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          {{- else }}
+          image: "{{ .Values.image.repository }}:{{ default .Chart.AppVersion .Values.image.tag }}"
+          {{- end }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args: ["server", "-c", "/etc/falco-talon/config.yaml", "-r", "/etc/falco-talon/rules.yaml"]
           ports:
