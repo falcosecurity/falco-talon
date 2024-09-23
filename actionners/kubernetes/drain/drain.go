@@ -12,7 +12,7 @@ import (
 
 	"github.com/falco-talon/falco-talon/actionners/kubernetes/helpers"
 
-	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
+	k8s "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 
 	"github.com/falco-talon/falco-talon/internal/events"
 	k8sChecks "github.com/falco-talon/falco-talon/internal/kubernetes/checks"
@@ -82,7 +82,7 @@ func Register() *Actionner {
 }
 
 func (a Actionner) Init() error {
-	return kubernetes.Init()
+	return k8s.Init()
 }
 
 func (a Actionner) Information() models.Information {
@@ -117,11 +117,11 @@ func (a Actionner) Checks(event *events.Event, _ *rules.Action) error {
 }
 
 func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine, *models.Data, error) {
-	client := kubernetes.GetClient()
+	client := k8s.GetClient()
 	return a.RunWithClient(*client, event, action)
 }
 
-func (a Actionner) RunWithClient(client kubernetes.DrainClient, event *events.Event, action *rules.Action) (utils.LogLine, *models.Data, error) {
+func (a Actionner) RunWithClient(client k8s.DrainClient, event *events.Event, action *rules.Action) (utils.LogLine, *models.Data, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 	objects := map[string]string{}
@@ -212,11 +212,10 @@ func (a Actionner) RunWithClient(client kubernetes.DrainClient, event *events.Ev
 	}()
 
 	var (
-		ignoredPodsCount              int
-		evictionErrorsCount           int
-		evictionWaitPeriodErrorsCount int
-		otherErrorsCount              int
-		countersMutex                 sync.Mutex
+		ignoredPodsCount              int32
+		evictionErrorsCount           int32
+		evictionWaitPeriodErrorsCount int32
+		otherErrorsCount              int32
 	)
 
 	var wg sync.WaitGroup
@@ -226,86 +225,66 @@ func (a Actionner) RunWithClient(client kubernetes.DrainClient, event *events.Ev
 		go func(pod corev1.Pod) {
 			defer wg.Done()
 
-			ownerKind, err := kubernetes.GetOwnerKind(p)
+			ownerKind, err := k8s.GetOwnerKind(p)
 			if err != nil {
 				utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting pod '%v' owner kind: %v", p.Name, err)})
-				countersMutex.Lock()
-				otherErrorsCount++
-				countersMutex.Unlock()
+				atomic.AddInt32(&otherErrorsCount, 1)
 				return
 			}
 
 			switch ownerKind {
 			case "DaemonSet":
 				if parameters.IgnoreDaemonsets {
-					countersMutex.Lock()
-					ignoredPodsCount++
-					countersMutex.Unlock()
+					atomic.AddInt32(&ignoredPodsCount, 1)
 					return
 				}
 			case "StatefulSet":
 				if parameters.IgnoreStatefulSets {
-					countersMutex.Lock()
-					ignoredPodsCount++
-					countersMutex.Unlock()
+					atomic.AddInt32(&ignoredPodsCount, 1)
 					return
 				}
 			case "ReplicaSet":
-				replicaSetName, err := kubernetes.GetOwnerName(p)
+				replicaSetName, err := k8s.GetOwnerName(p)
 				if err != nil {
 					utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting pod owner name: %v", err)})
-					countersMutex.Lock()
-					otherErrorsCount++
-					countersMutex.Unlock()
+					atomic.AddInt32(&otherErrorsCount, 1)
 					return
 				}
 				if parameters.MinHealthyReplicas != "" {
 					replicaSet, err := client.GetReplicaSet(replicaSetName, p.Namespace)
 					if err != nil {
 						utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting replica set for pod '%v': %v", p.Name, err)})
-						countersMutex.Lock()
-						otherErrorsCount++
-						countersMutex.Unlock()
+						atomic.AddInt32(&otherErrorsCount, 1)
 						return
 					}
 					minHealthyReplicasValue, kind, err := helpers.ParseMinHealthyReplicas(parameters.MinHealthyReplicas)
 					if err != nil {
 						utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error parsing min_healthy_replicas: %v", err)})
-						countersMutex.Lock()
-						otherErrorsCount++
-						countersMutex.Unlock()
+						atomic.AddInt32(&otherErrorsCount, 1)
 						return
 					}
 					switch kind {
 					case "absolut":
-						healthyReplicasCount, err := kubernetes.GetHealthyReplicasCount(replicaSet)
+						healthyReplicasCount, err := k8s.GetHealthyReplicasCount(replicaSet)
 						if err != nil {
 							utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
-							countersMutex.Lock()
-							otherErrorsCount++
-							countersMutex.Unlock()
+							atomic.AddInt32(&otherErrorsCount, 1)
 							return
 						}
 						if healthyReplicasCount < minHealthyReplicasValue {
-							countersMutex.Lock()
-							ignoredPodsCount++
-							countersMutex.Unlock()
+							atomic.AddInt32(&ignoredPodsCount, 1)
 							return
 						}
 					case "percent":
-						healthyReplicasValue, err := kubernetes.GetHealthyReplicasCount(replicaSet)
+						healthyReplicasValue, err := k8s.GetHealthyReplicasCount(replicaSet)
 						minHealthyReplicasAbsoluteValue := int64(float64(minHealthyReplicasValue) / 100.0 * float64(healthyReplicasValue))
 						if err != nil {
 							utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
-							countersMutex.Lock()
-							otherErrorsCount++
-							countersMutex.Unlock()
+							atomic.AddInt32(&otherErrorsCount, 1)
 							return
 						}
 						if healthyReplicasValue < minHealthyReplicasAbsoluteValue {
-							countersMutex.Lock()
-							ignoredPodsCount++
-							countersMutex.Unlock()
+							atomic.AddInt32(&ignoredPodsCount, 1)
 							return
 						}
 					}
@@ -314,9 +293,7 @@ func (a Actionner) RunWithClient(client kubernetes.DrainClient, event *events.Ev
 
 			if err := client.EvictPod(p); err != nil {
 				utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error evicting pod '%v': %v", p.Name, err)})
-				countersMutex.Lock()
-				evictionErrorsCount++
-				countersMutex.Unlock()
+				atomic.AddInt32(&evictionErrorsCount, 1)
 				return
 			}
 
@@ -329,9 +306,7 @@ func (a Actionner) RunWithClient(client kubernetes.DrainClient, event *events.Ev
 					select {
 					case <-timeout:
 						utils.PrintLog("error", utils.LogLine{Message: fmt.Sprintf("pod '%v' did not terminate within the max_wait_period", pod.Name)})
-						countersMutex.Lock()
-						evictionWaitPeriodErrorsCount++
-						countersMutex.Unlock()
+						atomic.AddInt32(&evictionWaitPeriodErrorsCount, 1)
 						return
 
 					case <-ticker.C:
