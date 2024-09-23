@@ -92,8 +92,23 @@
           - "192.168.2.0/24"
         allow_namespaces:
           - "green-ns"
-  
-- rule: Delete namespace 
+
+- rule: Test node drain
+  match:
+    rules:
+      - Test node drain
+  actions:
+    - action: Cordon node
+      actionner: kubernetes:cordon
+    - action: Drain node
+      actionner: kubernetes:drain
+      parameters:
+        force: true
+        ignore_daemonsets: true
+        ignore_statefulsets: true
+        max_wait_period: 90
+
+- rule: Delete namespace
   match:
     rules:
       - Test delete namespace
@@ -135,15 +150,15 @@
         parameters:
           bucket: falcosidekick-tests
           prefix: logs/
-    - action: Test download
-      actionner: kubernetes:download
-      parameters:
-        file: "${FD_NAME}"
-      output:
-        target: minio:s3
-        parameters:
-          bucket: falco-talon
-          prefix: /files/
+#    - action: Test download
+#      actionner: kubernetes:download
+#      parameters:
+#        file: "${FD_NAME}"
+#      output:
+#        target: minio:s3
+#        parameters:
+#          bucket: falco-talon
+#          prefix: /files/
 
 - rule: Test tcpdump
   match:

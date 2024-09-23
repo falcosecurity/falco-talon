@@ -149,7 +149,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 	}
 
 	switch ownerKind {
-	case "DaemonSet":
+	case utils.DaemonSetStr:
 		if parameters.IgnoreDaemonsets {
 			return utils.LogLine{
 				Objects: objects,
@@ -157,7 +157,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 				Result:  fmt.Sprintf("the pod '%v' in the namespace '%v' belongs to a DaemonSet and will be ignored.", podName, namespace),
 			}, nil, nil
 		}
-	case "StatefulSet":
+	case utils.StatefulSetStr:
 		if parameters.IgnoreStatefulSets {
 			return utils.LogLine{
 				Objects: objects,
@@ -165,7 +165,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 				Result:  fmt.Sprintf("the pod '%v' in the namespace '%v' belongs to a StatefulSet and will be ignored.", podName, namespace),
 			}, nil, nil
 		}
-	case "ReplicaSet":
+	case utils.ReplicaSetStr:
 		replicaSetName, err2 := k8s.GetOwnerName(*pod)
 		if err2 != nil {
 			return utils.LogLine{
