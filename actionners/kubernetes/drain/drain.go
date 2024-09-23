@@ -233,17 +233,17 @@ func (a Actionner) RunWithClient(client k8s.DrainClient, event *events.Event, ac
 			}
 
 			switch ownerKind {
-			case "DaemonSet":
+			case utils.DaemonSetStr:
 				if parameters.IgnoreDaemonsets {
 					atomic.AddInt32(&ignoredPodsCount, 1)
 					return
 				}
-			case "StatefulSet":
+			case utils.StatefulSetStr:
 				if parameters.IgnoreStatefulSets {
 					atomic.AddInt32(&ignoredPodsCount, 1)
 					return
 				}
-			case "ReplicaSet":
+			case utils.ReplicaSetStr:
 				replicaSetName, err := k8s.GetOwnerName(p)
 				if err != nil {
 					utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting pod owner name: %v", err)})
