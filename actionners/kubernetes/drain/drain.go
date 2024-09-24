@@ -71,7 +71,6 @@ type Parameters struct {
 	IgnoreErrors                 bool     `mapstructure:"ignore_errors" validate:"omitempty"`
 	IgnoreDaemonsets             bool     `mapstructure:"ignore_daemonsets" validate:"omitempty"`
 	IgnoreStatefulSets           bool     `mapstructure:"ignore_statefulsets" validate:"omitempty"`
-	GracePeriodSeconds           int      `mapstructure:"grace_period_seconds" validate:"omitempty"`
 	MaxWaitPeriod                int      `mapstructure:"max_wait_period" validate:"omitempty"`
 }
 
@@ -106,7 +105,6 @@ func (a Actionner) Parameters() models.Parameters {
 		IgnoreErrors:                 false,
 		IgnoreDaemonsets:             false,
 		IgnoreStatefulSets:           false,
-		GracePeriodSeconds:           0,
 		MaxWaitPeriod:                0,
 		WaitPeriodExcludedNamespaces: []string{},
 	}
@@ -135,9 +133,6 @@ func (a Actionner) RunWithClient(client k8s.DrainClient, event *events.Event, ac
 			Status:  utils.FailureStr,
 		}, nil, err
 	}
-
-	gracePeriodSeconds := new(int64)
-	*gracePeriodSeconds = int64(parameters.GracePeriodSeconds)
 
 	pod, err := client.GetPod(podName, namespace)
 	if err != nil {
