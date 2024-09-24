@@ -254,7 +254,9 @@ config:
 serviceMonitor:
   # -- enable the deployment of a Service Monitor for the Prometheus Operator.
   enabled: false
-  # -- path at which the metrics are expose
+  # -- portname at which the metrics are exposed
+  port: http
+  # -- path at which the metrics are exposed
   path: /metrics
   # -- additionalLabels specifies labels to be added on the Service Monitor.
   additionalLabels: {}
