@@ -190,7 +190,7 @@ func newPayload(log utils.LogLine) Payload {
 		}
 		if log.Event != "" {
 			field.Title = "Event"
-			field.Value = "`" + log.Event + "`"
+			field.Value = "```" + log.Event + "```"
 			field.Short = false
 			fields = append(fields, field)
 		}
