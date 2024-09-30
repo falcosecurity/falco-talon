@@ -12,7 +12,7 @@ image:
   # -- The image repository to pull from
   repository: issif/falco-talon
   # -- Override the image tag to pull
-  tag: ""
+  tag: "0.1.0"
   # -- The image pull policy
   pullPolicy: Always
 
