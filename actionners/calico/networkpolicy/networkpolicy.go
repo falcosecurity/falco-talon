@@ -108,7 +108,7 @@ func Register() *Actionner {
 }
 
 func (a Actionner) Init() error {
-	return k8s.Init()
+	return calico.Init()
 }
 
 func (a Actionner) Information() models.Information {

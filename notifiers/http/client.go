@@ -109,7 +109,7 @@ func NewClient(httpMethod, contentType, userAgent string, headers map[string]str
 	}
 }
 
-func (c *Client) Request(u string, payload interface{}) error {
+func (c *Client) Request(u string, payload any) error {
 	// defer + recover to catch panic if output doesn't respond
 	defer func() {
 		if err := recover(); err != nil {

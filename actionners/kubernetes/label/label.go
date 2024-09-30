@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -162,7 +163,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 		}
 		payload = append(payload, patch{
 			Op:    "replace",
-			Path:  metadataLabels + i,
+			Path:  metadataLabels + strings.ReplaceAll(i, "/", "~1"),
 			Value: fmt.Sprintf("%v", j),
 		})
 	}
@@ -190,7 +191,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 		}
 		payload = append(payload, patch{
 			Op:   "remove",
-			Path: metadataLabels + i,
+			Path: metadataLabels + strings.ReplaceAll(i, "/", "~1"),
 		})
 	}
 

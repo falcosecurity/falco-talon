@@ -7,7 +7,7 @@ import (
 	"github.com/falco-talon/falco-talon/internal/events"
 )
 
-func GetAwsContext(_ *events.Event) (map[string]interface{}, error) {
+func GetAwsContext(_ *events.Event) (map[string]any, error) {
 	imdsClient := aws.GetImdsClient()
 
 	info, err := imdsClient.GetIAMInfo(context.Background(), nil)
@@ -20,7 +20,7 @@ func GetAwsContext(_ *events.Event) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	elements := make(map[string]interface{})
+	elements := make(map[string]any)
 	elements["aws.instance_profile_arn"] = info.InstanceProfileArn
 	elements["aws.instance_profile_id"] = info.InstanceProfileID
 	elements["aws.region"] = region.Region

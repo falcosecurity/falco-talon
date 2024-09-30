@@ -113,10 +113,10 @@ var rulesPrintCmd = &cobra.Command{
 			DryRun      string   `yaml:"dry_run,omitempty"`
 			Notifiers   []string `yaml:"notifiers,omitempty"`
 			Actions     []struct {
-				Parameters map[string]interface{} `yaml:"parameters,omitempty"`
+				Parameters map[string]any `yaml:"parameters,omitempty"`
 				Output     struct {
-					Parameters map[string]interface{} `yaml:"parameters"`
-					Target     string                 `yaml:"target"`
+					Parameters map[string]any `yaml:"parameters"`
+					Target     string         `yaml:"target"`
 				} `yaml:"output,omitempty"`
 				Name               string   `yaml:"action"`
 				Description        string   `yaml:"description,omitempty"`

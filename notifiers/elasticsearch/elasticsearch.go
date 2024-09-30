@@ -55,7 +55,7 @@ func Register() *Notifier {
 	return new(Notifier)
 }
 
-func (n Notifier) Init(fields map[string]interface{}) error {
+func (n Notifier) Init(fields map[string]any) error {
 	parameters = new(Parameters)
 	parameters = utils.SetFields(parameters, fields).(*Parameters)
 	if err := checkParameters(parameters); err != nil {
@@ -71,7 +71,7 @@ func (n Notifier) Init(fields map[string]interface{}) error {
 				client.SetHTTPMethod("PUT")
 				m := strings.ReplaceAll(mapping, "${SHARDS}", fmt.Sprintf("%v", parameters.NumberOfShards))
 				m = strings.ReplaceAll(m, "${REPLICAS}", fmt.Sprintf("%v", parameters.NumberOfReplicas))
-				j := make(map[string]interface{})
+				j := make(map[string]any)
 				if err := json.Unmarshal([]byte(m), &j); err != nil {
 					return err
 				}

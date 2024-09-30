@@ -71,7 +71,7 @@ func Register() *Notifier {
 	return new(Notifier)
 }
 
-func (n Notifier) Init(fields map[string]interface{}) error {
+func (n Notifier) Init(fields map[string]any) error {
 	parameters = new(Parameters)
 	parameters = utils.SetFields(parameters, fields).(*Parameters)
 	if err := checkParameters(parameters); err != nil {
@@ -190,7 +190,7 @@ func newPayload(log utils.LogLine) Payload {
 		}
 		if log.Event != "" {
 			field.Title = "Event"
-			field.Value = "`" + log.Event + "`"
+			field.Value = "```" + log.Event + "```"
 			field.Short = false
 			fields = append(fields, field)
 		}

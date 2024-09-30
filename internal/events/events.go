@@ -11,16 +11,16 @@ import (
 )
 
 type Event struct {
-	TraceID      string                 `json:"trace_id"`
-	Output       string                 `json:"output"`
-	Priority     string                 `json:"priority"`
-	Rule         string                 `json:"rule"`
-	Hostname     string                 `json:"hostname"`
-	Time         time.Time              `json:"time"`
-	Source       string                 `json:"source"`
-	OutputFields map[string]interface{} `json:"output_fields"`
-	Context      map[string]interface{} `json:"context"`
-	Tags         []interface{}          `json:"tags"`
+	TraceID      string         `json:"trace_id"`
+	Output       string         `json:"output"`
+	Priority     string         `json:"priority"`
+	Rule         string         `json:"rule"`
+	Hostname     string         `json:"hostname"`
+	Time         time.Time      `json:"time"`
+	Source       string         `json:"source"`
+	OutputFields map[string]any `json:"output_fields"`
+	Context      map[string]any `json:"context"`
+	Tags         []any          `json:"tags"`
 }
 
 const (
@@ -123,9 +123,9 @@ func (event *Event) GetRemoteProtocol() string {
 	return ""
 }
 
-func (event *Event) AddContext(elements map[string]interface{}) {
+func (event *Event) AddContext(elements map[string]any) {
 	if event.Context == nil {
-		event.Context = make(map[string]interface{})
+		event.Context = make(map[string]any)
 	}
 	if len(elements) == 0 {
 		return
