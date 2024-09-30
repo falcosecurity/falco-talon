@@ -26,7 +26,7 @@ import (
 )
 
 type Notifier interface {
-	Init(fields map[string]interface{}) error
+	Init(fields map[string]any) error
 	Run(log utils.LogLine) error
 	Information() models.Information
 	Parameters() models.Parameters

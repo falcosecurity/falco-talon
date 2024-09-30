@@ -35,19 +35,19 @@ type Otel struct {
 }
 
 type Configuration struct {
-	Notifiers        map[string]map[string]interface{} `mapstructure:"notifiers"`
-	AwsConfig        AwsConfig                         `mapstructure:"aws"`
-	LogFormat        string                            `mapstructure:"log_format"`
-	KubeConfig       string                            `mapstructure:"kubeconfig"`
-	ListenAddress    string                            `mapstructure:"listen_address"`
-	MinioConfig      MinioConfig                       `mapstructure:"minio"`
-	RulesFiles       []string                          `mapstructure:"rules_files"`
-	DefaultNotifiers []string                          `mapstructure:"default_notifiers"`
-	Otel             Otel                              `mapstructure:"otel"`
-	Deduplication    deduplication                     `mapstructure:"deduplication"`
-	ListenPort       int                               `mapstructure:"listen_port"`
-	WatchRules       bool                              `mapstructure:"watch_rules"`
-	PrintAllEvents   bool                              `mapstructure:"print_all_events"`
+	Notifiers        map[string]map[string]any `mapstructure:"notifiers"`
+	AwsConfig        AwsConfig                 `mapstructure:"aws"`
+	LogFormat        string                    `mapstructure:"log_format"`
+	KubeConfig       string                    `mapstructure:"kubeconfig"`
+	ListenAddress    string                    `mapstructure:"listen_address"`
+	MinioConfig      MinioConfig               `mapstructure:"minio"`
+	RulesFiles       []string                  `mapstructure:"rules_files"`
+	DefaultNotifiers []string                  `mapstructure:"default_notifiers"`
+	Otel             Otel                      `mapstructure:"otel"`
+	Deduplication    deduplication             `mapstructure:"deduplication"`
+	ListenPort       int                       `mapstructure:"listen_port"`
+	WatchRules       bool                      `mapstructure:"watch_rules"`
+	PrintAllEvents   bool                      `mapstructure:"print_all_events"`
 }
 
 type deduplication struct {

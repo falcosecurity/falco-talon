@@ -16,7 +16,7 @@ import (
 	"github.com/falco-talon/falco-talon/internal/events"
 )
 
-func GetContext(actx context.Context, source string, event *events.Event) (map[string]interface{}, error) {
+func GetContext(actx context.Context, source string, event *events.Event) (map[string]any, error) {
 	tracer := traces.GetTracer()
 
 	_, span := tracer.Start(actx, "context",
@@ -24,7 +24,7 @@ func GetContext(actx context.Context, source string, event *events.Event) (map[s
 	)
 	defer span.End()
 
-	context := make(map[string]interface{})
+	context := make(map[string]any)
 	var err error
 
 	switch source {

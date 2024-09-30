@@ -58,7 +58,7 @@ type KubernetesClient interface {
 	GetStatefulsetFromPod(pod *corev1.Pod) (*appsv1.StatefulSet, error)
 	GetReplicasetFromPod(pod *corev1.Pod) (*appsv1.ReplicaSet, error)
 	GetNodeFromPod(pod *corev1.Pod) (*corev1.Node, error)
-	GetTarget(resource, name, namespace string) (interface{}, error)
+	GetTarget(resource, name, namespace string) (any, error)
 	GetNamespace(name string) (*corev1.Namespace, error)
 	GetConfigMap(name, namespace string) (*corev1.ConfigMap, error)
 	GetSecret(name, namespace string) (*corev1.Secret, error)
@@ -259,7 +259,7 @@ func (client Client) GetNodeFromPod(pod *corev1.Pod) (*corev1.Node, error) {
 	return r, nil
 }
 
-func (client Client) GetTarget(resource, name, namespace string) (interface{}, error) {
+func (client Client) GetTarget(resource, name, namespace string) (any, error) {
 	switch resource {
 	case "namespaces":
 		return client.GetNamespace(name)

@@ -95,7 +95,7 @@ func PrintLog(level string, line LogLine) {
 		if *logFormat != colorStr {
 			output.NoColor = true
 		}
-		output.FormatFieldValue = func(i interface{}) string {
+		output.FormatFieldValue = func(i any) string {
 			return fmt.Sprintf("%s", i)
 		}
 		log = zerolog.New(output).With().Timestamp().Logger()
@@ -172,7 +172,7 @@ func PrintLog(level string, line LogLine) {
 	}
 }
 
-func SetFields(structure interface{}, fields map[string]interface{}) interface{} {
+func SetFields(structure any, fields map[string]any) any {
 	valueOf := reflect.ValueOf(structure)
 	if valueOf.Kind() == reflect.Ptr {
 		valueOf = valueOf.Elem()
@@ -233,7 +233,7 @@ func SetFields(structure interface{}, fields map[string]interface{}) interface{}
 	return structure
 }
 
-func ValidateStruct(s interface{}) error {
+func ValidateStruct(s any) error {
 	err := validate.Struct(s)
 	if err != nil {
 		return err
@@ -249,7 +249,7 @@ func AddCustomValidation(tag string, fn validator.Func) error {
 	return nil
 }
 
-func DecodeParams(params map[string]interface{}, result interface{}) error {
+func DecodeParams(params map[string]any, result any) error {
 	// Decode parameters into the struct
 	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		TagName: "mapstructure",

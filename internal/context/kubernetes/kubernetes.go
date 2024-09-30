@@ -5,7 +5,7 @@ import (
 	kubernetes "github.com/falco-talon/falco-talon/internal/kubernetes/client"
 )
 
-func GetNodeContext(event *events.Event) (map[string]interface{}, error) {
+func GetNodeContext(event *events.Event) (map[string]any, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 
@@ -19,7 +19,7 @@ func GetNodeContext(event *events.Event) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	elements := make(map[string]interface{})
+	elements := make(map[string]any)
 	elements["node.hostname"] = node.Labels["kubernetes.io/hostname"]
 	elements["node.instancetype"] = node.Labels["node.kubernetes.io/instance-type"]
 	elements["node.role"] = node.Labels["kubernetes.io/role"]

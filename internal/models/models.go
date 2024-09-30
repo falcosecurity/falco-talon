@@ -21,4 +21,4 @@ type Data struct {
 	Bytes   []byte
 }
 
-type Parameters interface{}
+type Parameters any

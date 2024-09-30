@@ -39,7 +39,7 @@ func Register() *Notifier {
 	return new(Notifier)
 }
 
-func (n Notifier) Init(fields map[string]interface{}) error {
+func (n Notifier) Init(fields map[string]any) error {
 	parameters = new(Parameters)
 	parameters = utils.SetFields(parameters, fields).(*Parameters)
 	if err := checkParameters(parameters); err != nil {

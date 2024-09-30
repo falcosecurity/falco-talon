@@ -77,7 +77,7 @@ func Register() *Notifier {
 	return new(Notifier)
 }
 
-func (n Notifier) Init(_ map[string]interface{}) error { return nil }
+func (n Notifier) Init(_ map[string]any) error { return nil }
 
 func (n Notifier) Information() models.Information {
 	return models.Information{
