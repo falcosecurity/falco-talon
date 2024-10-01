@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 - 2024-10-01
+
+- Fix panics with actionners `cilium:networkpolicy` and `calico:networkpolicy` because of a wrong init
+- Fix panic when `output` is set in an `action` declared outside a `rule`
+- Fix errors with when the label key contains a `/`
+
 ## 0.1.0 - 2024-09-05 - *First GA release.*
 
 Official website for the docs: [https://docs.falco-talon.org/](https://docs.falco-talon.org/)
