@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"cloud.google.com/go/functions/apiv2/functionspb"
+
 	"github.com/falco-talon/falco-talon/internal/gcp/client"
 )
 
@@ -14,7 +15,6 @@ func (c CheckFunctionExist) Name() string {
 }
 
 func (c CheckFunctionExist) Run(functionName, location string) error {
-
 	gcpClient, err := client.GetGCPClient()
 	if err != nil {
 		return err
@@ -27,7 +27,7 @@ func (c CheckFunctionExist) Run(functionName, location string) error {
 
 	// Create a request to get function information
 	req := &functionspb.GetFunctionRequest{
-		Name: "projects/" + gcpClient.ProjectId() + "/locations/" + location + "/functions/" + functionName,
+		Name: "projects/" + gcpClient.ProjectID() + "/locations/" + location + "/functions/" + functionName,
 	}
 
 	_, err = functionClient.GetFunction(context.Background(), req)

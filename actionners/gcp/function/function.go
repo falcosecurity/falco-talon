@@ -5,18 +5,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
 	"cloud.google.com/go/functions/apiv2/functionspb"
+	"google.golang.org/api/idtoken"
+
 	"github.com/falco-talon/falco-talon/internal/events"
 	"github.com/falco-talon/falco-talon/internal/gcp/checks"
 	"github.com/falco-talon/falco-talon/internal/gcp/client"
 	"github.com/falco-talon/falco-talon/internal/models"
 	"github.com/falco-talon/falco-talon/internal/rules"
 	"github.com/falco-talon/falco-talon/utils"
-	"google.golang.org/api/idtoken"
 )
 
 const (
@@ -44,10 +45,9 @@ var (
 )
 
 type Parameters struct {
-	GCPFunctionName         string            `mapstructure:"gcp_function_name" validate:"required"`
-	GCPFunctionLocation     string            `mapstructure:"gcp_function_location" validate:"required"`
-	GCPFunctionTimeout      int               `mapstructure:"gcp_function_timeout"`
-	GCPFunctionExtraHeaders map[string]string `mapstructure:"gcp_function_extra_headers"`
+	GCPFunctionName     string `mapstructure:"gcp_function_name" validate:"required"`
+	GCPFunctionLocation string `mapstructure:"gcp_function_location" validate:"required"`
+	GCPFunctionTimeout  int    `mapstructure:"gcp_function_timeout"`
 }
 
 type Actionner struct{}
@@ -140,7 +140,7 @@ func (a Actionner) RunWithClient(c client.GCPClientAPI, event *events.Event, act
 		}, nil, err
 	}
 
-	functionName := fmt.Sprintf("projects/%s/locations/%s/functions/%s", c.ProjectId(), parameters.GCPFunctionLocation, parameters.GCPFunctionName)
+	functionName := fmt.Sprintf("projects/%s/locations/%s/functions/%s", c.ProjectID(), parameters.GCPFunctionLocation, parameters.GCPFunctionName)
 
 	getFunctionReq := &functionspb.GetFunctionRequest{
 		Name: functionName,
@@ -222,7 +222,7 @@ func (a Actionner) RunWithClient(c client.GCPClientAPI, event *events.Event, act
 	}
 	defer resp.Body.Close()
 
-	respBody, err := ioutil.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return utils.LogLine{
 			Objects: objects,

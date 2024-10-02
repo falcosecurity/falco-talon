@@ -8,26 +8,28 @@ import (
 
 	functionsv2 "cloud.google.com/go/functions/apiv2"
 	"cloud.google.com/go/functions/apiv2/functionspb"
-	"github.com/falco-talon/falco-talon/configuration"
-	"github.com/falco-talon/falco-talon/utils"
 	"github.com/googleapis/gax-go/v2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
+
+	"github.com/falco-talon/falco-talon/configuration"
+	"github.com/falco-talon/falco-talon/utils"
 )
 
 const functionServiceScope = "https://www.googleapis.com/auth/cloud-platform"
 
+// nolint:govet
 type GCPClient struct {
-	functionsClient     GcpFunctionAPI
-	functionsClientOnce sync.Once
-	httpClient          HTTPClient
 	clientOpts          []option.ClientOption
-	projectId           string
+	functionsClient     GcpFunctionAPI
+	httpClient          HTTPClient
+	projectID           string
+	functionsClientOnce sync.Once
 }
 
 type GCPClientAPI interface {
 	GetGcpFunctionClient(context.Context) (GcpFunctionAPI, error)
-	ProjectId() string
+	ProjectID() string
 	HTTPClient() HTTPClient
 	SetHTTPClient(httpClient HTTPClient)
 	Close() []error
@@ -76,7 +78,7 @@ func Init() error {
 			clientOptions = append(clientOptions, option.WithCredentials(creds))
 		}
 
-		projectId, err := getProjectID(creds)
+		projectID, err := getProjectID(creds)
 		if err != nil {
 			initErr = err
 			return
@@ -84,7 +86,7 @@ func Init() error {
 
 		gcpClient = &GCPClient{
 			clientOpts: clientOptions,
-			projectId:  projectId,
+			projectID:  projectID,
 			httpClient: &http.Client{},
 		}
 
@@ -115,8 +117,8 @@ func (c *GCPClient) GetGcpFunctionClient(ctx context.Context) (GcpFunctionAPI, e
 	return c.functionsClient, nil
 }
 
-func (c *GCPClient) ProjectId() string {
-	return c.projectId
+func (c *GCPClient) ProjectID() string {
+	return c.projectID
 }
 
 func (c *GCPClient) HTTPClient() HTTPClient {
@@ -133,7 +135,6 @@ func (c *GCPClient) SetHTTPClient(httpClient HTTPClient) {
 // Close at the main client level is responsible
 // for shutting down all the underlying service clients
 func (c *GCPClient) Close() []error {
-
 	var errorList []error
 
 	if c.functionsClient != nil {
