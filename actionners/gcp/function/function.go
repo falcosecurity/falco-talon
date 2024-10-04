@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"cloud.google.com/go/functions/apiv2/functionspb"
@@ -96,7 +97,11 @@ func (a Actionner) Checks(_ *events.Event, action *rules.Action) error {
 func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine, *models.Data, error) {
 	gcpClient, err := client.GetGCPClient()
 	if err != nil {
-		return utils.LogLine{}, nil, err
+		return utils.LogLine{
+			Objects: nil,
+			Error:   err.Error(),
+			Status:  utils.FailureStr,
+		}, nil, err
 	}
 	return a.RunWithClient(gcpClient, event, action)
 }
@@ -131,6 +136,12 @@ func (a Actionner) RunWithClient(c client.GCPClientAPI, event *events.Event, act
 		"location": parameters.GCPFunctionLocation,
 	}
 
+	functionName := fmt.Sprintf("projects/%s/locations/%s/functions/%s", c.ProjectID(), parameters.GCPFunctionLocation, parameters.GCPFunctionName)
+
+	getFunctionReq := &functionspb.GetFunctionRequest{
+		Name: functionName,
+	}
+
 	gcpFunctionClient, err := c.GetGcpFunctionClient(context.Background())
 	if err != nil {
 		return utils.LogLine{
@@ -138,12 +149,6 @@ func (a Actionner) RunWithClient(c client.GCPClientAPI, event *events.Event, act
 			Error:   err.Error(),
 			Status:  utils.FailureStr,
 		}, nil, err
-	}
-
-	functionName := fmt.Sprintf("projects/%s/locations/%s/functions/%s", c.ProjectID(), parameters.GCPFunctionLocation, parameters.GCPFunctionName)
-
-	getFunctionReq := &functionspb.GetFunctionRequest{
-		Name: functionName,
 	}
 
 	ctx := context.Background()
@@ -240,6 +245,7 @@ func (a Actionner) RunWithClient(c client.GCPClientAPI, event *events.Event, act
 	}
 
 	objects["function_response"] = string(respBody)
+	objects["function_response_status"] = strconv.Itoa(resp.StatusCode)
 
 	return utils.LogLine{
 		Objects: objects,

@@ -8,6 +8,7 @@ import (
 
 	functionsv2 "cloud.google.com/go/functions/apiv2"
 	"cloud.google.com/go/functions/apiv2/functionspb"
+	"cloud.google.com/go/storage"
 	"github.com/googleapis/gax-go/v2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
@@ -21,14 +22,17 @@ const functionServiceScope = "https://www.googleapis.com/auth/cloud-platform"
 // nolint:govet
 type GCPClient struct {
 	clientOpts          []option.ClientOption
-	functionsClient     GcpFunctionAPI
+	functionsClient     *functionsv2.FunctionClient
+	storageClient       *storage.Client
 	httpClient          HTTPClient
 	projectID           string
 	functionsClientOnce sync.Once
+	storageClientOnce   sync.Once
 }
 
 type GCPClientAPI interface {
-	GetGcpFunctionClient(context.Context) (GcpFunctionAPI, error)
+	GetGcpFunctionClient(context.Context) (*functionsv2.FunctionClient, error)
+	GetStorageClient(context.Context) (*storage.Client, error)
 	ProjectID() string
 	HTTPClient() HTTPClient
 	SetHTTPClient(httpClient HTTPClient)
@@ -41,6 +45,11 @@ type HTTPClient interface {
 
 type GcpFunctionAPI interface {
 	GetFunction(ctx context.Context, req *functionspb.GetFunctionRequest, opts ...gax.CallOption) (*functionspb.Function, error)
+	Close() error
+}
+
+type GcpGcsAPI interface {
+	Bucket(name string) *storage.BucketHandle
 	Close() error
 }
 
@@ -106,7 +115,7 @@ func GetGCPClient() (*GCPClient, error) {
 	return gcpClient, nil
 }
 
-func (c *GCPClient) GetGcpFunctionClient(ctx context.Context) (GcpFunctionAPI, error) {
+func (c *GCPClient) GetGcpFunctionClient(ctx context.Context) (*functionsv2.FunctionClient, error) {
 	var err error
 	c.functionsClientOnce.Do(func() {
 		c.functionsClient, err = functionsv2.NewFunctionClient(ctx, c.clientOpts...)
@@ -115,6 +124,17 @@ func (c *GCPClient) GetGcpFunctionClient(ctx context.Context) (GcpFunctionAPI, e
 		return nil, err
 	}
 	return c.functionsClient, nil
+}
+
+func (c *GCPClient) GetStorageClient(ctx context.Context) (*storage.Client, error) {
+	var err error
+	c.storageClientOnce.Do(func() {
+		c.storageClient, err = storage.NewClient(ctx, c.clientOpts...)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return c.storageClient, nil
 }
 
 func (c *GCPClient) ProjectID() string {
@@ -139,6 +159,9 @@ func (c *GCPClient) Close() []error {
 
 	if c.functionsClient != nil {
 		errorList = append(errorList, c.functionsClient.Close())
+	}
+	if c.storageClient != nil {
+		errorList = append(errorList, c.storageClient.Close())
 	}
 	return errorList
 }
