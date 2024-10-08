@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0 - 2024-11-26
+
+- Add `gcp:function` actionner
+- Add `gcp:gcs` output
+- Add `ignore_standalone_pods` parameter for `kubernetes:terminate` actionner
+
 ## 0.1.1 - 2024-10-01
 
 - Fix panics with actionners `cilium:networkpolicy` and `calico:networkpolicy` because of a wrong init
