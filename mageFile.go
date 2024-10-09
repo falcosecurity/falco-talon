@@ -66,7 +66,7 @@ func (Build) Local() error {
 // build:images builds images and not push
 func (Build) Images() error {
 	exportLDFlags()
-	os.Setenv("KO_DOCKER_REPO", "issif/falco-talon")
+	os.Setenv("KO_DOCKER_REPO", "falcosecurity/falco-talon")
 
 	return sh.RunV("ko", "build", "--bare", "--sbom=none", "--tags", getVersion(), "--tags", getCommit(), "--tags", "latest",
 		repoURL)
@@ -75,7 +75,7 @@ func (Build) Images() error {
 // push:images pushes the images to dockerhub
 func (Push) Images() error {
 	mg.Deps(Build.Images)
-	os.Setenv("KO_DOCKER_REPO", "issif/falco-talon")
+	os.Setenv("KO_DOCKER_REPO", "falcosecurity/falco-talon")
 
 	return sh.RunV("ko", "build", "--bare", "--sbom=none", "--tags", getVersion(), "--tags", getCommit(), "--tags", "latest",
 		repoURL)
