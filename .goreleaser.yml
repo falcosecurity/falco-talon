@@ -36,7 +36,7 @@ builds:
 
 kos:
   - id: falco-talon
-    repository: issif/falco-talon
+    repository: falcosecurity/falco-talon
     tags:
     - '{{.Version}}'
     - latest
