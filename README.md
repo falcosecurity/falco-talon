@@ -1,5 +1,9 @@
  # Falco Talon
 
+ [![Falco Ecosystem Repository](https://github.com/falcosecurity/evolution/blob/main/repos/badges/falco-ecosystem-blue.svg)](https://github.com/falcosecurity/evolution/blob/main/REPOSITORIES.md#ecosystem-scope) [![Incubating](https://img.shields.io/badge/status-incubating-orange?style=for-the-badge)](https://github.com/falcosecurity/evolution/blob/main/REPOSITORIES.md#incubating)
+
+ [![Latest](https://img.shields.io/github/v/release/falcosecurity/falco-talon?style=for-the-badge)](https://github.com/falcosecurity/falco-talon/releases/latest)
+
 `Falco Talon` is a Response Engine for managing threats in your Kubernetes. It enhances the solutions proposed by the Falco community with a no-code tailor made solution. With easy rules, you can react to `events` from [`Falco`](https://falco.org) in milliseconds.
 
 - [Falco Talon](#falco-talon)
