@@ -112,7 +112,7 @@ To generate the images to test locally you can run `mage buildImagesLocal`
 
 ### Helm
 
-The helm chart is available in the folder [`deployment/helm`](https://github.com/falco-talon/falco-talon/tree/main/deployment/helm).
+The helm chart is available in the folder [`deployment/helm`](https://github.com/falcosecurity/falco-talon/tree/main/deployment/helm).
 Two config files are provided:
 * `values.yaml` allows you to configure `Falcon Talon` and the deployment
 * `rules.yaml` contains rules to set

@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	repoURL string = "github.com/falco-talon/falco-talon"
+	repoURL string = "github.com/falcosecurity/falco-talon"
 )
 
 type Lint mg.Namespace
