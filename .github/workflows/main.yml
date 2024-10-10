@@ -6,7 +6,8 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write # needed to write releases
+  id-token: write # needed for keyless signing
 
 jobs:
   lint:
@@ -42,8 +43,8 @@ jobs:
     - name: Login to Docker Hub
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        username: ${{ secrets.DOCKERHUB_USER }}
+        password: ${{ secrets.DOCKERHUB_SECRET }}
 
     # Push images to Dockerhub
     - name: Run Mage
@@ -51,24 +52,3 @@ jobs:
       with:
         version: latest
         args: push:images
-
-    # Push images to AWS Public ECR (TODO: move into to the mage file)
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4.0.2
-      with:
-        role-to-assume: arn:aws:iam::292999226676:role/github_actions-falco-talon-ecr
-        aws-region: us-east-1
-
-    - name: Login to Amazon ECR
-      id: login-ecr-public
-      uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # v2.0.1
-      with:
-        registry-type: public
-
-    - run: |
-        docker push public.ecr.aws/falcosecurity/falco-talon:latest-amd64
-        docker push public.ecr.aws/falcosecurity/falco-talon:latest-arm64
-        docker push public.ecr.aws/falcosecurity/falco-talon:latest-armv7
-        docker manifest create --amend public.ecr.aws/falcosecurity/falco-talon:latest public.ecr.aws/falcosecurity/falco-talon:latest-amd64 \
-          public.ecr.aws/falcosecurity/falco-talon:latest-arm64 public.ecr.aws/falcosecurity/falco-talon:latest-armv7
-        docker manifest push --purge public.ecr.aws/falcosecurity/falco-talon:latest
