@@ -48,6 +48,6 @@ kos:
 
 release:
   github:
-    owner: falco-talon
+    owner: falcosecurity
     name: falco-talon
   prerelease: auto
