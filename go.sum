@@ -36,8 +36,8 @@ github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.18.2 h1:t7iUP9+4wdc5lt
 github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.18.2/go.mod h1:/niFCtmuQNxqx9v8WAPq5qh7EH25U4BF6tjoyq9bObM=
 github.com/aws/aws-sdk-go-v2/service/lambda v1.63.2 h1:D80A6kILpbqo0TgZyhr5FPzBGOT0nAU7aLCtk9kQT+4=
 github.com/aws/aws-sdk-go-v2/service/lambda v1.63.2/go.mod h1:qHTP1Ag4En7u0h9MFxUtNZqx/k0HYW7GjuGkzR0nUC8=
-github.com/aws/aws-sdk-go-v2/service/s3 v1.65.2 h1:yi8m+jepdp6foK14xXLGkYBenxnlcfJ45ka4Pg7fDSQ=
-github.com/aws/aws-sdk-go-v2/service/s3 v1.65.2/go.mod h1:cB6oAuus7YXRZhWCc1wIwPywwZ1XwweNp2TVAEGYeB8=
+github.com/aws/aws-sdk-go-v2/service/s3 v1.65.3 h1:xxHGZ+wUgZNACQmxtdvP5tgzfsxGS3vPpTP5Hy3iToE=
+github.com/aws/aws-sdk-go-v2/service/s3 v1.65.3/go.mod h1:cB6oAuus7YXRZhWCc1wIwPywwZ1XwweNp2TVAEGYeB8=
 github.com/aws/aws-sdk-go-v2/service/sso v1.24.2 h1:bSYXVyUzoTHoKalBmwaZxs97HU9DWWI3ehHSAMa7xOk=
 github.com/aws/aws-sdk-go-v2/service/sso v1.24.2/go.mod h1:skMqY7JElusiOUjMJMOv1jJsP7YUg7DrhgqZZWuzu1U=
 github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.2 h1:AhmO1fHINP9vFYUE0LHzCWg/LfUWUF+zFPEcY9QXb7o=
@@ -56,8 +56,8 @@ github.com/census-instrumentation/opencensus-proto v0.4.1 h1:iKLQ0xPNFxR/2hzXZMr
 github.com/census-instrumentation/opencensus-proto v0.4.1/go.mod h1:4T9NM4+4Vw91VeyqjLS6ao50K5bOcLKN6Q42XnYaRYw=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
-github.com/cilium/cilium v1.16.2 h1:c/SMeMOp6VD6OuzNQ35dyqKFemT/T3jgSDnABFimhHA=
-github.com/cilium/cilium v1.16.2/go.mod h1:w6huXlvvCbDrOdKW1P5FXjT3JIXzEREtXbvhhMZHxKM=
+github.com/cilium/cilium v1.16.3 h1:Pdm3FdcdrGZ0Zh2i1oADmM89WE9xbePhRiL/8UqxEWY=
+github.com/cilium/cilium v1.16.3/go.mod h1:w6huXlvvCbDrOdKW1P5FXjT3JIXzEREtXbvhhMZHxKM=
 github.com/cilium/ebpf v0.16.0 h1:+BiEnHL6Z7lXnlGUsXQPPAE7+kenAd4ES8MQ5min0Ok=
 github.com/cilium/ebpf v0.16.0/go.mod h1:L7u2Blt2jMM/vLAVgjxluxtBKlz3/GWjB0dMOEngfwE=
 github.com/cilium/hive v0.0.0-20241009102328-2ab688845f23 h1:RQSJdQVdxE9puF18G5RGZZi2jhBb2dtA6zI+HHMyY+Y=
