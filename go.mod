@@ -25,7 +25,7 @@ require (
 	github.com/nats-io/nats-server/v2 v2.10.21
 	github.com/nats-io/nats.go v1.37.0
 	github.com/projectcalico/api v0.0.0-20240708202104-e3f70b269c2c
-	github.com/prometheus/client_golang v1.20.4
+	github.com/prometheus/client_golang v1.20.5
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
