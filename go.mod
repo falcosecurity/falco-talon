@@ -22,7 +22,7 @@ require (
 	github.com/jinzhu/copier v0.4.0
 	github.com/magefile/mage v1.15.0
 	github.com/minio/minio-go/v7 v7.0.78
-	github.com/nats-io/nats-server/v2 v2.10.21
+	github.com/nats-io/nats-server/v2 v2.10.22
 	github.com/nats-io/nats.go v1.37.0
 	github.com/projectcalico/api v0.0.0-20240708202104-e3f70b269c2c
 	github.com/prometheus/client_golang v1.20.5
