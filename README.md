@@ -35,7 +35,7 @@
 
 ## Architecture
 
-`Falco Talon` can receive the `events` from [`Falco`](https://falco.org) or [`Falcosidekick`](https://github.com/falcosecurity/falco-talon):
+`Falco Talon` can receive the `events` from [`Falco`](https://falco.org) or [`Falcosidekick`](https://github.com/falcosecurity/falcosidekick):
 
 ```mermaid
 flowchart LR
@@ -126,7 +126,7 @@ helm install falco-talon falcosecurity/falco -n falco --create-namespace
 
 #### Configure Falcosidekick
 
-Once you have installed `Falco Talon` with Helm, you need to connect `Falcosidekick` by adding the flag `--set falcosidekick.config.webhook.address=http://falco-talon:2803`
+Once you have installed `Falco Talon` with Helm, you need to connect `Falcosidekick` by adding the flag `--set falcosidekick.config.talon.address=http://falco-talon:2803`
 
 ```shell
 helm install falco falcosecurity/falco --namespace falco \
