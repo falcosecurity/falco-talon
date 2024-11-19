@@ -12,7 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.66.1
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.66.3
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.1
-	github.com/cilium/cilium v1.16.3
+	github.com/cilium/cilium v1.16.4
 	github.com/emersion/go-sasl v0.0.0-20231106173351-e73c9f7bad43
 	github.com/emersion/go-smtp v0.21.3
 	github.com/fsnotify/fsnotify v1.8.0
@@ -146,7 +146,7 @@ require (
 	github.com/spf13/cast v1.7.0 // indirect
 	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/vishvananda/netlink v1.3.0 // indirect
+	github.com/vishvananda/netlink v1.3.1-0.20241022031324-976bd8de7d81 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.mongodb.org/mongo-driver v1.17.1 // indirect
