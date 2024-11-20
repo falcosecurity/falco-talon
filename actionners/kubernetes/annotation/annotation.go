@@ -1,4 +1,4 @@
-package label
+package annotation
 
 import (
 	"context"
@@ -20,9 +20,9 @@ import (
 )
 
 const (
-	Name          string = "label"
+	Name          string = "annotation"
 	Category      string = "kubernetes"
-	Description   string = "Add, modify or delete the labels of the pod/node"
+	Description   string = "Add, modify or delete the annotations of the pod/node"
 	Source        string = "syscalls"
 	Continue      bool   = true
 	UseContext    bool   = false
@@ -43,11 +43,11 @@ rules:
   - patch
   - list
 `
-	Example string = `- action: Label the pod
-  actionner: kubernetes:label
+	Example string = `- action: Annotation the pod
+  actionner: kubernetes:annotation
   parameters:
     level: pod
-    labels:
+    annotations:
       suspicious: "true"
 `
 )
@@ -63,14 +63,14 @@ type patch struct {
 }
 
 type Parameters struct {
-	Labels map[string]string `mapstructure:"labels" validate:"required"`
-	Level  string            `mapstructure:"level" validate:"omitempty"`
+	Annotations map[string]string `mapstructure:"annotations" validate:"required"`
+	Level       string            `mapstructure:"level" validate:"omitempty"`
 }
 
 const (
-	metadataLabels = "/metadata/labels/"
-	podStr         = "pod"
-	nodeStr        = "node"
+	metadataAnnotations = "/metadata/annotations/"
+	podStr              = "pod"
+	nodeStr             = "node"
 )
 
 type Actionner struct{}
@@ -100,8 +100,8 @@ func (a Actionner) Information() models.Information {
 }
 func (a Actionner) Parameters() models.Parameters {
 	return Parameters{
-		Labels: map[string]string{},
-		Level:  "pod",
+		Annotations: map[string]string{},
+		Level:       "pod",
 	}
 }
 
@@ -151,10 +151,10 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 			}, nil, err
 		}
 		objects[nodeStr] = node.Name
-		if node.ObjectMeta.Labels == nil {
-			node.ObjectMeta.Labels = make(map[string]string)
-			node.ObjectMeta.Labels["foo"] = "bar"
-			parameters.Labels["foo"] = ""
+		if node.ObjectMeta.Annotations == nil {
+			node.ObjectMeta.Annotations = make(map[string]string)
+			node.ObjectMeta.Annotations["foo"] = "bar"
+			parameters.Annotations["foo"] = ""
 			_, err = client.Clientset.CoreV1().Nodes().Update(context.Background(), node, metav1.UpdateOptions{})
 			if err != nil {
 				return utils.LogLine{
@@ -168,10 +168,10 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 		kind = podStr
 		objects[podStr] = podName
 		objects["namespace"] = namespace
-		if pod.ObjectMeta.Labels == nil {
-			pod.ObjectMeta.Labels = make(map[string]string)
-			pod.ObjectMeta.Labels["foo"] = "bar"
-			parameters.Labels["foo"] = ""
+		if pod.ObjectMeta.Annotations == nil {
+			pod.ObjectMeta.Annotations = make(map[string]string)
+			pod.ObjectMeta.Annotations["foo"] = "bar"
+			parameters.Annotations["foo"] = ""
 			_, err = client.Clientset.CoreV1().Pods(namespace).Update(context.Background(), pod, metav1.UpdateOptions{})
 			if err != nil {
 				return utils.LogLine{
@@ -183,13 +183,13 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 		}
 	}
 
-	for i, j := range parameters.Labels {
+	for i, j := range parameters.Annotations {
 		if fmt.Sprintf("%v", j) == "" {
 			continue
 		}
 		payload = append(payload, patch{
 			Op:    "replace",
-			Path:  metadataLabels + strings.ReplaceAll(i, "/", "~1"),
+			Path:  metadataAnnotations + strings.ReplaceAll(i, "/", "~1"),
 			Value: fmt.Sprintf("%v", j),
 		})
 	}
@@ -211,13 +211,13 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 
 	payload = make([]patch, 0)
 	action.GetParameters()
-	for i, j := range parameters.Labels {
+	for i, j := range parameters.Annotations {
 		if fmt.Sprintf("%v", j) != "" {
 			continue
 		}
 		payload = append(payload, patch{
 			Op:   "remove",
-			Path: metadataLabels + strings.ReplaceAll(i, "/", "~1"),
+			Path: metadataAnnotations + strings.ReplaceAll(i, "/", "~1"),
 		})
 	}
 
@@ -238,9 +238,9 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 	}
 	var output string
 	if kind == nodeStr {
-		output = fmt.Sprintf("the node '%v' has been labeled", node.Name)
+		output = fmt.Sprintf("the node '%v' has been annotationed", node.Name)
 	} else {
-		output = fmt.Sprintf("the pod '%v' in the namespace '%v' has been labeled", podName, namespace)
+		output = fmt.Sprintf("the pod '%v' in the namespace '%v' has been annotated", podName, namespace)
 	}
 	return utils.LogLine{
 		Objects: objects,
@@ -261,8 +261,8 @@ func (a Actionner) CheckParameters(action *rules.Action) error {
 		return err
 	}
 
-	if len(parameters.Labels) == 0 {
-		return errors.New("parameter 'labels' should have at least one label")
+	if len(parameters.Annotations) == 0 {
+		return errors.New("parameter 'annotations' should have at least one annotation")
 	}
 	return nil
 }
