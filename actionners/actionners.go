@@ -20,6 +20,7 @@ import (
 	lambdaInvoke "github.com/falcosecurity/falco-talon/actionners/aws/lambda"
 	calicoNetworkpolicy "github.com/falcosecurity/falco-talon/actionners/calico/networkpolicy"
 	ciliumNetworkpolicy "github.com/falcosecurity/falco-talon/actionners/cilium/networkpolicy"
+	k8sAnnotation "github.com/falcosecurity/falco-talon/actionners/kubernetes/annotation"
 	k8sCordon "github.com/falcosecurity/falco-talon/actionners/kubernetes/cordon"
 	k8sDelete "github.com/falcosecurity/falco-talon/actionners/kubernetes/delete"
 	k8sDownload "github.com/falcosecurity/falco-talon/actionners/kubernetes/download"
@@ -71,6 +72,7 @@ func ListDefaultActionners() *Actionners {
 		defaultActionners.Add(
 			k8sTerminate.Register(),
 			k8sLabel.Register(),
+			k8sAnnotation.Register(),
 			k8sNetworkpolicy.Register(),
 			k8sExec.Register(),
 			k8sScript.Register(),
