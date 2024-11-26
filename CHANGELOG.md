@@ -5,6 +5,10 @@
 - Add `gcp:function` actionner
 - Add `gcp:gcs` output
 - Add `ignore_standalone_pods` parameter for `kubernetes:terminate` actionner
+- Allow to wait until the completion of `kubernetes:drain`
+- Allow to check/print the rules without specifying a `config.yaml`
+- Migration of the Helm chart to [https://github.com/falcosecurity/charts/](https://github.com/falcosecurity/charts/)
+- Use smaller image for the `kubernetes:tcpdump` image
 
 ## 0.1.1 - 2024-10-01
 
