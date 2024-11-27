@@ -8,7 +8,7 @@
 - Allow to wait until the completion of `kubernetes:drain`
 - Allow to check/print the rules without specifying a `config.yaml`
 - Migration of the Helm chart to [https://github.com/falcosecurity/charts/](https://github.com/falcosecurity/charts/)
-- Use smaller image for the `kubernetes:tcpdump` image
+- Use smaller image for the `kubernetes:tcpdump` actionner
 
 ## 0.1.1 - 2024-10-01
 
