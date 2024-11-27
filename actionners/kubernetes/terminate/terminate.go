@@ -50,7 +50,7 @@ rules:
     grace_period_seconds: 5
     ignore_daemonsets: true
     ignore_statefulsets: true
-	ignore_standalone_pods: true
+    ignore_standalone_pods: true
     min_healthy_replicas: 33%
 `
 )
