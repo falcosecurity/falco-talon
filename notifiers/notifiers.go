@@ -163,7 +163,7 @@ func Notify(actx context.Context, rule *rules.Rule, action *rules.Action, event 
 				span.SetStatus(codes.Ok, "notification successfully sent")
 				logN.Status = utils.SuccessStr
 				utils.PrintLog("info", logN)
-				metrics.IncreaseCounter(log)
+				metrics.IncreaseCounter(logN)
 			}
 			span.End()
 		}
