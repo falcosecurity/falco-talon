@@ -269,7 +269,7 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 	if actionner.Information().RequireOutput {
 		octx, span := tracer.Start(actx, "output")
 
-		log = utils.LogLine{
+		logO := utils.LogLine{
 			Message: "output",
 			Action:  action.GetName(),
 			TraceID: event.TraceID,
@@ -277,27 +277,27 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 
 		if output == nil {
 			err = fmt.Errorf("an output is required")
-			log.Status = utils.FailureStr
-			log.Error = err.Error()
-			log.OutputTarget = "n/a"
-			utils.PrintLog("error", log)
-			metrics.IncreaseCounter(log)
+			logO.Status = utils.FailureStr
+			logO.Error = err.Error()
+			logO.OutputTarget = "n/a"
+			utils.PrintLog("error", logO)
+			metrics.IncreaseCounter(logO)
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
-			go notifiers.Notify(octx, rule, action, event, log)
+			go notifiers.Notify(octx, rule, action, event, logO)
 			span.End()
 			return err
 		}
 
 		if data == nil || len(data.Bytes) == 0 {
 			err = fmt.Errorf("empty output")
-			log.Status = utils.FailureStr
-			log.Error = err.Error()
-			utils.PrintLog("error", log)
-			metrics.IncreaseCounter(log)
+			logO.Status = utils.FailureStr
+			logO.Error = err.Error()
+			utils.PrintLog("error", logO)
+			metrics.IncreaseCounter(logO)
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
-			go notifiers.Notify(octx, rule, action, event, log)
+			go notifiers.Notify(octx, rule, action, event, logO)
 			span.End()
 			return err
 		}
@@ -306,67 +306,67 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 		o := outputs.ListDefaultOutputs().FindOutput(target)
 		if o == nil {
 			err = fmt.Errorf("unknown output target '%v'", target)
-			log.Status = utils.FailureStr
-			log.OutputTarget = target
-			log.Error = err.Error()
-			utils.PrintLog("error", log)
-			metrics.IncreaseCounter(log)
+			logO.Status = utils.FailureStr
+			logO.OutputTarget = target
+			logO.Error = err.Error()
+			utils.PrintLog("error", logO)
+			metrics.IncreaseCounter(logO)
 			span.SetAttributes(attribute.String("output.target", target))
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
-			go notifiers.Notify(octx, rule, action, event, log)
+			go notifiers.Notify(octx, rule, action, event, logO)
 			span.End()
 			return err
 		}
 
-		log.Category = o.Information().Category
-		log.OutputTarget = target
+		logO.Category = o.Information().Category
+		logO.OutputTarget = target
 
 		span.SetAttributes(attribute.String("output.name", o.Information().Name))
 		span.SetAttributes(attribute.String("output.category", o.Information().Category))
 		span.SetAttributes(attribute.String("output.target", target))
 
 		if err2 := o.Checks(output); err2 != nil {
-			log.Status = utils.FailureStr
-			log.Error = err2.Error()
-			utils.PrintLog("error", log)
-			metrics.IncreaseCounter(log)
+			logO.Status = utils.FailureStr
+			logO.Error = err2.Error()
+			utils.PrintLog("error", logO)
+			metrics.IncreaseCounter(logO)
 			span.SetStatus(codes.Error, err2.Error())
 			span.RecordError(err2)
-			go notifiers.Notify(octx, rule, action, event, log)
+			go notifiers.Notify(octx, rule, action, event, logO)
 			span.End()
 			return err
 		}
 
 		result, err = o.Run(output, data)
-		log.Status = result.Status
-		log.Objects = result.Objects
+		logO.Status = result.Status
+		logO.Objects = result.Objects
 		if result.Output != "" {
-			log.Output = result.Output
+			logO.Output = result.Output
 		}
 		if result.Error != "" {
-			log.Error = result.Error
+			logO.Error = result.Error
 		}
 
 		span.SetAttributes(attribute.String("output.status", result.Status))
 		span.SetAttributes(attribute.String("output.message", result.Output))
 
-		metrics.IncreaseCounter(log)
+		metrics.IncreaseCounter(logO)
 
 		if err != nil {
-			log.Error = err.Error()
-			utils.PrintLog("error", log)
+			logO.Error = err.Error()
+			utils.PrintLog("error", logO)
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
-			go notifiers.Notify(octx, rule, action, event, log)
+			go notifiers.Notify(octx, rule, action, event, logO)
 			span.End()
 			return err
 		}
 		span.SetStatus(codes.Ok, "output successfully completed")
 		span.AddEvent(result.Output)
 
-		utils.PrintLog("info", log)
-		go notifiers.Notify(octx, rule, action, event, log)
+		utils.PrintLog("info", logO)
+		go notifiers.Notify(octx, rule, action, event, logO)
 		span.End()
 		return nil
 	}
@@ -374,7 +374,7 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 	if actionner.Information().AllowOutput && output != nil && data != nil {
 		octx, span := tracer.Start(actx, "output")
 
-		log = utils.LogLine{
+		logO := utils.LogLine{
 			Message: "output",
 			Rule:    rule.GetName(),
 			Action:  action.GetName(),
@@ -385,20 +385,20 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 		o := outputs.GetOutputs().FindOutput(target)
 		if o == nil {
 			err = fmt.Errorf("unknown target '%v'", target)
-			log.OutputTarget = target
-			log.Status = utils.FailureStr
-			log.Error = err.Error()
-			utils.PrintLog("error", log)
+			logO.OutputTarget = target
+			logO.Status = utils.FailureStr
+			logO.Error = err.Error()
+			utils.PrintLog("error", logO)
 			span.SetAttributes(attribute.String("output.target", target))
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
-			go notifiers.Notify(octx, rule, action, event, log)
+			go notifiers.Notify(octx, rule, action, event, logO)
 			span.End()
 			return err
 		}
 
-		log.OutputTarget = target
-		log.Category = o.Information().Category
+		logO.OutputTarget = target
+		logO.Category = o.Information().Category
 
 		span.SetAttributes(attribute.String("output.name", o.Information().Name))
 		span.SetAttributes(attribute.String("output.category", o.Information().Category))
@@ -406,46 +406,46 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 
 		if len(data.Bytes) == 0 {
 			err = fmt.Errorf("empty output")
-			log.Status = utils.FailureStr
-			log.Error = err.Error()
-			utils.PrintLog("error", log)
-			metrics.IncreaseCounter(log)
+			logO.Status = utils.FailureStr
+			logO.Error = err.Error()
+			utils.PrintLog("error", logO)
+			metrics.IncreaseCounter(logO)
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
-			go notifiers.Notify(octx, rule, action, event, log)
+			go notifiers.Notify(octx, rule, action, event, logO)
 			span.End()
 			return err
 		}
 
 		result, err = o.Run(output, data)
-		log.Status = result.Status
-		log.Objects = result.Objects
+		logO.Status = result.Status
+		logO.Objects = result.Objects
 		if result.Output != "" {
-			log.Output = result.Output
+			logO.Output = result.Output
 		}
 		if result.Error != "" {
-			log.Error = result.Error
+			logO.Error = result.Error
 		}
 
 		span.SetAttributes(attribute.String("output.status", result.Status))
 		span.SetAttributes(attribute.String("output.message", result.Output))
 
-		metrics.IncreaseCounter(log)
+		metrics.IncreaseCounter(logO)
 
 		if err != nil {
-			log.Error = err.Error()
-			utils.PrintLog("error", log)
+			logO.Error = err.Error()
+			utils.PrintLog("error", logO)
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
-			go notifiers.Notify(octx, rule, action, event, log)
+			go notifiers.Notify(octx, rule, action, event, logO)
 			span.End()
 			return err
 		}
 		span.SetStatus(codes.Ok, "output successfully completed")
 		span.AddEvent(result.Output)
 
-		utils.PrintLog("info", log)
-		go notifiers.Notify(octx, rule, action, event, log)
+		utils.PrintLog("info", logO)
+		go notifiers.Notify(octx, rule, action, event, logO)
 		span.End()
 		return nil
 	}
