@@ -24,7 +24,7 @@ require (
 	github.com/magefile/mage v1.15.0
 	github.com/minio/minio-go/v7 v7.0.82
 	github.com/nats-io/nats-server/v2 v2.10.23
-	github.com/nats-io/nats.go v1.37.0
+	github.com/nats-io/nats.go v1.38.0
 	github.com/projectcalico/api v0.0.0-20241106234619-d6b63b533e68
 	github.com/prometheus/client_golang v1.20.5
 	github.com/rs/zerolog v1.33.0
@@ -144,7 +144,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/nats-io/jwt/v2 v2.7.2 // indirect
-	github.com/nats-io/nkeys v0.4.8 // indirect
+	github.com/nats-io/nkeys v0.4.9 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b // indirect
