@@ -6,12 +6,12 @@ require (
 	cloud.google.com/go/functions v1.19.3
 	cloud.google.com/go/storage v1.49.0
 	github.com/aws/aws-sdk-go-v2 v1.32.7
-	github.com/aws/aws-sdk-go-v2/config v1.28.7
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.48
+	github.com/aws/aws-sdk-go-v2/config v1.28.8
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.49
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.22
-	github.com/aws/aws-sdk-go-v2/service/lambda v1.69.2
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.72.0
-	github.com/aws/aws-sdk-go-v2/service/sts v1.33.3
+	github.com/aws/aws-sdk-go-v2/service/lambda v1.69.3
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.72.1
+	github.com/aws/aws-sdk-go-v2/service/sts v1.33.4
 	github.com/cilium/cilium v1.16.5
 	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6
 	github.com/emersion/go-smtp v0.21.3
