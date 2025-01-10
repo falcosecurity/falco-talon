@@ -1,7 +1,6 @@
 package drain
 
 import (
-	"context"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -158,7 +157,7 @@ func (a Actionner) RunWithClient(client k8s.DrainClient, event *events.Event, ac
 	nodeName := node.GetName()
 	objects["node"] = nodeName
 
-	pods, err := client.ListPods(context.Background(), metav1.ListOptions{
+	pods, err := client.ListPods(metav1.ListOptions{
 		FieldSelector: fmt.Sprintf("spec.nodeName=%s", nodeName),
 	})
 	if err != nil {
@@ -188,7 +187,7 @@ func (a Actionner) RunWithClient(client k8s.DrainClient, event *events.Event, ac
 			case <-stopListingDone:
 				return
 			case <-ticker.C:
-				pods2, err2 := client.ListPods(context.Background(), metav1.ListOptions{
+				pods2, err2 := client.ListPods(metav1.ListOptions{
 					FieldSelector: fmt.Sprintf("spec.nodeName=%s", nodeName),
 				})
 				if err2 != nil {

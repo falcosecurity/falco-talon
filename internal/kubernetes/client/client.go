@@ -8,11 +8,14 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -28,9 +31,8 @@ import (
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/client-go/tools/remotecommand"
 	toolsWatch "k8s.io/client-go/tools/watch"
-	"k8s.io/kubectl/pkg/scheme"
-
 	klog "k8s.io/klog/v2"
+	"k8s.io/kubectl/pkg/scheme"
 
 	"github.com/falcosecurity/falco-talon/configuration"
 	"github.com/falcosecurity/falco-talon/utils"
@@ -70,14 +72,14 @@ type KubernetesClient interface {
 	GetLeaseHolder() (<-chan string, error)
 	Exec(namespace, pod, container string, command []string, script string) (*bytes.Buffer, error)
 	CreateEphemeralContainer(pod *corev1.Pod, container, name string, ttl int) error
-	ListPods(ctx context.Context, opts metav1.ListOptions) (*corev1.PodList, error)
+	ListPods(opts metav1.ListOptions) (*corev1.PodList, error)
 	EvictPod(pod corev1.Pod) error
 }
 
 type DrainClient interface {
 	GetPod(name, namespace string) (*corev1.Pod, error)
 	GetNodeFromPod(pod *corev1.Pod) (*corev1.Node, error)
-	ListPods(ctx context.Context, options metav1.ListOptions) (*corev1.PodList, error)
+	ListPods(options metav1.ListOptions) (*corev1.PodList, error)
 	EvictPod(pod corev1.Pod) error
 	GetReplicaSet(name, namespace string) (*appsv1.ReplicaSet, error)
 }
@@ -149,6 +151,14 @@ func (client Client) GetPod(pod, namespace string) (*corev1.Pod, error) {
 	p, err := client.Clientset.CoreV1().Pods(namespace).Get(context.Background(), pod, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("the pod '%v' in the namespace '%v' doesn't exist", pod, namespace)
+	}
+	return p, nil
+}
+
+func (client Client) GetJob(job, namespace string) (*batchv1.Job, error) {
+	p, err := client.Clientset.BatchV1().Jobs(namespace).Get(context.Background(), job, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("the job '%v' in the namespace '%v' doesn't exist", job, namespace)
 	}
 	return p, nil
 }
@@ -461,6 +471,13 @@ func (client Client) CreateEphemeralContainer(pod *corev1.Pod, container, name, 
 			Stdin:                    true,
 			TTY:                      false,
 			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+			SecurityContext: &corev1.SecurityContext{
+				// Capabilities: &corev1.Capabilities{
+				// 	Add: []corev1.Capability{"SYS_ADMIN", "NET_ADMIN"},
+				// },
+				Privileged: utils.Pointer(true),
+				RunAsUser:  utils.Pointer(int64(0)),
+			},
 		},
 		TargetContainerName: container,
 	}
@@ -497,7 +514,7 @@ func (client Client) CreateEphemeralContainer(pod *corev1.Pod, container, name, 
 		return err
 	}
 
-	timeout := time.NewTimer(10 * time.Second)
+	timeout := time.NewTimer(20 * time.Second)
 	ticker := time.NewTicker(300 * time.Millisecond)
 	defer timeout.Stop()
 	defer ticker.Stop()
@@ -523,8 +540,8 @@ func (client Client) CreateEphemeralContainer(pod *corev1.Pod, container, name, 
 	return nil
 }
 
-func (client Client) ListPods(ctx context.Context, opts metav1.ListOptions) (*corev1.PodList, error) {
-	return client.CoreV1().Pods("").List(ctx, opts)
+func (client Client) ListPods(opts metav1.ListOptions) (*corev1.PodList, error) {
+	return client.CoreV1().Pods("").List(context.Background(), opts)
 }
 
 func (client Client) EvictPod(pod corev1.Pod) error {
@@ -571,4 +588,112 @@ func GetContainers(pod *corev1.Pod) []string {
 		c = append(c, i.Name)
 	}
 	return c
+}
+
+func (client Client) CreateJob(jobName, namespace, image, node string, ttl int) (string, error) {
+	execAction := new(corev1.ExecAction)
+	execAction.Command = []string{"true"}
+	probe := new(corev1.Probe)
+	probe.ProbeHandler.Exec = execAction
+	probe.InitialDelaySeconds = int32(0)
+
+	endAt := time.Now().Local().Add(time.Duration(int64(ttl)) * time.Second)
+
+	uuid := uuid.NewString()[:5]
+
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: jobName + "-" + uuid,
+			Annotations: map[string]string{
+				"end-at": endAt.Format("2006-01-02 15:04:05"),
+			},
+			Labels: map[string]string{
+				"app.kubernetes.io/managed-by": utils.FalcoTalonStr,
+				"app.kubernetes.io/name":       jobName,
+				"app.kubernetes.io/part-of":    utils.FalcoTalonStr,
+			},
+		},
+		Spec: batchv1.JobSpec{
+			// ActiveDeadlineSeconds:   utils.Pointer(int64(ttl)),
+			TTLSecondsAfterFinished: utils.Pointer(int32(3600)),
+			BackoffLimit:            utils.Pointer(int32(1)),
+			Completions:             utils.Pointer(int32(1)),
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: jobName + "-" + uuid,
+					Annotations: map[string]string{
+						"end-at": endAt.Format("2006-01-02 15:04:05"),
+					},
+					Labels: map[string]string{
+						"app.kubernetes.io/managed-by": utils.FalcoTalonStr,
+						"app.kubernetes.io/name":       jobName,
+						"app.kubernetes.io/part-of":    utils.FalcoTalonStr,
+					},
+				},
+				Spec: corev1.PodSpec{
+					NodeName: node,
+					Containers: []corev1.Container{
+						{
+							Name:           jobName,
+							Command:        []string{"sleep", strconv.Itoa(ttl)},
+							Ports:          []corev1.ContainerPort{},
+							LivenessProbe:  probe,
+							ReadinessProbe: probe,
+							Stdin:          true,
+							TTY:            true,
+							Image:          image,
+							SecurityContext: &corev1.SecurityContext{
+								Privileged: utils.Pointer(true),
+								RunAsUser:  utils.Pointer(int64(0)),
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "host-fs",
+									MountPath: "/host",
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "host-fs",
+							VolumeSource: corev1.VolumeSource{
+								HostPath: utils.Pointer(corev1.HostPathVolumeSource{Path: "/"})},
+						},
+					},
+					ActiveDeadlineSeconds:         utils.Pointer(int64(ttl + 5)),
+					RestartPolicy:                 corev1.RestartPolicyNever,
+					TerminationGracePeriodSeconds: utils.Pointer(int64(1)),
+				},
+			},
+		},
+	}
+
+	result, err := client.Clientset.BatchV1().Jobs(namespace).Create(context.Background(), job, metav1.CreateOptions{})
+	if err != nil {
+		return "", err
+	}
+
+	timeout := time.NewTimer(time.Duration(ttl) * time.Second)
+	ticker := time.NewTicker(300 * time.Millisecond)
+	defer timeout.Stop()
+	defer ticker.Stop()
+
+	var ready bool
+	for !ready {
+		select {
+		case <-timeout.C:
+			return "", fmt.Errorf("the job '%v' in the namespace '%v' is not ready", result.Name, namespace)
+		case <-ticker.C:
+			j, err := client.GetJob(result.Name, namespace)
+			if err != nil {
+				return "", err
+			}
+			if j.Status.Active > 0 {
+				ready = true
+			}
+		}
+	}
+
+	return result.Name, nil
 }

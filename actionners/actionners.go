@@ -31,6 +31,7 @@ import (
 	k8sLog "github.com/falcosecurity/falco-talon/actionners/kubernetes/log"
 	k8sNetworkpolicy "github.com/falcosecurity/falco-talon/actionners/kubernetes/networkpolicy"
 	k8sScript "github.com/falcosecurity/falco-talon/actionners/kubernetes/script"
+	k8sSysdig "github.com/falcosecurity/falco-talon/actionners/kubernetes/sysdig"
 	k8sTcpdump "github.com/falcosecurity/falco-talon/actionners/kubernetes/tcpdump"
 	k8sTerminate "github.com/falcosecurity/falco-talon/actionners/kubernetes/terminate"
 	"github.com/falcosecurity/falco-talon/configuration"
@@ -83,6 +84,7 @@ func ListDefaultActionners() *Actionners {
 			k8sDrain.Register(),
 			k8sDownload.Register(),
 			k8sTcpdump.Register(),
+			k8sSysdig.Register(),
 			lambdaInvoke.Register(),
 			gcpFunctionCall.Register(),
 			calicoNetworkpolicy.Register(),
