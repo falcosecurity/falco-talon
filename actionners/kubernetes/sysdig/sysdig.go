@@ -1,9 +1,12 @@
-package tcpdump
+package sysdig
 
 import (
 	"fmt"
+	"strings"
+	"time"
 
-	"github.com/google/uuid"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/falcosecurity/falco-talon/internal/events"
 	k8sChecks "github.com/falcosecurity/falco-talon/internal/kubernetes/checks"
@@ -14,10 +17,10 @@ import (
 )
 
 const (
-	Name          string = "tcpdump"
+	Name          string = "sysdig"
 	Category      string = "kubernetes"
-	Description   string = "Capture the network packets in a pod"
-	Source        string = "syscalls"
+	Description   string = "Capture the syscalls packets in a pod"
+	Source        string = "syscalls, k8saudit"
 	Continue      bool   = false
 	UseContext    bool   = false
 	AllowOutput   bool   = false
@@ -33,16 +36,7 @@ rules:
   - pods
   verbs:
   - get
-  - update
-  - patch
   - list
-- apiGroups:
-  - ""
-  resources:
-  - pods/ephemeralcontainers
-  verbs:
-  - patch
-  - create
 - apiGroups:
   - ""
   resources:
@@ -50,9 +44,17 @@ rules:
   verbs:
   - get
   - create
+- apiGroups:
+  - "batch"
+  resources:
+  - jobs
+  verbs:
+  - get
+  - list
+  - create
 `
-	Example string = `- action: Create a packet capture from a pod
-  actionner: kubernetes:tcpdump
+	Example string = `- action: Create a syscall capture from a pod
+  actionner: kubernetes:sysdig
   parameters:
     duration: 10
     snaplen: 1024
@@ -65,21 +67,25 @@ rules:
 )
 
 var (
-	RequiredOutputFields = []string{"k8s.ns.name", "k8s.pod.name"}
+	RequiredOutputFields = []string{"k8s.ns.name, k8s.pod.name", "ka.target.namespace, (ka.target.pod.name or ka.target.name)"}
 )
 
 type Parameters struct {
-	Image    string `mapstructure:"image"`
-	Duration int    `mapstructure:"duration" validate:"gte=0"`
-	Snaplen  int    `mapstructure:"snaplen" validate:"gte=0"`
+	Image      string `mapstructure:"image"`
+	Scope      string `mapstructure:"scope" validate:"oneof=pod node"`
+	Duration   int    `mapstructure:"duration" validate:"gte=0,lte=30"`
+	BufferSize int    `mapstructure:"buffer_size" validate:"gte=128"`
 }
 
 const (
-	baseName        string = "falco-talon-tcpdump-"
-	defaultImage    string = "issif/tcpdump:latest"
-	defaultTTL      int    = 60
-	defaultDuration int    = 5
-	defaulSnaplen   int    = 4096
+	baseName     string = "falco-talon-sysdig-"
+	defaultImage string = "issif/sysdig:latest"
+	// defaultImage       string = "sysdig/sysdig:latest"
+	defaultScope       string = "pod"
+	defaultTTL         int    = 60
+	defaultDuration    int    = 5
+	defaultMaxDuration int    = 30
+	defaultBufferSize  int    = 2048
 )
 
 type Actionner struct{}
@@ -110,13 +116,22 @@ func (a Actionner) Information() models.Information {
 
 func (a Actionner) Parameters() models.Parameters {
 	return Parameters{
-		Duration: defaultDuration,
-		Snaplen:  defaulSnaplen,
-		Image:    defaultImage,
+		Duration:   defaultDuration,
+		Scope:      defaultScope,
+		BufferSize: defaultBufferSize,
+		Image:      defaultImage,
 	}
 }
 
 func (a Actionner) Checks(event *events.Event, _ *rules.Action) error {
+	if event.Source == "k8s_audit" {
+		event.OutputFields["k8s.ns.name"] = event.OutputFields["ka.target.namespace"]
+		if event.OutputFields["ka.target.pod.name"] != "" {
+			event.OutputFields["k8s.pod.name"] = event.OutputFields["ka.target.pod.name"]
+		} else {
+			event.OutputFields["k8s.pod.name"] = event.OutputFields["ka.target.name"]
+		}
+	}
 	return k8sChecks.CheckPodExist(event)
 }
 
@@ -143,8 +158,16 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 		parameters.Duration = defaultDuration
 	}
 
+	if parameters.Duration > 30 {
+		parameters.Duration = defaultMaxDuration
+	}
+
 	if parameters.Image == "" {
 		parameters.Image = defaultImage
+	}
+
+	if parameters.Scope == "" {
+		parameters.Scope = defaultScope
 	}
 
 	client := k8s.GetClient()
@@ -160,9 +183,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 		}, nil, err
 	}
 
-	ephemeralContainerName := fmt.Sprintf("%v%v", baseName, uuid.NewString()[:5])
-
-	err = client.CreateEphemeralContainer(pod, containers[0], ephemeralContainerName, parameters.Image, defaultTTL)
+	job, err := client.CreateJob("falco-talon-sysdig", namespace, parameters.Image, pod.Spec.NodeName, defaultTTL)
 	if err != nil {
 		return utils.LogLine{
 			Objects: objects,
@@ -171,9 +192,54 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 		}, nil, err
 	}
 
+	objects["job"] = job
+
+	timeout := time.NewTimer(20 * time.Second)
+	ticker := time.NewTicker(300 * time.Millisecond)
+	defer timeout.Stop()
+	defer ticker.Stop()
+
+	var ready bool
+	var jPod, jContainer string
+	for !ready {
+		select {
+		case <-timeout.C:
+			err = fmt.Errorf("the job '%v' in the namespace '%v' for the sysdig capture is not ready", job, namespace)
+			return utils.LogLine{
+				Objects: objects,
+				Error:   err.Error(),
+				Status:  utils.FailureStr,
+			}, nil, err
+		case <-ticker.C:
+			p, err2 := client.ListPods(metav1.ListOptions{LabelSelector: "batch.kubernetes.io/job-name=" + job})
+			if err2 != nil {
+				return utils.LogLine{
+					Objects: objects,
+					Error:   err2.Error(),
+					Status:  utils.FailureStr,
+				}, nil, err2
+			}
+			if len(p.Items) > 0 {
+				if p.Items[0].Status.Phase == corev1.PodRunning && p.Items[0].Status.ContainerStatuses[0].Ready {
+					jPod = p.Items[0].Name
+					jContainer = p.Items[0].Spec.Containers[0].Name
+					ready = true
+				}
+			}
+		}
+	}
+
 	command := []string{"tee", "/tmp/talon-script.sh", "/dev/null"}
-	script := fmt.Sprintf("timeout %vs tcpdump -n -i any -s %v -w /tmp/tcpdump.pcap || [ $? -eq 124 ] && echo OK || exit 1\n", parameters.Duration, parameters.Snaplen)
-	_, err = client.Exec(namespace, podName, ephemeralContainerName, command, script)
+	sysdigCmd := fmt.Sprintf("sysdig --modern-bpf --cri /run/containerd/containerd.sock -M %v -s %v -z -w /tmp/sysdig.scap.gz", parameters.Duration, parameters.BufferSize)
+	if parameters.Scope == "pod" {
+		containers := []string{}
+		for _, i := range pod.Status.ContainerStatuses {
+			containers = append(containers, strings.ReplaceAll(i.ContainerID, "containerd://", "")[:12])
+		}
+		sysdigCmd = fmt.Sprintf("%v \"container.id in (%v)\"", sysdigCmd, strings.Join(containers, ","))
+	}
+	script := fmt.Sprintf("%v || [ $? -eq 0 ] && echo OK || exit 1\n", sysdigCmd)
+	_, err = client.Exec(namespace, jPod, jContainer, command, script)
 	if err != nil {
 		return utils.LogLine{
 			Objects: objects,
@@ -183,7 +249,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 	}
 
 	command = []string{"sh", "/tmp/talon-script.sh"}
-	_, err = client.Exec(namespace, podName, ephemeralContainerName, command, "")
+	_, err = client.Exec(namespace, jPod, jContainer, command, "")
 	if err != nil {
 		return utils.LogLine{
 			Objects: objects,
@@ -192,8 +258,8 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 		}, nil, err
 	}
 
-	command = []string{"cat", "/tmp/tcpdump.pcap"}
-	output, err := client.Exec(namespace, podName, ephemeralContainerName, command, "")
+	command = []string{"cat", "/tmp/sysdig.scap.gz"}
+	output, err := client.Exec(namespace, jPod, jContainer, command, "")
 	if err != nil {
 		return utils.LogLine{
 			Objects: objects,
@@ -204,9 +270,9 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 
 	return utils.LogLine{
 		Objects: objects,
-		Output:  fmt.Sprintf("a tcpdump '%v' has been created", "tcpdump.pcap"),
+		Output:  fmt.Sprintf("a sysdig capture '%v' has been created", "sysdig.scap.gz"),
 		Status:  utils.SuccessStr,
-	}, &models.Data{Name: "tcpdump.pcap", Objects: objects, Bytes: output.Bytes()}, nil
+	}, &models.Data{Name: "sysdig.scap.gz", Objects: objects, Bytes: output.Bytes()}, nil
 }
 
 func (a Actionner) CheckParameters(action *rules.Action) error {

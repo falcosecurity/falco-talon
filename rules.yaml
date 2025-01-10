@@ -196,6 +196,22 @@
           prefix: /tcpdump/
           region: us-east-1
 
+- rule: Test sysdig
+  match:
+    rules:
+      - Test sysdig
+  actions:
+    - action: Test sysdig
+      actionner: kubernetes:sysdig
+      parameters:
+        duration: 5
+        scope: pod
+        buffer_size: 4096
+      output:
+        target: local:file
+        parameters:
+          destination: /tmp/
+
 - rule: Test log
   match:
     rules:
