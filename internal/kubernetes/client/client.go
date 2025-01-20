@@ -76,14 +76,6 @@ type KubernetesClient interface {
 	EvictPod(pod corev1.Pod) error
 }
 
-type DrainClient interface {
-	GetPod(name, namespace string) (*corev1.Pod, error)
-	GetNodeFromPod(pod *corev1.Pod) (*corev1.Node, error)
-	ListPods(options metav1.ListOptions) (*corev1.PodList, error)
-	EvictPod(pod corev1.Pod) error
-	GetReplicaSet(name, namespace string) (*appsv1.ReplicaSet, error)
-}
-
 var (
 	client          *Client
 	leaseHolderChan chan string
@@ -131,7 +123,7 @@ func Init() error {
 		flag.Parse()
 
 		if initErr == nil {
-			utils.PrintLog("info", utils.LogLine{Message: "init", Category: "kubernetes", Status: utils.SuccessStr})
+			utils.PrintLog(utils.InfoStr, utils.LogLine{Message: "init", Category: "kubernetes", Status: utils.SuccessStr})
 		}
 	})
 

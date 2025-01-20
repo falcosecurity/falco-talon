@@ -57,7 +57,7 @@ rules:
   actionner: kubernetes:sysdig
   parameters:
     duration: 10
-    snaplen: 1024
+    buffer_size: 1024
   output:
     target: aws:s3
     parameters:
@@ -78,9 +78,8 @@ type Parameters struct {
 }
 
 const (
-	baseName     string = "falco-talon-sysdig-"
-	defaultImage string = "issif/sysdig:latest"
-	// defaultImage       string = "sysdig/sysdig:latest"
+	baseName           string = "falco-talon-sysdig-"
+	defaultImage       string = "issif/sysdig:latest"
 	defaultScope       string = "pod"
 	defaultTTL         int    = 60
 	defaultDuration    int    = 5
@@ -156,10 +155,6 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 
 	if parameters.Duration == 0 {
 		parameters.Duration = defaultDuration
-	}
-
-	if parameters.Duration > 30 {
-		parameters.Duration = defaultMaxDuration
 	}
 
 	if parameters.Image == "" {

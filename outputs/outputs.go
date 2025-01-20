@@ -91,7 +91,7 @@ func Init() error {
 		for _, output := range *defaultOutputs {
 			if category == output.Information().Category {
 				if err := output.Init(); err != nil {
-					utils.PrintLog("error", utils.LogLine{Message: "init", Error: err.Error(), Category: category, Status: utils.FailureStr})
+					utils.PrintLog(utils.ErrorStr, utils.LogLine{Message: "init", Error: err.Error(), Category: category, Status: utils.FailureStr})
 					return err
 				}
 				enabledCategories[category] = true

@@ -112,7 +112,7 @@ func Init() error {
 		for _, actionner := range *defaultActionners {
 			if category == actionner.Information().Category {
 				if err := actionner.Init(); err != nil {
-					utils.PrintLog("error", utils.LogLine{Message: "init", Error: err.Error(), Category: actionner.Information().Category, Status: utils.FailureStr})
+					utils.PrintLog(utils.ErrorStr, utils.LogLine{Message: "init", Error: err.Error(), Category: actionner.Information().Category, Status: utils.FailureStr})
 					return err
 				}
 				enabledCategories[category] = true
@@ -176,7 +176,7 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 
 	if rule.DryRun == trueStr {
 		log.Output = "no action, dry-run is enabled"
-		utils.PrintLog("info", log)
+		utils.PrintLog(utils.InfoStr, log)
 		return err
 	}
 
@@ -184,7 +184,7 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 	if actionner == nil {
 		log.Status = utils.FailureStr
 		log.Error = fmt.Sprintf("unknown actionner '%v'", action.GetActionner())
-		utils.PrintLog("error", log)
+		utils.PrintLog(utils.ErrorStr, log)
 		return fmt.Errorf("unknown actionner '%v'", action.GetActionner())
 	}
 
@@ -194,7 +194,7 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 	if err2 := actionner.Checks(event, action); err2 != nil {
 		log.Status = utils.FailureStr
 		log.Error = err2.Error()
-		utils.PrintLog("error", log)
+		utils.PrintLog(utils.ErrorStr, log)
 		span.SetStatus(codes.Error, err2.Error())
 		span.RecordError(err2)
 		span.End()
@@ -225,6 +225,11 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 		trace.WithAttributes(attribute.String("actionner.name", action.GetActionnerName())),
 	)
 	defer span.End()
+
+	logP := log
+	logP.Status = utils.InProgressStr
+	utils.PrintLog(utils.InfoStr, logP)
+
 	result, data, err := actionner.Run(event, action)
 	span.SetAttributes(attribute.String("action.result", result.Status))
 	span.SetAttributes(attribute.String("action.output", result.Output))
@@ -257,7 +262,7 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 		log.Error = err.Error()
 		span.SetStatus(codes.Error, err.Error())
 		span.RecordError(err)
-		utils.PrintLog("error", log)
+		utils.PrintLog(utils.ErrorStr, log)
 		go notifiers.Notify(actx, rule, action, event, log)
 		return err
 	}
@@ -265,7 +270,7 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 	span.AddEvent(result.Output)
 	span.SetStatus(codes.Ok, "action successfully completed")
 
-	utils.PrintLog("info", log)
+	utils.PrintLog(utils.InfoStr, log)
 	go notifiers.Notify(actx, rule, action, event, log)
 
 	if actionner.Information().RequireOutput {
@@ -282,7 +287,7 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 			logO.Status = utils.FailureStr
 			logO.Error = err.Error()
 			logO.OutputTarget = "n/a"
-			utils.PrintLog("error", logO)
+			utils.PrintLog(utils.ErrorStr, logO)
 			metrics.IncreaseCounter(logO)
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
@@ -295,7 +300,7 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 			err = fmt.Errorf("empty output")
 			logO.Status = utils.FailureStr
 			logO.Error = err.Error()
-			utils.PrintLog("error", logO)
+			utils.PrintLog(utils.ErrorStr, logO)
 			metrics.IncreaseCounter(logO)
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
@@ -311,7 +316,7 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 			logO.Status = utils.FailureStr
 			logO.OutputTarget = target
 			logO.Error = err.Error()
-			utils.PrintLog("error", logO)
+			utils.PrintLog(utils.ErrorStr, logO)
 			metrics.IncreaseCounter(logO)
 			span.SetAttributes(attribute.String("output.target", target))
 			span.SetStatus(codes.Error, err.Error())
@@ -331,7 +336,7 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 		if err2 := o.Checks(output); err2 != nil {
 			logO.Status = utils.FailureStr
 			logO.Error = err2.Error()
-			utils.PrintLog("error", logO)
+			utils.PrintLog(utils.ErrorStr, logO)
 			metrics.IncreaseCounter(logO)
 			span.SetStatus(codes.Error, err2.Error())
 			span.RecordError(err2)
@@ -357,7 +362,7 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 
 		if err != nil {
 			logO.Error = err.Error()
-			utils.PrintLog("error", logO)
+			utils.PrintLog(utils.ErrorStr, logO)
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
 			go notifiers.Notify(octx, rule, action, event, logO)
@@ -367,7 +372,7 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 		span.SetStatus(codes.Ok, "output successfully completed")
 		span.AddEvent(result.Output)
 
-		utils.PrintLog("info", logO)
+		utils.PrintLog(utils.InfoStr, logO)
 		go notifiers.Notify(octx, rule, action, event, logO)
 		span.End()
 		return nil
@@ -390,7 +395,7 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 			logO.OutputTarget = target
 			logO.Status = utils.FailureStr
 			logO.Error = err.Error()
-			utils.PrintLog("error", logO)
+			utils.PrintLog(utils.ErrorStr, logO)
 			span.SetAttributes(attribute.String("output.target", target))
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
@@ -410,7 +415,7 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 			err = fmt.Errorf("empty output")
 			logO.Status = utils.FailureStr
 			logO.Error = err.Error()
-			utils.PrintLog("error", logO)
+			utils.PrintLog(utils.ErrorStr, logO)
 			metrics.IncreaseCounter(logO)
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
@@ -436,7 +441,7 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 
 		if err != nil {
 			logO.Error = err.Error()
-			utils.PrintLog("error", logO)
+			utils.PrintLog(utils.ErrorStr, logO)
 			span.SetStatus(codes.Error, err.Error())
 			span.RecordError(err)
 			go notifiers.Notify(octx, rule, action, event, logO)
@@ -446,7 +451,7 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 		span.SetStatus(codes.Ok, "output successfully completed")
 		span.AddEvent(result.Output)
 
-		utils.PrintLog("info", logO)
+		utils.PrintLog(utils.InfoStr, logO)
 		go notifiers.Notify(octx, rule, action, event, logO)
 		span.End()
 		return nil
@@ -492,7 +497,7 @@ func StartConsumer(eventsC <-chan nats.MessageWithContext) {
 		}
 
 		if !config.PrintAllEvents {
-			utils.PrintLog("info", log)
+			utils.PrintLog(utils.InfoStr, log)
 		}
 
 		for _, i := range triggeredRules {
@@ -512,7 +517,7 @@ func StartConsumer(eventsC <-chan nats.MessageWithContext) {
 			span.SetStatus(codes.Ok, "match detected")
 			span.End()
 
-			utils.PrintLog("info", log)
+			utils.PrintLog(utils.InfoStr, log)
 			metrics.IncreaseCounter(log)
 
 			for _, a := range i.GetActions() {
@@ -533,7 +538,7 @@ func StartConsumer(eventsC <-chan nats.MessageWithContext) {
 								TraceID:   e.TraceID,
 								Error:     err.Error(),
 							}
-							utils.PrintLog("error", log)
+							utils.PrintLog(utils.ErrorStr, log)
 							if a.IgnoreErrors != trueStr {
 								break
 							}

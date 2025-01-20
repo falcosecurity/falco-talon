@@ -21,7 +21,7 @@ no-code solution. With easy rules, you can perform actions over compromised pods
 func Execute() {
 	err := RootCmd.Execute()
 	if err != nil {
-		utils.PrintLog("fatal", utils.LogLine{Error: err.Error()})
+		utils.PrintLog(utils.FatalStr, utils.LogLine{Error: err.Error()})
 	}
 }
 

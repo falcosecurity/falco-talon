@@ -1,6 +1,10 @@
 package rules
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/falcosecurity/falco-talon/utils"
+)
 
 const (
 	Default = iota
@@ -22,7 +26,7 @@ func getPriorityNumber(priority string) int {
 		return Alert
 	case "critical":
 		return Critical
-	case "error":
+	case utils.ErrorStr:
 		return Error
 	case "warning":
 		return Warning

@@ -43,7 +43,7 @@ func Init() error {
 		}
 
 		if initErr == nil {
-			utils.PrintLog("info", utils.LogLine{Message: "init", Category: "minio", Status: utils.SuccessStr})
+			utils.PrintLog(utils.InfoStr, utils.LogLine{Message: "init", Category: "minio", Status: utils.SuccessStr})
 		}
 	})
 
