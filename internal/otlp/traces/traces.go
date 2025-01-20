@@ -50,7 +50,7 @@ func SetupOTelSDK(ctx context.Context) (shutdown func(context.Context) error, oe
 	shutdownFuncs = append(shutdownFuncs, tracerProvider.Shutdown)
 	otel.SetTracerProvider(tracerProvider)
 	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
-		utils.PrintLog("error", utils.LogLine{Error: err.Error(), Message: "otel"})
+		utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Message: "otel"})
 	}))
 	tracer = tracerProvider.Tracer("falco-talon")
 

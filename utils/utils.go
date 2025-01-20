@@ -30,15 +30,17 @@ const (
 	MapIntStr         string = "map[string]int"
 	MapInterfaceStr   string = "map[string]interface {}"
 
-	errorStr   string = "error"
-	warningStr string = "warning"
-	fatalStr   string = "fatal"
+	InfoStr    string = "info"
+	ErrorStr   string = "error"
+	WarningStr string = "warning"
+	FatalStr   string = "fatal"
 
 	textStr  string = "text"
 	colorStr string = "color"
 
-	SuccessStr string = "success"
-	FailureStr string = "failure"
+	InProgressStr string = "in_progress"
+	SuccessStr    string = "success"
+	FailureStr    string = "failure"
 
 	ansiChars string = "[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))"
 
@@ -106,11 +108,11 @@ func PrintLog(level string, line LogLine) {
 
 	var l *zerolog.Event
 	switch strings.ToLower(level) {
-	case warningStr:
+	case WarningStr:
 		l = log.Warn()
-	case errorStr:
+	case ErrorStr:
 		l = log.Error()
-	case fatalStr:
+	case FatalStr:
 		l = log.Fatal()
 	default:
 		l = log.Info()

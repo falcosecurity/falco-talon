@@ -88,7 +88,7 @@ func init() {
 func ParseRules(files []string) *[]*Rule {
 	a, r, err := extractActionsRules(files)
 	if err != nil {
-		utils.PrintLog("error", utils.LogLine{Error: err.Error(), Message: "rules"})
+		utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Message: "rules"})
 		return nil
 	}
 
@@ -122,7 +122,7 @@ func ParseRules(files []string) *[]*Rule {
 							continue
 						}
 						if rule.Actions[n].Parameters[k] != nil && ru.Kind() != rt.Kind() {
-							utils.PrintLog("error", utils.LogLine{Error: "mismatch of type for a parameter", Message: "rules", Rule: rule.GetName(), Action: action.GetName()})
+							utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "mismatch of type for a parameter", Message: "rules", Rule: rule.GetName(), Action: action.GetName()})
 							continue
 						}
 						switch rt.Kind() {
@@ -157,7 +157,7 @@ func ParseRules(files []string) *[]*Rule {
 							continue
 						}
 						if rule.Actions[n].Output.Parameters[k] != nil && ru.Kind() != rt.Kind() {
-							utils.PrintLog("error", utils.LogLine{Error: "mismatch of type for a parameter", Message: "rules", Rule: rule.GetName(), Action: action.GetName(), OutputTarget: action.Output.GetTarget()})
+							utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "mismatch of type for a parameter", Message: "rules", Rule: rule.GetName(), Action: action.GetName(), OutputTarget: action.Output.GetTarget()})
 							continue
 						}
 						switch rt.Kind() {
@@ -390,57 +390,57 @@ func extractActionsRules(files []string) (*[]*Action, *[]*Rule, error) {
 func (rule *Rule) isValid() bool {
 	valid := true
 	if rule.Name == "" {
-		utils.PrintLog("error", utils.LogLine{Error: "all rules must have a name", Message: "rules"})
+		utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "all rules must have a name", Message: "rules"})
 		valid = false
 	}
 	if rule.Continue != "" && rule.Continue != trueStr && rule.Continue != falseStr {
-		utils.PrintLog("error", utils.LogLine{Error: "'continue' setting can be 'true' or 'false' only", Message: "rules", Rule: rule.Name})
+		utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "'continue' setting can be 'true' or 'false' only", Message: "rules", Rule: rule.Name})
 		valid = false
 	}
 	if rule.DryRun != "" && rule.DryRun != trueStr && rule.DryRun != falseStr {
-		utils.PrintLog("error", utils.LogLine{Error: "'dry_run' setting can be 'true' or 'false' only", Message: "rules", Rule: rule.Name})
+		utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "'dry_run' setting can be 'true' or 'false' only", Message: "rules", Rule: rule.Name})
 		valid = false
 	}
 	if len(rule.Actions) == 0 {
-		utils.PrintLog("error", utils.LogLine{Error: "no action specified", Message: "rules", Rule: rule.Name})
+		utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "no action specified", Message: "rules", Rule: rule.Name})
 		valid = false
 	}
 	if len(rule.Actions) != 0 {
 		for _, i := range rule.Actions {
 			if i.Name == "" {
-				utils.PrintLog("error", utils.LogLine{Error: "action without a name", Message: "rules", Rule: rule.Name})
+				utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "action without a name", Message: "rules", Rule: rule.Name})
 				valid = false
 			}
 			if i.Actionner == "" {
-				utils.PrintLog("error", utils.LogLine{Error: "missing actionner", Message: "rules", Action: i.Name, Rule: rule.Name})
+				utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "missing actionner", Message: "rules", Action: i.Name, Rule: rule.Name})
 				valid = false
 			}
 			if !actionCheckRegex.MatchString(i.Actionner) {
-				utils.PrintLog("error", utils.LogLine{Error: "incorrect actionner", Message: "rules", Action: i.Name, Actionner: i.Actionner, Rule: rule.Name})
+				utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "incorrect actionner", Message: "rules", Action: i.Name, Actionner: i.Actionner, Rule: rule.Name})
 				valid = false
 			}
 			if i.Continue != "" && i.Continue != trueStr && i.Continue != falseStr {
-				utils.PrintLog("error", utils.LogLine{Error: "'continue' setting can be 'true' or 'false' only", Message: "rules", Action: i.Name, Actionner: i.Actionner, Rule: rule.Name})
+				utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "'continue' setting can be 'true' or 'false' only", Message: "rules", Action: i.Name, Actionner: i.Actionner, Rule: rule.Name})
 				valid = false
 			}
 			if i.IgnoreErrors != "" && i.IgnoreErrors != trueStr && i.IgnoreErrors != falseStr {
-				utils.PrintLog("error", utils.LogLine{Error: "'ignore_errors' setting can be 'true' or 'false' only", Message: "rules", Action: i.Name, Actionner: i.Actionner, Rule: rule.Name})
+				utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "'ignore_errors' setting can be 'true' or 'false' only", Message: "rules", Action: i.Name, Actionner: i.Actionner, Rule: rule.Name})
 				valid = false
 			}
 			if i.Output.Target != "" && len(i.Output.Parameters) == 0 {
-				utils.PrintLog("error", utils.LogLine{Error: "missing 'parameters' for the output", Message: "rules", Action: i.Name, Actionner: i.Actionner, Rule: rule.Name, OutputTarget: i.Output.Target})
+				utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "missing 'parameters' for the output", Message: "rules", Action: i.Name, Actionner: i.Actionner, Rule: rule.Name, OutputTarget: i.Output.Target})
 				valid = false
 			}
 		}
 	}
 	if !priorityCheckRegex.MatchString(rule.Match.Priority) {
-		utils.PrintLog("error", utils.LogLine{Error: fmt.Sprintf("incorrect priority '%v'", rule.Match.Priority), Message: "rules", Rule: rule.Name})
+		utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: fmt.Sprintf("incorrect priority '%v'", rule.Match.Priority), Message: "rules", Rule: rule.Name})
 		valid = false
 	}
 	for _, i := range rule.Match.TagsC {
 		for _, j := range i {
 			if !tagCheckRegex.MatchString(j) {
-				utils.PrintLog("error", utils.LogLine{Error: fmt.Sprintf("incorrect tag '%v'", j), Message: "rules", Rule: rule.Name})
+				utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: fmt.Sprintf("incorrect tag '%v'", j), Message: "rules", Rule: rule.Name})
 				valid = false
 			}
 		}
@@ -449,13 +449,13 @@ func (rule *Rule) isValid() bool {
 		t := strings.Split(strings.ReplaceAll(i, ", ", ","), ",")
 		for _, j := range t {
 			if !outputFieldKeyCheckRegex.MatchString(j) {
-				utils.PrintLog("error", utils.LogLine{Error: fmt.Sprintf("incorrect output field key '%v'", j), Message: "rules", Rule: rule.Name})
+				utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: fmt.Sprintf("incorrect output field key '%v'", j), Message: "rules", Rule: rule.Name})
 				valid = false
 			}
 		}
 	}
 	if err := rule.setPriorityNumberComparator(); err != nil {
-		utils.PrintLog("error", utils.LogLine{Error: fmt.Sprintf("incorrect priority comparator '%v'", rule.Match.PriorityComparator), Message: "rules", Rule: rule.Name})
+		utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: fmt.Sprintf("incorrect priority comparator '%v'", rule.Match.PriorityComparator), Message: "rules", Rule: rule.Name})
 		valid = false
 	}
 	return valid

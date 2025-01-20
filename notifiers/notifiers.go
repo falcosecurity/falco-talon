@@ -99,7 +99,7 @@ func Init() {
 		for _, j := range *defaultNotifiers {
 			if strings.ToLower(i) == j.Information().Name {
 				if err := j.Init(config.Notifiers[i]); err != nil {
-					utils.PrintLog("error", utils.LogLine{Message: "init", Error: err.Error(), Category: j.Information().Name, Status: utils.FailureStr})
+					utils.PrintLog(utils.ErrorStr, utils.LogLine{Message: "init", Error: err.Error(), Category: j.Information().Name, Status: utils.FailureStr})
 					continue
 				}
 				enabledNotifiers.Add(j)
@@ -157,12 +157,12 @@ func Notify(actx context.Context, rule *rules.Rule, action *rules.Action, event 
 				span.RecordError(err)
 				logN.Status = utils.FailureStr
 				logN.Error = err.Error()
-				utils.PrintLog("error", logN)
+				utils.PrintLog(utils.ErrorStr, logN)
 				metrics.IncreaseCounter(log)
 			} else {
 				span.SetStatus(codes.Ok, "notification successfully sent")
 				logN.Status = utils.SuccessStr
-				utils.PrintLog("info", logN)
+				utils.PrintLog(utils.InfoStr, logN)
 				metrics.IncreaseCounter(logN)
 			}
 			span.End()

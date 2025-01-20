@@ -118,7 +118,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 	return a.RunWithClient(*client, event, action)
 }
 
-func (a Actionner) RunWithClient(client k8s.DrainClient, event *events.Event, action *rules.Action) (utils.LogLine, *models.Data, error) {
+func (a Actionner) RunWithClient(client k8s.Client, event *events.Event, action *rules.Action) (utils.LogLine, *models.Data, error) {
 	podName := event.GetPodName()
 	namespace := event.GetNamespaceName()
 	objects := map[string]string{}
@@ -191,7 +191,7 @@ func (a Actionner) RunWithClient(client k8s.DrainClient, event *events.Event, ac
 					FieldSelector: fmt.Sprintf("spec.nodeName=%s", nodeName),
 				})
 				if err2 != nil {
-					utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error listing pods on node '%v': %v", nodeName, err2)})
+					utils.PrintLog(utils.WarningStr, utils.LogLine{Message: fmt.Sprintf("error listing pods on node '%v': %v", nodeName, err2)})
 					continue
 				}
 
@@ -234,20 +234,20 @@ func (a Actionner) RunWithClient(client k8s.DrainClient, event *events.Event, ac
 			case utils.ReplicaSetStr:
 				replicaSetName, err := k8s.GetOwnerName(p)
 				if err != nil {
-					utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting pod owner name: %v", err)})
+					utils.PrintLog(utils.WarningStr, utils.LogLine{Message: fmt.Sprintf("error getting pod owner name: %v", err)})
 					atomic.AddInt32(&otherErrorsCount, 1)
 					return
 				}
 				if parameters.MinHealthyReplicas != "" {
 					replicaSet, err := client.GetReplicaSet(replicaSetName, p.Namespace)
 					if err != nil {
-						utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting replica set for pod '%v': %v", p.Name, err)})
+						utils.PrintLog(utils.WarningStr, utils.LogLine{Message: fmt.Sprintf("error getting replica set for pod '%v': %v", p.Name, err)})
 						atomic.AddInt32(&otherErrorsCount, 1)
 						return
 					}
 					minHealthyReplicasValue, kind, err := helpers.ParseMinHealthyReplicas(parameters.MinHealthyReplicas)
 					if err != nil {
-						utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error parsing min_healthy_replicas: %v", err)})
+						utils.PrintLog(utils.WarningStr, utils.LogLine{Message: fmt.Sprintf("error parsing min_healthy_replicas: %v", err)})
 						atomic.AddInt32(&otherErrorsCount, 1)
 						return
 					}
@@ -255,7 +255,7 @@ func (a Actionner) RunWithClient(client k8s.DrainClient, event *events.Event, ac
 					case "absolut":
 						healthyReplicasCount, err := k8s.GetHealthyReplicasCount(replicaSet)
 						if err != nil {
-							utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
+							utils.PrintLog(utils.WarningStr, utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
 							atomic.AddInt32(&otherErrorsCount, 1)
 							return
 						}
@@ -267,7 +267,7 @@ func (a Actionner) RunWithClient(client k8s.DrainClient, event *events.Event, ac
 						healthyReplicasValue, err := k8s.GetHealthyReplicasCount(replicaSet)
 						minHealthyReplicasAbsoluteValue := int64(float64(minHealthyReplicasValue) / 100.0 * float64(healthyReplicasValue))
 						if err != nil {
-							utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
+							utils.PrintLog(utils.WarningStr, utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
 							atomic.AddInt32(&otherErrorsCount, 1)
 							return
 						}
@@ -280,7 +280,7 @@ func (a Actionner) RunWithClient(client k8s.DrainClient, event *events.Event, ac
 			}
 
 			if err := client.EvictPod(p); err != nil {
-				utils.PrintLog("warning", utils.LogLine{Message: fmt.Sprintf("error evicting pod '%v': %v", p.Name, err)})
+				utils.PrintLog(utils.WarningStr, utils.LogLine{Message: fmt.Sprintf("error evicting pod '%v': %v", p.Name, err)})
 				atomic.AddInt32(&evictionErrorsCount, 1)
 				return
 			}
@@ -293,7 +293,7 @@ func (a Actionner) RunWithClient(client k8s.DrainClient, event *events.Event, ac
 				for {
 					select {
 					case <-timeout:
-						utils.PrintLog("error", utils.LogLine{Message: fmt.Sprintf("pod '%v' did not terminate within the max_wait_period", pod.Name)})
+						utils.PrintLog(utils.ErrorStr, utils.LogLine{Message: fmt.Sprintf("pod '%v' did not terminate within the max_wait_period", pod.Name)})
 						atomic.AddInt32(&evictionWaitPeriodErrorsCount, 1)
 						return
 

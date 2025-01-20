@@ -113,7 +113,7 @@ func (c *Client) Request(u string, payload any) error {
 	// defer + recover to catch panic if output doesn't respond
 	defer func() {
 		if err := recover(); err != nil {
-			utils.PrintLog("error", utils.LogLine{Error: "recover"})
+			utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "recover"})
 		}
 	}()
 

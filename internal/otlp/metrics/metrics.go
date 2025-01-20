@@ -38,7 +38,7 @@ func Init() {
 
 	exporter, err := prometheus.New()
 	if err != nil {
-		utils.PrintLog("fatal", utils.LogLine{Error: err.Error(), Message: "init", Category: "otlp"})
+		utils.PrintLog(utils.FatalStr, utils.LogLine{Error: err.Error(), Message: "init", Category: "otlp"})
 		log.Fatal(err)
 	}
 
@@ -53,7 +53,7 @@ func Init() {
 	if config.Otel.MetricsEnabled {
 		otlpExporter, err2 := newOtlpMetricExporter(config)
 		if err2 != nil {
-			utils.PrintLog("fatal", utils.LogLine{Error: err2.Error(), Message: "init", Category: "otlp"})
+			utils.PrintLog(utils.FatalStr, utils.LogLine{Error: err2.Error(), Message: "init", Category: "otlp"})
 			log.Fatal(err2)
 		}
 		metricOpts = append(metricOpts, sdk.WithReader(sdk.NewPeriodicReader(otlpExporter)))

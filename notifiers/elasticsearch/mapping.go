@@ -31,7 +31,7 @@ var mapping = `
               }
             }
           },
-          "error": {
+          utils.ErrorStr: {
             "type": "text",
             "fields": {
               "keyword": {
