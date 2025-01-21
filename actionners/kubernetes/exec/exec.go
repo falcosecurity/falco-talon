@@ -17,7 +17,7 @@ const (
 	Name          string = "exec"
 	Category      string = "kubernetes"
 	Description   string = "Exec a command in a pod"
-	Source        string = "syscalls"
+	Source        string = "syscalls, k8s_audit"
 	Continue      bool   = true
 	UseContext    bool   = true
 	AllowOutput   bool   = false

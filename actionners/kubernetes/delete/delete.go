@@ -19,7 +19,7 @@ const (
 	Name          string = "delete"
 	Category      string = "kubernetes"
 	Description   string = "Delete a resource"
-	Source        string = "k8saudit"
+	Source        string = "k8s_audit"
 	Continue      bool   = false
 	UseContext    bool   = false
 	AllowOutput   bool   = false

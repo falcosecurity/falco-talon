@@ -30,8 +30,8 @@ const (
 	AllowOutput   bool   = false
 	RequireOutput bool   = false
 	Permissions   string = `{
-		"cloudfunctions.functions.get",
-		"cloudfunctions.functions.invoke"
+        "cloudfunctions.functions.get",
+        "cloudfunctions.functions.invoke"
 	}`
 	Example string = `- action: Invoke GCP Cloud Function
   actionner: gcp:function
@@ -39,7 +39,7 @@ const (
     gcp_function_name: sample-function
     gcp_function_location: us-central1
     gcp_function_timeout: 10
-	`
+`
 )
 
 var (

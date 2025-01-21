@@ -23,7 +23,7 @@ const (
 	Name          string = "annotation"
 	Category      string = "kubernetes"
 	Description   string = "Add, modify or delete the annotations of the pod/node"
-	Source        string = "syscalls"
+	Source        string = "syscalls, k8s_audit"
 	Continue      bool   = true
 	UseContext    bool   = false
 	AllowOutput   bool   = false

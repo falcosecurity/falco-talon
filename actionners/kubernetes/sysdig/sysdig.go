@@ -20,7 +20,7 @@ const (
 	Name          string = "sysdig"
 	Category      string = "kubernetes"
 	Description   string = "Capture the syscalls packets in a pod"
-	Source        string = "syscalls, k8saudit"
+	Source        string = "syscalls, k8s_audit"
 	Continue      bool   = false
 	UseContext    bool   = false
 	AllowOutput   bool   = false
@@ -123,14 +123,6 @@ func (a Actionner) Parameters() models.Parameters {
 }
 
 func (a Actionner) Checks(event *events.Event, _ *rules.Action) error {
-	if event.Source == "k8s_audit" {
-		event.OutputFields["k8s.ns.name"] = event.OutputFields["ka.target.namespace"]
-		if event.OutputFields["ka.target.pod.name"] != "" {
-			event.OutputFields["k8s.pod.name"] = event.OutputFields["ka.target.pod.name"]
-		} else {
-			event.OutputFields["k8s.pod.name"] = event.OutputFields["ka.target.name"]
-		}
-	}
 	return k8sChecks.CheckPodExist(event)
 }
 

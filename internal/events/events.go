@@ -58,12 +58,21 @@ func (event *Event) GetPodName() string {
 	if event.OutputFields["k8s.pod.name"] != nil {
 		return event.OutputFields["k8s.pod.name"].(string)
 	}
+	if event.OutputFields["ka.target.pod.name"] != nil {
+		return event.OutputFields["ka.target.pod.name"].(string)
+	}
+	if event.OutputFields["ka.target.name"] != nil {
+		return event.OutputFields["ka.target.name"].(string)
+	}
 	return ""
 }
 
 func (event *Event) GetNamespaceName() string {
 	if event.OutputFields["k8s.ns.name"] != nil {
 		return event.OutputFields["k8s.ns.name"].(string)
+	}
+	if event.OutputFields["ka.target.namespace"] != nil {
+		return event.OutputFields["ka.target.namespace"].(string)
 	}
 	return ""
 }

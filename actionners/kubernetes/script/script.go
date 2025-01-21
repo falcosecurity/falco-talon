@@ -18,7 +18,7 @@ const (
 	Name          string = "script"
 	Category      string = "kubernetes"
 	Description   string = "Run a script in a pod"
-	Source        string = "syscalls"
+	Source        string = "syscalls, k8s_audit"
 	Continue      bool   = true
 	UseContext    bool   = true
 	AllowOutput   bool   = false

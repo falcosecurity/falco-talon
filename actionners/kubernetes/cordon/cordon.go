@@ -19,7 +19,7 @@ const (
 	Name          string = "cordon"
 	Category      string = "kubernetes"
 	Description   string = "Cordon a node"
-	Source        string = "syscalls"
+	Source        string = "syscalls, k8s_audit"
 	Continue      bool   = true
 	UseContext    bool   = false
 	AllowOutput   bool   = false

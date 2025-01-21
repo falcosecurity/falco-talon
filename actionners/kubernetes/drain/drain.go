@@ -23,8 +23,8 @@ import (
 const (
 	Name          string = "drain"
 	Category      string = "kubernetes"
-	Description   string = "Drain a pod"
-	Source        string = "syscalls"
+	Description   string = "Drain a node"
+	Source        string = "syscalls, k8s_audit"
 	Continue      bool   = true
 	UseContext    bool   = false
 	AllowOutput   bool   = false
