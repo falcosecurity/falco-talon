@@ -73,7 +73,7 @@ var (
 type Parameters struct {
 	Image      string `mapstructure:"image"`
 	Scope      string `mapstructure:"scope" validate:"oneof=pod node"`
-	Duration   int    `mapstructure:"duration" validate:"gte=0,lte=30"`
+	Duration   int    `mapstructure:"duration" validate:"gt=0,lte=30"`
 	BufferSize int    `mapstructure:"buffer_size" validate:"gte=128"`
 }
 
@@ -155,6 +155,10 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 
 	if parameters.Scope == "" {
 		parameters.Scope = defaultScope
+	}
+
+	if parameters.BufferSize == 0 {
+		parameters.BufferSize = defaultBufferSize
 	}
 
 	client := k8s.GetClient()
@@ -268,6 +272,18 @@ func (a Actionner) CheckParameters(action *rules.Action) error {
 	err := utils.DecodeParams(action.GetParameters(), &parameters)
 	if err != nil {
 		return err
+	}
+
+	if parameters.Scope == "" {
+		parameters.Scope = defaultScope
+	}
+
+	if parameters.BufferSize == 0 {
+		parameters.BufferSize = defaultBufferSize
+	}
+
+	if parameters.Duration == 0 {
+		parameters.Duration = defaultDuration
 	}
 
 	err = utils.ValidateStruct(parameters)
