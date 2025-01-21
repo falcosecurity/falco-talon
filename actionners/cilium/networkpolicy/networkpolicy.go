@@ -80,11 +80,11 @@ rules:
 actionner: cilium:networkpolicy
 parameters:
   allow_cidr:
-	- "192.168.1.0/24"
-	- "172.17.0.0/16"
+    - "192.168.1.0/24"
+    - "172.17.0.0/16"
   allow_namespaces:
-	- "green-ns"
-	- "blue-ns"
+    - "green-ns"
+    - "blue-ns"
 `
 )
 

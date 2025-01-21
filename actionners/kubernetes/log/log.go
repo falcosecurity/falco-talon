@@ -20,7 +20,7 @@ const (
 	Name          string = "log"
 	Category      string = "kubernetes"
 	Description   string = "Get logs from a pod"
-	Source        string = "syscalls"
+	Source        string = "syscalls, k8s_audit"
 	Continue      bool   = true
 	UseContext    bool   = false
 	AllowOutput   bool   = true
