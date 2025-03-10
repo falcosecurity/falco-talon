@@ -367,12 +367,13 @@ func (client Client) GetLeaseHolder() (<-chan string, error) {
 	leaseHolderChan = make(chan string, 20)
 	namespace := os.Getenv("NAMESPACE")
 	if namespace == "" {
-	        if ns, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
+		if ns, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
 			namespace = string(ns)
-		} 
-		
-		namespace = "falco"
+		} else {
+			namespace = "falco"
+		}
 	}
+
 	leaderElectionConfig := leaderelection.LeaderElectionConfig{
 		Lock: &resourcelock.LeaseLock{
 			LeaseMeta: metav1.ObjectMeta{
