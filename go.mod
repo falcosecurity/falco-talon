@@ -12,7 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.71.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.78.2
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.17
-	github.com/cilium/cilium v1.16.6
+	github.com/cilium/cilium v1.16.8
 	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6
 	github.com/emersion/go-smtp v0.21.3
 	github.com/fsnotify/fsnotify v1.8.0
