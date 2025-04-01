@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.65
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.30
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.71.0
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.78.2
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.79.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.17
 	github.com/cilium/cilium v1.16.8
 	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6
