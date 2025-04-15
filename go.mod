@@ -1,6 +1,7 @@
 module github.com/falcosecurity/falco-talon
 
 go 1.23.1
+
 toolchain go1.24.1
 
 require (
@@ -24,7 +25,7 @@ require (
 	github.com/jinzhu/copier v0.4.0
 	github.com/magefile/mage v1.15.0
 	github.com/minio/minio-go/v7 v7.0.89
-	github.com/nats-io/nats-server/v2 v2.11.0
+	github.com/nats-io/nats-server/v2 v2.11.1
 	github.com/nats-io/nats.go v1.40.1
 	github.com/projectcalico/api v0.0.0-20241106234619-d6b63b533e68
 	github.com/prometheus/client_golang v1.21.1
