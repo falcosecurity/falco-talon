@@ -24,8 +24,8 @@ require (
 	github.com/googleapis/gax-go/v2 v2.14.1
 	github.com/jinzhu/copier v0.4.0
 	github.com/magefile/mage v1.15.0
-	github.com/minio/minio-go/v7 v7.0.91
-	github.com/nats-io/nats-server/v2 v2.11.2
+	github.com/minio/minio-go/v7 v7.0.92
+	github.com/nats-io/nats-server/v2 v2.11.3
 	github.com/nats-io/nats.go v1.42.0
 	github.com/projectcalico/api v0.0.0-20241106234619-d6b63b533e68
 	github.com/prometheus/client_golang v1.21.1
@@ -151,6 +151,7 @@ require (
 	github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/petermattis/goid v0.0.0-20241025130422-66cb2e6d7274 // indirect
+	github.com/philhofer/fwd v1.1.3-0.20240916144458-20a13a1f6b7c // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
@@ -167,6 +168,7 @@ require (
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	github.com/tinylib/msgp v1.3.0 // indirect
 	github.com/vishvananda/netlink v1.3.1-0.20241022031324-976bd8de7d81 // indirect
 	github.com/vishvananda/netns v0.0.5 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
