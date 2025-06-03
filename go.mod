@@ -26,7 +26,7 @@ require (
 	github.com/magefile/mage v1.15.0
 	github.com/minio/minio-go/v7 v7.0.92
 	github.com/nats-io/nats-server/v2 v2.11.4
-	github.com/nats-io/nats.go v1.42.0
+	github.com/nats-io/nats.go v1.43.0
 	github.com/projectcalico/api v0.0.0-20241106234619-d6b63b533e68
 	github.com/prometheus/client_golang v1.22.0
 	github.com/rs/zerolog v1.34.0
