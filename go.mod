@@ -24,7 +24,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.14.1
 	github.com/jinzhu/copier v0.4.0
 	github.com/magefile/mage v1.15.0
-	github.com/minio/minio-go/v7 v7.0.92
+	github.com/minio/minio-go/v7 v7.0.93
 	github.com/nats-io/nats-server/v2 v2.11.4
 	github.com/nats-io/nats.go v1.43.0
 	github.com/projectcalico/api v0.0.0-20241106234619-d6b63b533e68
