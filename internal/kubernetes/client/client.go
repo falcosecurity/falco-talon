@@ -350,12 +350,12 @@ func (client Client) GetClusterRole(name, namespace string) (*rbacv1.ClusterRole
 }
 
 func (client Client) GetWatcherEndpointSlices(labelSelector, namespace string) (<-chan watch.Event, error) {
-	watchFunc := func(_ metav1.ListOptions) (watch.Interface, error) {
+	watchFunc := func(ctx context.Context, _ metav1.ListOptions) (watch.Interface, error) {
 		timeOut := int64(5)
-		return client.Clientset.DiscoveryV1().EndpointSlices(namespace).Watch(context.Background(), metav1.ListOptions{LabelSelector: labelSelector, TimeoutSeconds: &timeOut})
+		return client.Clientset.DiscoveryV1().EndpointSlices(namespace).Watch(ctx, metav1.ListOptions{LabelSelector: labelSelector, TimeoutSeconds: &timeOut})
 	}
 
-	watcher, err := toolsWatch.NewRetryWatcher("1", &cache.ListWatch{WatchFunc: watchFunc})
+	watcher, err := toolsWatch.NewRetryWatcherWithContext(context.Background(), "1", &cache.ListWatch{WatchFuncWithContext: watchFunc})
 	if err != nil {
 		return nil, err
 	}
