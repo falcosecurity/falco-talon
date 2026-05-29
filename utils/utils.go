@@ -214,7 +214,18 @@ func SetFields(structure any, fields map[string]any) any {
 					valueOf.Field(i).SetBool(d)
 				}
 			case MapStringStr:
-				valueOf.Field(i).SetMapIndex(reflect.ValueOf(fields[field]), reflect.ValueOf(fields[field]).Elem())
+				headers := make(map[string]string)
+				switch typed := fields[field].(type) {
+				case map[string]string:
+					for key, value := range typed {
+						headers[key] = value
+					}
+				case map[string]any:
+					for key, value := range typed {
+						headers[key] = fmt.Sprint(value)
+					}
+				}
+				valueOf.Field(i).Set(reflect.ValueOf(headers))
 			}
 		} else if deflt != "" {
 			switch valueOf.Type().Field(i).Type.String() {
