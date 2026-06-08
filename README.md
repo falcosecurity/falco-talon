@@ -64,43 +64,43 @@ flowchart LR
 
 ### Actionners
 
-The list of the available actionners can be found [HERE](https://docs.falco-talon.org/docs/actionners/list/).
+The list of the available actionners can be found [HERE](https://falco-talon.github.io/docs/actionners/list/).
 
 ### Notifiers
 
-The list of the available actionners can be found [HERE](https://docs.falco-talon.org/docs/notifiers/list/).
+The list of the available actionners can be found [HERE](https://falco-talon.github.io/docs/notifiers/list/).
 
 ### Outputs
 
-The list of the available outputs can be found [HERE](https://docs.falco-talon.org/docs/outputs/list/).
+The list of the available outputs can be found [HERE](https://falco-talon.github.io/docs/outputs/list/).
 
 ### Configuration
 
 The static configuration of `Falco Talon` is set with a `.yaml` file (default: `./config.yaml`) or with environment variables.
 
-The list of the available settings can be found [HERE](https://docs.falco-talon.org/docs/configuration/).
+The list of the available settings can be found [HERE](https://falco-talon.github.io/docs/configuration/).
 
 ### Rules
 
-You can find how to write your own rules [HERE](https://docs.falco-talon.org/docs/rules/).
+You can find how to write your own rules [HERE](https://falco-talon.github.io/docs/rules/).
 
 ## Documentation
 
-The full documentation is available on its own website: [https://docs.falco-talon.org/docs](https://docs.falco-talon.org/docs).
+The full documentation is available on its own website: [https://falco-talon.github.io/docs](https://falco-talon.github.io/docs).
 
 ## Metrics
 
 ### Prometheus metrics
 
-The `/metrics` endpoint exposes some metrics in the Prometheus format. See [here](https://docs.falco-talon.org/docs/installation_usage/metrics#prometheus-metrics).
+The `/metrics` endpoint exposes some metrics in the Prometheus format. See [here](https://falco-talon.github.io/docs/installation_usage/metrics#prometheus-metrics).
 
 ### OTEL metrics
 
-`Falco Talon` can export its metrics in the OTEL Metrics format. See [here](https://docs.falco-talon.org/docs/installation_usage/metrics#otel-metrics).
+`Falco Talon` can export its metrics in the OTEL Metrics format. See [here](https://falco-talon.github.io/docs/installation_usage/metrics#otel-metrics).
 
 ## Traces
 
-`Falco Talon` can export traces in the OTEL Traces format. See [here](https://docs.falco-talon.org/docs/installation_usage/traces).
+`Falco Talon` can export traces in the OTEL Traces format. See [here](https://falco-talon.github.io/docs/installation_usage/traces).
 
 ## Docker images
 

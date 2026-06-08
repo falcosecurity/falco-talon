@@ -26,7 +26,7 @@
 
 ## 0.1.0 - 2024-09-05 - *First GA release.*
 
-Official website for the docs: [https://docs.falco-talon.org/](https://docs.falco-talon.org/)
+Official website for the docs: [https://falco-talon.github.io/](https://falco-talon.github.io/)
 
 This release contains:
 - the **rule engine to match the Falco events with the actions to perform**
