@@ -246,10 +246,10 @@ func extractActionsRules(files []string) (*[]*Action, *[]*Rule, error) {
 		}
 
 		if err := yaml.Unmarshal(f, &at); err != nil {
-			return nil, nil, fmt.Errorf("wrong syntax for the rule file '%v': %v", files[0], err.Error())
+			return nil, nil, fmt.Errorf("wrong syntax for the rule file '%v': %v", i, err.Error())
 		}
 		if err := yaml.Unmarshal(f, &rt); err != nil {
-			return nil, nil, fmt.Errorf("wrong syntax for the rule file '%v': %v", files[0], err.Error())
+			return nil, nil, fmt.Errorf("wrong syntax for the rule file '%v': %v", i, err.Error())
 		}
 
 		a = append(a, at...)
