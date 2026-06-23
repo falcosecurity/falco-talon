@@ -98,7 +98,7 @@ func CreateConfiguration(configFile string) *Configuration {
 	v.SetDefault("otel.metrics_enabled", defaultOtelCollectorMetricsEnabled)
 	v.SetDefault("otel.collector_endpoint", defaultOtelCollectorEndpoint)
 	v.SetDefault("otel.collector_port", defaultOtelCollectorPort)
-	v.Set("otel.timeout", defaultOtelCollectorGRPCTimeout)
+	v.SetDefault("otel.timeout", defaultOtelCollectorGRPCTimeout)
 	v.SetDefault("otel.collector_use_insecure_grpc", defaultOtelCollectorUseInsecureGrpc)
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
