@@ -59,7 +59,11 @@ var notifiersListCmd = &cobra.Command{
 				a.Parameters = parameters
 			}
 			yamla, _ := yaml.Marshal(a)
-			fmt.Printf("--- %v ---\n\n", i.Information().FullName)
+			header := i.Information().FullName
+			if header == "" {
+				header = i.Information().Name
+			}
+			fmt.Printf("--- %v ---\n\n", header)
 			fmt.Println(string(yamla))
 		}
 	},

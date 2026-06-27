@@ -22,13 +22,8 @@ const (
     create_index_template: true
     number_of_shards: 1
     number_of_replicas: 1
-notifiers:
-  slack:
-    webhook_url: "https://hooks.slack.com/services/XXXX"
-    icon: "https://upload.wikimedia.org/wikipedia/commons/2/26/Circaetus_gallicus_claw.jpg"
-    username: "Falco Talon"
-    footer: "https://github.com/falcosecurity/falco-talon"
-    format: long
+    index: "falco-talon"
+    suffix: "daily"
 `
 )
 

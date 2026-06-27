@@ -17,7 +17,7 @@ const (
 	Permissions string = ""
 	Example     string = `notifiers:
   loki:
-    host_port: "https://lolcalhost:3100"
+    url: "https://localhost:3100"
     user: "xxxxx"
     api_key: "xxxxx"
 `
@@ -75,7 +75,7 @@ func (n Notifier) Parameters() models.Parameters {
 
 func (n Notifier) Run(log utils.LogLine) error {
 	if parameters.URL == "" {
-		return errors.New("wrong `host_port` setting")
+		return errors.New("wrong `url` setting")
 	}
 
 	if err := http.CheckURL(parameters.URL); err != nil {
@@ -101,7 +101,7 @@ func (n Notifier) Run(log utils.LogLine) error {
 
 func checkParameters(parameters *Parameters) error {
 	if parameters.URL == "" {
-		return errors.New("wrong `host_port` setting")
+		return errors.New("wrong `url` setting")
 	}
 
 	if err := utils.ValidateStruct(parameters); err != nil {
