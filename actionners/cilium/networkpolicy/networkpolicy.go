@@ -373,7 +373,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 }
 
 func createAllowNamespaceEgressRule(parameters Parameters) *api.EgressRule {
-	if len(parameters.AllowCIDR) == 0 {
+	if len(parameters.AllowNamespaces) == 0 {
 		return nil
 	}
 
