@@ -162,6 +162,13 @@ func NewPayload(log utils.LogLine) (Payload, error) {
 	}
 
 	if parameters.Format == Text {
+		payload.Body = fmt.Sprintf("%v\n%v\n%v\n%v\n\n%v",
+			payload.From,
+			payload.To,
+			payload.Date,
+			payload.Subject,
+			outtext.String(),
+		)
 		return payload, nil
 	}
 
