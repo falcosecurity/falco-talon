@@ -33,4 +33,3 @@ func TestCreateAllowNamespaceEgressRuleUsesAllowNamespaces(t *testing.T) {
 		t.Fatalf("expected selector values to preserve configured namespaces, got %#v", expr.Values)
 	}
 }
-
