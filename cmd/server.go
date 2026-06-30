@@ -43,49 +43,7 @@ var serverCmd = &cobra.Command{
 			utils.PrintLog(utils.FatalStr, utils.LogLine{Error: "invalid rules", Message: "rules"})
 		}
 
-		defaultActionners := actionners.ListDefaultActionners()
-		defaultOutputs := outputs.ListDefaultOutputs()
-
-		valid := true
-		if rules != nil {
-			for _, i := range *rules {
-				for _, j := range i.GetActions() {
-					actionner := defaultActionners.FindActionner(j.GetActionner())
-					if actionner == nil {
-						utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "unknown actionner", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
-						valid = false
-					} else {
-						if err := actionner.CheckParameters(j); err != nil {
-							utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
-							valid = false
-						}
-					}
-					if actionner != nil {
-						o := j.GetOutput()
-						if o == nil && actionner.Information().RequireOutput {
-							utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "an output is required", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
-							valid = false
-						}
-						if o != nil {
-							output := defaultOutputs.FindOutput(o.GetTarget())
-							if output == nil {
-								utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "unknown target", Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
-								valid = false
-							} else if len(o.Parameters) == 0 {
-								utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "missing parameters for the output", Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
-								valid = false
-							} else {
-								if err := output.CheckParameters(o); err != nil {
-									utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
-									valid = false
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-		if !valid {
+		if !validateRules(rules) {
 			utils.PrintLog(utils.FatalStr, utils.LogLine{Error: "invalid rules", Message: "rules"})
 		}
 
@@ -148,53 +106,16 @@ var serverCmd = &cobra.Command{
 								break
 							}
 
-							defaultActionners := actionners.ListDefaultActionners()
-							defaultOutputs := outputs.ListDefaultOutputs()
-
 							if newRules != nil {
-								valid := true
-								for _, i := range *newRules {
-									for _, j := range i.GetActions() {
-										actionner := defaultActionners.FindActionner(j.GetActionner())
-										if actionner == nil {
-											break
-										}
-										if err := actionner.CheckParameters(j); err != nil {
-											utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Message: "rules"})
-											valid = false
-										}
-										o := j.GetOutput()
-										if o == nil && actionner.Information().RequireOutput {
-											utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "an output is required", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
-											valid = false
-										}
-										if o != nil {
-											output := defaultOutputs.FindOutput(o.GetTarget())
-											if output == nil {
-												utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "unknown target", Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
-												valid = false
-											}
-											if len(o.Parameters) == 0 {
-												utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "missing parameters for the output", Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
-												valid = false
-											}
-											if err := output.CheckParameters(o); err != nil {
-												utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
-												valid = false
-											}
-										}
-									}
-
-									if !valid {
-										utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "invalid rules", Message: "rules"})
-										break
-									}
-									utils.PrintLog(utils.InfoStr, utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*rules)), Message: "rules"})
-									rules = newRules
-									if err := actionners.Init(); err != nil {
-										utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Message: "actionners"})
-										break
-									}
+								if !validateRules(newRules) {
+									utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "invalid rules", Message: "rules"})
+									break
+								}
+								utils.PrintLog(utils.InfoStr, utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*newRules)), Message: "rules"})
+								rules = newRules
+								if err := actionners.Init(); err != nil {
+									utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Message: "actionners"})
+									break
 								}
 							}
 						}
