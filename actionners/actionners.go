@@ -342,7 +342,7 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 			span.RecordError(err2)
 			go notifiers.Notify(octx, rule, action, event, logO)
 			span.End()
-			return err
+			return err2
 		}
 
 		result, err = o.Run(output, data)
