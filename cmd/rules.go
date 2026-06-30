@@ -3,10 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/falcosecurity/falco-talon/actionners"
 	"github.com/falcosecurity/falco-talon/configuration"
 	ruleengine "github.com/falcosecurity/falco-talon/internal/rules"
-	"github.com/falcosecurity/falco-talon/outputs"
 	"github.com/falcosecurity/falco-talon/utils"
 
 	"github.com/jinzhu/copier"
@@ -36,54 +34,7 @@ var rulesChecksCmd = &cobra.Command{
 		if rules == nil {
 			utils.PrintLog(utils.FatalStr, utils.LogLine{Error: "invalid rules", Message: "rules"})
 		}
-		defaultActionners := actionners.ListDefaultActionners()
-		defaultOutputs := outputs.ListDefaultOutputs()
-
-		valid := true
-		if rules != nil {
-			for _, i := range *rules {
-				for _, j := range i.GetActions() {
-					actionner := defaultActionners.FindActionner(j.GetActionner())
-					if actionner == nil {
-						utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "unknown actionner", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
-						valid = false
-						continue
-					}
-					if err := actionner.CheckParameters(j); err != nil {
-						utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
-						valid = false
-					}
-					o := j.GetOutput()
-					if o == nil && actionner.Information().RequireOutput {
-						utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "an output is required", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
-						valid = false
-					}
-					if actionner != nil {
-						o := j.GetOutput()
-						if o == nil && actionner.Information().RequireOutput {
-							utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "an output is required", Rule: i.GetName(), Action: j.GetName(), Actionner: j.GetActionner(), Message: "rules"})
-							valid = false
-						}
-						if o != nil {
-							output := defaultOutputs.FindOutput(o.GetTarget())
-							if output == nil {
-								utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "unknown target", Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
-								valid = false
-							} else if len(o.Parameters) == 0 {
-								utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: "missing parameters for the output", Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
-								valid = false
-							} else {
-								if err := output.CheckParameters(o); err != nil {
-									utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Rule: i.GetName(), Action: j.GetName(), OutputTarget: o.GetTarget(), Message: "rules"})
-									valid = false
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-		if !valid {
+		if !validateRules(rules) {
 			utils.PrintLog(utils.FatalStr, utils.LogLine{Error: "invalid rules", Message: "rules"})
 		}
 		utils.PrintLog(utils.InfoStr, utils.LogLine{Result: "rules file valid", Message: "rules"})
