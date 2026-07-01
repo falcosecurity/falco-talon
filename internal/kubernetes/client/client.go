@@ -275,7 +275,7 @@ func (client Client) GetTarget(resource, name, namespace string) (any, error) {
 	case "deployments":
 		return client.GetDeployment(name, namespace)
 	case "daemonsets":
-		return client.GetDeployment(name, namespace)
+		return client.GetDaemonSet(name, namespace)
 	case "statefulsets":
 		return client.GetStatefulSet(name, namespace)
 	case "replicasets":

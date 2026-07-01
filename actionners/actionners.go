@@ -212,7 +212,7 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 	}
 	var ignoreErr bool
 	if action.IgnoreErrors != "" {
-		cont, _ = strconv.ParseBool(action.IgnoreErrors) // can't trigger an error, cause the value is validated before
+		ignoreErr, _ = strconv.ParseBool(action.IgnoreErrors) // can't trigger an error, cause the value is validated before
 	}
 
 	actx, span := tracer.Start(mctx, "action",
