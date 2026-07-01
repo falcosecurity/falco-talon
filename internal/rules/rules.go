@@ -277,6 +277,12 @@ func extractActionsRules(files []string) (*[]*Action, *[]*Rule, error) {
 				if l.IgnoreErrors != "" {
 					i.IgnoreErrors = l.IgnoreErrors
 				}
+				if i.Output.Target == "" && l.Output.Target != "" {
+					i.Output.Target = l.Output.Target
+				}
+				if i.Output.Parameters == nil && len(l.Output.Parameters) != 0 {
+					i.Output.Parameters = make(map[string]any)
+				}
 				if i.Parameters == nil && len(l.Parameters) != 0 {
 					i.Parameters = make(map[string]any)
 				}

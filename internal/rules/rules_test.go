@@ -42,3 +42,58 @@ func TestExtractActionsRulesReportsTheBrokenFileName(t *testing.T) {
 		t.Fatalf("expected error to mention %q, got %q", brokenRulesFile, err.Error())
 	}
 }
+
+func TestExtractActionsRulesMergesOutputParametersIntoActionsWithoutPanicking(t *testing.T) {
+	t.Parallel()
+
+	tmpDir := t.TempDir()
+
+	baseRulesFile := filepath.Join(tmpDir, "base-rules.yaml")
+	if err := os.WriteFile(baseRulesFile, []byte(`
+- action: Capture logs
+  actionner: kubernetes:log
+`), 0o600); err != nil {
+		t.Fatalf("write base rules file: %v", err)
+	}
+
+	overrideRulesFile := filepath.Join(tmpDir, "override-rules.yaml")
+	if err := os.WriteFile(overrideRulesFile, []byte(`
+- action: Capture logs
+  output:
+    target: aws:s3
+    parameters:
+      bucket: base-bucket
+
+- rule: Repro
+  match:
+    rules:
+      - Test
+  actions:
+    - action: Capture logs
+  notifiers: []
+`), 0o600); err != nil {
+		t.Fatalf("write override rules file: %v", err)
+	}
+
+	actions, rules, err := extractActionsRules([]string{baseRulesFile, overrideRulesFile})
+	if err != nil {
+		t.Fatalf("extract rules: %v", err)
+	}
+
+	if len(*actions) != 1 {
+		t.Fatalf("expected 1 merged action, got %d", len(*actions))
+	}
+
+	action := (*actions)[0]
+	if action.Output.Target != "aws:s3" {
+		t.Fatalf("expected merged output target %q, got %q", "aws:s3", action.Output.Target)
+	}
+
+	if got := action.Output.Parameters["bucket"]; got != "base-bucket" {
+		t.Fatalf("expected merged output bucket %q, got %#v", "base-bucket", got)
+	}
+
+	if len(*rules) != 1 {
+		t.Fatalf("expected 1 rule, got %d", len(*rules))
+	}
+}
