@@ -185,39 +185,20 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 					Error:   err2.Error(),
 				}, nil, nil
 			}
-			switch kind {
-			case "absolut":
-				healthyReplicasCount, err2 := k8s.GetHealthyReplicasCount(replicaSet)
-				if err2 != nil {
-					return utils.LogLine{
-						Objects: objects,
-						Status:  utils.FailureStr,
-						Error:   err2.Error(),
-					}, nil, nil
-				}
-				if healthyReplicasCount < minHealthyReplicasValue {
-					return utils.LogLine{
-						Objects: objects,
-						Status:  "ignored",
-						Result:  fmt.Sprintf("the pod '%v' in the namespace '%v' belongs to a ReplicaSet without enough healthy replicas and will be ignored.", podName, namespace),
-					}, nil, nil
-				}
-			case "percent":
-				healthyReplicasPercent, err2 := k8s.GetHealthyReplicasCount(replicaSet)
-				if err2 != nil {
-					return utils.LogLine{
-						Objects: objects,
-						Status:  utils.FailureStr,
-						Error:   err2.Error(),
-					}, nil, nil
-				}
-				if healthyReplicasPercent < minHealthyReplicasValue {
-					return utils.LogLine{
-						Objects: objects,
-						Status:  "ignored",
-						Result:  fmt.Sprintf("the pod '%v' in the namespace '%v' belongs to a ReplicaSet without enough healthy replicas and will be ignored.", podName, namespace),
-					}, nil, nil
-				}
+			enoughHealthyReplicas, err2 := helpers.HasEnoughHealthyReplicas(replicaSet, minHealthyReplicasValue, kind)
+			if err2 != nil {
+				return utils.LogLine{
+					Objects: objects,
+					Status:  utils.FailureStr,
+					Error:   err2.Error(),
+				}, nil, nil
+			}
+			if !enoughHealthyReplicas {
+				return utils.LogLine{
+					Objects: objects,
+					Status:  "ignored",
+					Result:  fmt.Sprintf("the pod '%v' in the namespace '%v' belongs to a ReplicaSet without enough healthy replicas and will be ignored.", podName, namespace),
+				}, nil, nil
 			}
 		}
 	case utils.StandalonePodStr:

@@ -251,30 +251,15 @@ func (a Actionner) RunWithClient(client k8s.Client, event *events.Event, action 
 						atomic.AddInt32(&otherErrorsCount, 1)
 						return
 					}
-					switch kind {
-					case "absolut":
-						healthyReplicasCount, err := k8s.GetHealthyReplicasCount(replicaSet)
-						if err != nil {
-							utils.PrintLog(utils.WarningStr, utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
-							atomic.AddInt32(&otherErrorsCount, 1)
-							return
-						}
-						if healthyReplicasCount < minHealthyReplicasValue {
-							atomic.AddInt32(&ignoredPodsCount, 1)
-							return
-						}
-					case "percent":
-						healthyReplicasValue, err := k8s.GetHealthyReplicasCount(replicaSet)
-						minHealthyReplicasAbsoluteValue := int64(float64(minHealthyReplicasValue) / 100.0 * float64(healthyReplicasValue))
-						if err != nil {
-							utils.PrintLog(utils.WarningStr, utils.LogLine{Message: fmt.Sprintf("error getting health replicas count for pod '%v': %v", p.Name, err)})
-							atomic.AddInt32(&otherErrorsCount, 1)
-							return
-						}
-						if healthyReplicasValue < minHealthyReplicasAbsoluteValue {
-							atomic.AddInt32(&ignoredPodsCount, 1)
-							return
-						}
+					enoughHealthyReplicas, err := helpers.HasEnoughHealthyReplicas(replicaSet, minHealthyReplicasValue, kind)
+					if err != nil {
+						utils.PrintLog(utils.WarningStr, utils.LogLine{Message: fmt.Sprintf("error checking healthy replicas for pod '%v': %v", p.Name, err)})
+						atomic.AddInt32(&otherErrorsCount, 1)
+						return
+					}
+					if !enoughHealthyReplicas {
+						atomic.AddInt32(&ignoredPodsCount, 1)
+						return
 					}
 				}
 			}
