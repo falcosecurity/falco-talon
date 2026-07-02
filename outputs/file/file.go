@@ -5,10 +5,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/falcosecurity/falco-talon/internal/models"
 	"github.com/falcosecurity/falco-talon/internal/rules"
+	"github.com/falcosecurity/falco-talon/outputs/helpers"
 	"github.com/falcosecurity/falco-talon/utils"
 )
 
@@ -82,21 +82,7 @@ func (o Output) Run(output *rules.Output, data *models.Data) (utils.LogLine, err
 		}, err
 	}
 
-	var key string
-	switch {
-	case data.Objects["namespace"] != "" && data.Objects["pod"] != "":
-		key = fmt.Sprintf("%v_%v_%v_%v", time.Now().Format("2006-01-02T15-04-05Z"), data.Objects["namespace"], data.Objects["pod"], strings.ReplaceAll(data.Name, "/", "_"))
-	case data.Objects["hostname"] != "":
-		key = fmt.Sprintf("%v_%v_%v", time.Now().Format("2006-01-02T15-04-05Z"), data.Objects["hostname"], strings.ReplaceAll(data.Name, "/", "_"))
-	default:
-		var s string
-		for i, j := range data.Objects {
-			if i != "file" {
-				s += j + "_"
-			}
-		}
-		key = fmt.Sprintf("%v_%v%v", time.Now().Format("2006-01-02T15-04-05Z"), s, strings.ReplaceAll(data.Name, "/", "_"))
-	}
+	key := helpers.BuildObjectKey(data)
 
 	dstfile := fmt.Sprintf("%v/%v", strings.TrimSuffix(parameters.Destination, "/"), key)
 
