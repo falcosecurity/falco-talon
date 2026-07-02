@@ -126,7 +126,7 @@ func (event *Event) GetRemoteProtocol() string {
 	if i := event.OutputFields["fd.rproto"]; i != nil {
 		return i.(string)
 	}
-	if i := event.OutputFields["fd.rproto"]; i != nil {
+	if i := event.OutputFields["fd.sproto"]; i != nil {
 		return i.(string)
 	}
 	return ""
