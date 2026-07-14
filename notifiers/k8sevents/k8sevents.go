@@ -111,7 +111,7 @@ func (n Notifier) Run(log utils.LogLine) error {
 
 	client := kubernetes.GetClient()
 
-	namespace := log.Objects["namespace"]
+	namespace := log.Objects["Namespace"]
 	ns, err := client.GetNamespace(namespace)
 	if err != nil {
 		namespace = defaultStr
@@ -139,7 +139,7 @@ func (n Notifier) Run(log utils.LogLine) error {
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "Pod",
 			Namespace: namespace,
-			Name:      log.Objects["pod"],
+			Name:      log.Objects["Pod"],
 		},
 		Reason:  fmt.Sprintf("%v:%v:%v:%v", falcoTalon, log.Message, reason, log.Status),
 		Message: strings.ReplaceAll(message, `'`, `"`),
