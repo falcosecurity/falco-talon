@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -54,25 +55,45 @@ func DecodeEvent(payload io.Reader) (*Event, error) {
 	return &event, nil
 }
 
+// outputFieldAsString returns the value stored at key in OutputFields as a
+// string. OutputFields is decoded straight from the alert JSON, so a value can
+// be any type, and Falco sends some fields (the ports) as numbers. It reports
+// false when the key is absent, nil, or holds a type with no string form, so
+// callers fall through instead of asserting on the value and panicking on a
+// non-string. Numbers arrive as json.Number (handler decode, UseNumber) or
+// float64 (consumer decode, plain json.Unmarshal); both are kept.
+func (event *Event) outputFieldAsString(key string) (string, bool) {
+	switch v := event.OutputFields[key].(type) {
+	case string:
+		return v, true
+	case json.Number:
+		return v.String(), true
+	case float64:
+		return strconv.FormatFloat(v, 'f', -1, 64), true
+	default:
+		return "", false
+	}
+}
+
 func (event *Event) GetPodName() string {
-	if event.OutputFields["k8s.pod.name"] != nil {
-		return event.OutputFields["k8s.pod.name"].(string)
+	if v, ok := event.outputFieldAsString("k8s.pod.name"); ok {
+		return v
 	}
-	if event.OutputFields["ka.target.pod.name"] != nil {
-		return event.OutputFields["ka.target.pod.name"].(string)
+	if v, ok := event.outputFieldAsString("ka.target.pod.name"); ok {
+		return v
 	}
-	if event.OutputFields["ka.target.name"] != nil {
-		return event.OutputFields["ka.target.name"].(string)
+	if v, ok := event.outputFieldAsString("ka.target.name"); ok {
+		return v
 	}
 	return ""
 }
 
 func (event *Event) GetNamespaceName() string {
-	if event.OutputFields["k8s.ns.name"] != nil {
-		return event.OutputFields["k8s.ns.name"].(string)
+	if v, ok := event.outputFieldAsString("k8s.ns.name"); ok {
+		return v
 	}
-	if event.OutputFields["ka.target.namespace"] != nil {
-		return event.OutputFields["ka.target.namespace"].(string)
+	if v, ok := event.outputFieldAsString("ka.target.namespace"); ok {
+		return v
 	}
 	return ""
 }
@@ -82,52 +103,52 @@ func (event *Event) GetHostname() string {
 }
 
 func (event *Event) GetTargetName() string {
-	if event.OutputFields["ka.target.name"] != nil {
-		return event.OutputFields["ka.target.name"].(string)
+	if v, ok := event.outputFieldAsString("ka.target.name"); ok {
+		return v
 	}
 	return ""
 }
 
 func (event *Event) GetTargetNamespace() string {
-	if event.OutputFields["ka.target.namespace"] != nil {
-		return event.OutputFields["ka.target.namespace"].(string)
+	if v, ok := event.outputFieldAsString("ka.target.namespace"); ok {
+		return v
 	}
 	return ""
 }
 
 func (event *Event) GetTargetResource() string {
-	if event.OutputFields["ka.target.resource"] != nil {
-		return event.OutputFields["ka.target.resource"].(string)
+	if v, ok := event.outputFieldAsString("ka.target.resource"); ok {
+		return v
 	}
 	return ""
 }
 
 func (event *Event) GetRemoteIP() string {
-	if i := event.OutputFields["fd.rip"]; i != nil {
-		return i.(string)
+	if v, ok := event.outputFieldAsString("fd.rip"); ok {
+		return v
 	}
-	if i := event.OutputFields["fd.sip"]; i != nil {
-		return i.(string)
+	if v, ok := event.outputFieldAsString("fd.sip"); ok {
+		return v
 	}
 	return ""
 }
 
 func (event *Event) GetRemotePort() string {
-	if i := event.OutputFields["fd.rport"]; i != nil {
-		return i.(string)
+	if v, ok := event.outputFieldAsString("fd.rport"); ok {
+		return v
 	}
-	if i := event.OutputFields["fd.sport"]; i != nil {
-		return i.(string)
+	if v, ok := event.outputFieldAsString("fd.sport"); ok {
+		return v
 	}
 	return ""
 }
 
 func (event *Event) GetRemoteProtocol() string {
-	if i := event.OutputFields["fd.rproto"]; i != nil {
-		return i.(string)
+	if v, ok := event.outputFieldAsString("fd.rproto"); ok {
+		return v
 	}
-	if i := event.OutputFields["fd.rproto"]; i != nil {
-		return i.(string)
+	if v, ok := event.outputFieldAsString("fd.sproto"); ok {
+		return v
 	}
 	return ""
 }
