@@ -464,101 +464,118 @@ func StartConsumer(eventsC <-chan nats.MessageWithContext) {
 	config := configuration.GetConfiguration()
 	for {
 		m := <-eventsC
-		e := m.Data
-		ectx := m.Ctx
-		var event *events.Event
-		err := json.Unmarshal(e, &event)
-		if err != nil {
-			continue
+		handleEvent(config, m)
+	}
+}
+
+// handleEvent processes a single consumed event. It recovers from any panic
+// raised while handling that event (for example an unexpected type in a Falco
+// alert field) so one malformed event is logged and skipped instead of
+// terminating the process and taking the whole consumer down.
+func handleEvent(config *configuration.Configuration, m nats.MessageWithContext) {
+	defer func() {
+		if r := recover(); r != nil {
+			utils.PrintLog(utils.ErrorStr, utils.LogLine{
+				Message: "recovered from panic while processing event",
+				Error:   fmt.Sprintf("%v", r),
+			})
 		}
-		if event == nil {
-			continue
+	}()
+
+	e := m.Data
+	ectx := m.Ctx
+	var event *events.Event
+	err := json.Unmarshal(e, &event)
+	if err != nil {
+		return
+	}
+	if event == nil {
+		return
+	}
+
+	log := utils.LogLine{
+		Message:  "event",
+		Event:    event.Rule,
+		Priority: event.Priority,
+		Output:   event.Output,
+		Source:   event.Source,
+		TraceID:  event.TraceID,
+	}
+
+	enabledRules := rules.GetRules()
+	triggeredRules := make([]*rules.Rule, 0)
+	for _, i := range *enabledRules {
+		if i.CompareRule(event) {
+			triggeredRules = append(triggeredRules, i)
 		}
+	}
 
-		log := utils.LogLine{
-			Message:  "event",
-			Event:    event.Rule,
-			Priority: event.Priority,
-			Output:   event.Output,
-			Source:   event.Source,
-			TraceID:  event.TraceID,
-		}
+	if len(triggeredRules) == 0 {
+		return
+	}
 
-		enabledRules := rules.GetRules()
-		triggeredRules := make([]*rules.Rule, 0)
-		for _, i := range *enabledRules {
-			if i.CompareRule(event) {
-				triggeredRules = append(triggeredRules, i)
-			}
-		}
+	if !config.PrintAllEvents {
+		utils.PrintLog(utils.InfoStr, log)
+	}
 
-		if len(triggeredRules) == 0 {
-			continue
-		}
+	for _, i := range triggeredRules {
+		log.Message = "match"
+		log.Rule = i.GetName()
 
-		if !config.PrintAllEvents {
-			utils.PrintLog(utils.InfoStr, log)
-		}
+		tracer := traces.GetTracer()
+		mctx, span := tracer.Start(ectx, "match",
+			trace.WithAttributes(attribute.String("event.rule", event.Rule)),
+			trace.WithAttributes(attribute.String("event.output", event.Output)),
+			trace.WithAttributes(attribute.String("event.source", event.Source)),
+			trace.WithAttributes(attribute.String("event.source", event.TraceID)),
+			trace.WithAttributes(attribute.String("rule.name", i.GetName())),
+			trace.WithAttributes(attribute.String("rule.description", i.GetDescription())),
+		)
+		span.AddEvent(event.Output, trace.EventOption(trace.WithTimestamp(event.Time)))
+		span.SetStatus(codes.Ok, "match detected")
+		span.End()
 
-		for _, i := range triggeredRules {
-			log.Message = "match"
-			log.Rule = i.GetName()
+		utils.PrintLog(utils.InfoStr, log)
+		metrics.IncreaseCounter(log)
 
-			tracer := traces.GetTracer()
-			mctx, span := tracer.Start(ectx, "match",
-				trace.WithAttributes(attribute.String("event.rule", event.Rule)),
-				trace.WithAttributes(attribute.String("event.output", event.Output)),
-				trace.WithAttributes(attribute.String("event.source", event.Source)),
-				trace.WithAttributes(attribute.String("event.source", event.TraceID)),
-				trace.WithAttributes(attribute.String("rule.name", i.GetName())),
-				trace.WithAttributes(attribute.String("rule.description", i.GetDescription())),
-			)
-			span.AddEvent(event.Output, trace.EventOption(trace.WithTimestamp(event.Time)))
-			span.SetStatus(codes.Ok, "match detected")
-			span.End()
-
-			utils.PrintLog(utils.InfoStr, log)
-			metrics.IncreaseCounter(log)
-
-			for _, a := range i.GetActions() {
-				e := new(events.Event)
-				*e = *event
-				i.AddFalcoTalonContext(e, a)
-				if ListDefaultActionners().FindActionner(a.GetActionner()).Information().UseContext &&
-					len(a.GetAdditionalContexts()) != 0 {
-					for _, j := range a.GetAdditionalContexts() {
-						elements, err := talonContext.GetContext(mctx, j, e)
-						if err != nil {
-							log := utils.LogLine{
-								Message:   "context",
-								Context:   j,
-								Rule:      e.Rule,
-								Action:    a.GetName(),
-								Actionner: a.GetActionner(),
-								TraceID:   e.TraceID,
-								Error:     err.Error(),
-							}
-							utils.PrintLog(utils.ErrorStr, log)
-							if a.IgnoreErrors != trueStr {
-								break
-							}
-						} else {
-							e.AddContext(elements)
+		for _, a := range i.GetActions() {
+			e := new(events.Event)
+			*e = *event
+			i.AddFalcoTalonContext(e, a)
+			if ListDefaultActionners().FindActionner(a.GetActionner()).Information().UseContext &&
+				len(a.GetAdditionalContexts()) != 0 {
+				for _, j := range a.GetAdditionalContexts() {
+					elements, err := talonContext.GetContext(mctx, j, e)
+					if err != nil {
+						log := utils.LogLine{
+							Message:   "context",
+							Context:   j,
+							Rule:      e.Rule,
+							Action:    a.GetName(),
+							Actionner: a.GetActionner(),
+							TraceID:   e.TraceID,
+							Error:     err.Error(),
 						}
+						utils.PrintLog(utils.ErrorStr, log)
+						if a.IgnoreErrors != trueStr {
+							break
+						}
+					} else {
+						e.AddContext(elements)
 					}
 				}
-				err := runAction(mctx, i, a, e)
-				if err != nil && a.IgnoreErrors != trueStr {
-					break
-				}
-				if a.Continue == falseStr || a.Continue != trueStr && !ListDefaultActionners().FindActionner(a.GetActionner()).Information().Continue {
-					break
-				}
 			}
-
-			if i.Continue == falseStr {
+			err := runAction(mctx, i, a, e)
+			if err != nil && a.IgnoreErrors != trueStr {
 				break
 			}
+			if a.Continue == falseStr || a.Continue != trueStr && !ListDefaultActionners().FindActionner(a.GetActionner()).Information().Continue {
+				break
+			}
+		}
+
+		if i.Continue == falseStr {
+			break
 		}
 	}
 }
