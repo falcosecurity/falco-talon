@@ -43,6 +43,20 @@ type Client struct {
 	RestConfig *rest.Config
 }
 
+type targetLookup interface {
+	GetNamespace(name string) (*corev1.Namespace, error)
+	GetConfigMap(name, namespace string) (*corev1.ConfigMap, error)
+	GetSecret(name, namespace string) (*corev1.Secret, error)
+	GetDeployment(name, namespace string) (*appsv1.Deployment, error)
+	GetDaemonSet(name, namespace string) (*appsv1.DaemonSet, error)
+	GetStatefulSet(name, namespace string) (*appsv1.StatefulSet, error)
+	GetReplicaSet(name, namespace string) (*appsv1.ReplicaSet, error)
+	GetService(name, namespace string) (*corev1.Service, error)
+	GetServiceAccount(name, namespace string) (*corev1.ServiceAccount, error)
+	GetRole(name, namespace string) (*rbacv1.Role, error)
+	GetClusterRole(name, namespace string) (*rbacv1.ClusterRole, error)
+}
+
 // need to be renamed to Client
 // all the actionners need to depend on this interface so we can rename it to Client
 // without generating errors
@@ -265,6 +279,10 @@ func (client Client) GetNodeFromPod(pod *corev1.Pod) (*corev1.Node, error) {
 }
 
 func (client Client) GetTarget(resource, name, namespace string) (any, error) {
+	return lookupTarget(client, resource, name, namespace)
+}
+
+func lookupTarget(client targetLookup, resource, name, namespace string) (any, error) {
 	switch resource {
 	case "namespaces":
 		return client.GetNamespace(name)

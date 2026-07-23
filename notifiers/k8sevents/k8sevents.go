@@ -8,6 +8,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	textTemplate "text/template"
 
@@ -111,7 +112,7 @@ func (n Notifier) Run(log utils.LogLine) error {
 
 	client := kubernetes.GetClient()
 
-	namespace := log.Objects["namespace"]
+	namespace := log.Objects["Namespace"]
 	ns, err := client.GetNamespace(namespace)
 	if err != nil {
 		namespace = defaultStr
@@ -128,6 +129,12 @@ func (n Notifier) Run(log utils.LogLine) error {
 		reason = log.OutputTarget
 	}
 
+	podName := log.Objects["Pod"]
+	var podUID types.UID
+	if pod, errGetPod := client.GetPod(podName, namespace); errGetPod == nil && pod != nil {
+		podUID = pod.UID
+	}
+
 	k8sevent := &corev1.Event{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Event",
@@ -139,7 +146,8 @@ func (n Notifier) Run(log utils.LogLine) error {
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "Pod",
 			Namespace: namespace,
-			Name:      log.Objects["pod"],
+			Name:      podName,
+			UID:       podUID,
 		},
 		Reason:  fmt.Sprintf("%v:%v:%v:%v", falcoTalon, log.Message, reason, log.Status),
 		Message: strings.ReplaceAll(message, `'`, `"`),
