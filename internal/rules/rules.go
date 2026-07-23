@@ -347,7 +347,7 @@ func extractActionsRules(files []string) (*[]*Action, *[]*Rule, error) {
 	}
 
 	for n, i := range r {
-		if n == len(r)-1 {
+		if n == len(a)-1 {
 			break
 		}
 		if i.Name == "" {
