@@ -51,6 +51,11 @@ const (
 `
 )
 
+const (
+	latestVersion       string = "$LATEST"
+	requestResponseType string = "RequestResponse"
+)
+
 var (
 	RequiredOutputFields = []string{}
 )
@@ -90,8 +95,8 @@ func (a Actionner) Information() models.Information {
 func (a Actionner) Parameters() models.Parameters {
 	return Parameters{
 		AWSLambdaName:           "",
-		AWSLambdaAliasOrVersion: "$LATEST",
-		AWSLambdaInvocationType: "RequestResponse",
+		AWSLambdaAliasOrVersion: latestVersion,
+		AWSLambdaInvocationType: requestResponseType,
 	}
 }
 
@@ -175,7 +180,7 @@ func (a Actionner) CheckParameters(action *rules.Action) error {
 
 func getInvocationType(invocationType string) types.InvocationType {
 	switch invocationType {
-	case "RequestResponse":
+	case requestResponseType:
 		return types.InvocationTypeRequestResponse
 	case "Event":
 		return types.InvocationTypeEvent
@@ -188,7 +193,7 @@ func getInvocationType(invocationType string) types.InvocationType {
 
 func getLambdaVersion(qualifier *string) *string {
 	if qualifier == nil || *qualifier == "" {
-		defaultVal := "$LATEST"
+		defaultVal := latestVersion
 		return &defaultVal
 	}
 	return qualifier

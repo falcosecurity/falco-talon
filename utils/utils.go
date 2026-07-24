@@ -177,7 +177,7 @@ func PrintLog(level string, line LogLine) {
 
 func SetFields(structure any, fields map[string]any) any {
 	valueOf := reflect.ValueOf(structure)
-	if valueOf.Kind() == reflect.Ptr {
+	if valueOf.Kind() == reflect.Pointer {
 		valueOf = valueOf.Elem()
 	}
 

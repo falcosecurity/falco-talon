@@ -100,6 +100,9 @@ type Parameters struct {
 
 const mask32 string = "/32"
 const managedByStr string = "app.k8s.io/managed-by"
+const anyCIDR string = "0.0.0.0/0"
+const actionAllow networkingv3.Action = "Allow"
+const actionDeny networkingv3.Action = "Deny"
 
 type Actionner struct{}
 
@@ -128,7 +131,7 @@ func (a Actionner) Information() models.Information {
 }
 func (a Actionner) Parameters() models.Parameters {
 	return Parameters{
-		AllowCIDR:       []string{"0.0.0.0/0"},
+		AllowCIDR:       []string{anyCIDR},
 		AllowNamespaces: []string{},
 		Order:           0,
 	}
@@ -189,7 +192,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 					Status:  utils.FailureStr,
 				}, nil, err2
 			}
-			owner = u.ObjectMeta.Name
+			owner = u.Name
 			labels = u.Spec.Selector.MatchLabels
 		case "StatefulSet":
 			u, err2 := k8sClient.GetStatefulsetFromPod(pod)
@@ -200,7 +203,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 					Status:  utils.FailureStr,
 				}, nil, err2
 			}
-			owner = u.ObjectMeta.Name
+			owner = u.Name
 			labels = u.Spec.Selector.MatchLabels
 		case "ReplicaSet":
 			u, err2 := k8sClient.GetReplicasetFromPod(pod)
@@ -211,12 +214,12 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 					Status:  utils.FailureStr,
 				}, nil, err2
 			}
-			owner = u.ObjectMeta.Name
+			owner = u.Name
 			labels = u.Spec.Selector.MatchLabels
 		}
 	} else {
-		owner = pod.ObjectMeta.Name
-		labels = pod.ObjectMeta.Labels
+		owner = pod.Name
+		labels = pod.Labels
 	}
 
 	if owner == "" || len(labels) == 0 {
@@ -260,9 +263,9 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 
 	if parameters.AllowCIDR == nil && parameters.AllowNamespaces == nil {
 		allowCIDRRule = &networkingv3.Rule{
-			Action: "Allow",
+			Action: actionAllow,
 			Destination: networkingv3.EntityRule{
-				Nets: []string{"0.0.0.0/0"},
+				Nets: []string{anyCIDR},
 			},
 		}
 		allowNamespacesRule = nil
@@ -318,10 +321,10 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 			Status:  utils.FailureStr,
 		}, nil, err
 	}
-	payload.ObjectMeta.ResourceVersion = netpol.ObjectMeta.ResourceVersion
+	payload.ResourceVersion = netpol.ResourceVersion
 	var denyCIDR []string
 	for _, i := range netpol.Spec.Egress {
-		if i.Action == "Deny" {
+		if i.Action == actionDeny {
 			denyCIDR = append(denyCIDR, i.Destination.Nets...)
 		}
 	}
@@ -359,7 +362,7 @@ func createAllowCIDREgressRule(parameters *Parameters) *networkingv3.Rule {
 	}
 
 	rule := networkingv3.Rule{
-		Action:      "Allow",
+		Action:      actionAllow,
 		Destination: networkingv3.EntityRule{},
 	}
 
@@ -374,7 +377,7 @@ func createAllowNamespaceEgressRule(parameters *Parameters) *networkingv3.Rule {
 	}
 
 	rule := networkingv3.Rule{
-		Action:      "Allow",
+		Action:      actionAllow,
 		Destination: networkingv3.EntityRule{},
 	}
 
@@ -392,7 +395,7 @@ func createAllowNamespaceEgressRule(parameters *Parameters) *networkingv3.Rule {
 
 func createDenyEgressRule(ips []string) *networkingv3.Rule {
 	r := networkingv3.Rule{
-		Action: "Deny",
+		Action: actionDeny,
 		Destination: networkingv3.EntityRule{
 			Nets: ips,
 		},

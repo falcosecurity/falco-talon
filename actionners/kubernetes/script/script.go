@@ -55,6 +55,11 @@ rules:
 `
 )
 
+const (
+	binSh      string = "/bin/sh"
+	scriptPath string = "/tmp/talon-script.sh"
+)
+
 var (
 	RequiredOutputFields = []string{"k8s.ns.name", "k8s.pod.name"}
 )
@@ -94,7 +99,7 @@ func (a Actionner) Parameters() models.Parameters {
 	return Parameters{
 		Script: "",
 		File:   "",
-		Shell:  "/bin/sh",
+		Shell:  binSh,
 	}
 }
 
@@ -125,7 +130,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 	if parameters.Shell != "" {
 		*shell = parameters.Shell
 	} else {
-		*shell = "/bin/sh"
+		*shell = binSh
 	}
 
 	script := new(string)
@@ -170,7 +175,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 	output := new(bytes.Buffer)
 	for i, j := range containers {
 		container = j
-		command := []string{"tee", "/tmp/talon-script.sh", ">", "/dev/null"}
+		command := []string{"tee", scriptPath, ">", "/dev/null"}
 		_, err = client.Exec(namespace, pod, container, command, *script)
 		if err != nil {
 			if i == len(containers)-1 {
@@ -185,7 +190,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 	}
 
 	// run the script
-	command := []string{*shell, "/tmp/talon-script.sh"}
+	command := []string{*shell, scriptPath}
 	output, err = client.Exec(namespace, pod, container, command, "")
 	if err != nil {
 		return utils.LogLine{

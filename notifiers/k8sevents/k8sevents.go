@@ -36,6 +36,7 @@ const (
 const (
 	falcoTalon string = "falco-talon"
 	defaultStr string = "default"
+	podKind    string = "Pod"
 )
 
 type Parameters struct{}
@@ -129,7 +130,7 @@ func (n Notifier) Run(log utils.LogLine) error {
 		reason = log.OutputTarget
 	}
 
-	podName := log.Objects["Pod"]
+	podName := log.Objects[podKind]
 	var podUID types.UID
 	if pod, errGetPod := client.GetPod(podName, namespace); errGetPod == nil && pod != nil {
 		podUID = pod.UID
@@ -144,7 +145,7 @@ func (n Notifier) Run(log utils.LogLine) error {
 			GenerateName: falcoTalon + "-",
 		},
 		InvolvedObject: corev1.ObjectReference{
-			Kind:      "Pod",
+			Kind:      podKind,
 			Namespace: namespace,
 			Name:      podName,
 			UID:       podUID,

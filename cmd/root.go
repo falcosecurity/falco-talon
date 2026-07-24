@@ -8,6 +8,19 @@ import (
 
 const (
 	requiredStr = " (required)"
+
+	actionnersStr       = "actionners"
+	manageActionnersStr = "Manage the actionners"
+	listStr             = "list"
+	outputsStr          = "outputs"
+	rulesStr            = "rules"
+	checkRulesStr       = "Check Falco Talon Rules file"
+	invalidRulesStr     = "invalid rules"
+	initStr             = "init"
+	natsStr             = "nats"
+	leaseStr            = "lease"
+	httpStr             = "http"
+	otelTracesStr       = "otel-traces"
 )
 
 var RootCmd = &cobra.Command{
@@ -36,7 +49,7 @@ func init() {
 	actionnersCmd.AddCommand(actionnersListCmd)
 	outputsCmd.AddCommand(outputsListCmd)
 	notifiersCmd.AddCommand(notifiersListCmd)
-	RootCmd.PersistentFlags().StringArrayP("rules", "r", []string{}, "Falco Talon Rules File")
+	RootCmd.PersistentFlags().StringArrayP(rulesStr, "r", []string{}, "Falco Talon Rules File")
 	serverCmd.Flags().StringP("config", "c", "/etc/falco-talon/config.yaml", "Falco Talon Config File")
 	rulesCmd.PersistentFlags().StringP("config", "c", "", "Falco Talon Config File")
 	actionnersCmd.PersistentFlags().StringP("config", "c", "", "Falco Talon Config File")

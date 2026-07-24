@@ -55,6 +55,8 @@ rules:
 `
 )
 
+const ignoredStr string = "ignored"
+
 var (
 	RequiredOutputFields = []string{"k8s.ns.name", "k8s.pod.name"}
 )
@@ -147,7 +149,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 		if parameters.IgnoreDaemonsets {
 			return utils.LogLine{
 				Objects: objects,
-				Status:  "ignored",
+				Status:  ignoredStr,
 				Result:  fmt.Sprintf("the pod '%v' in the namespace '%v' belongs to a DaemonSet and will be ignored.", podName, namespace),
 			}, nil, nil
 		}
@@ -155,7 +157,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 		if parameters.IgnoreStatefulSets {
 			return utils.LogLine{
 				Objects: objects,
-				Status:  "ignored",
+				Status:  ignoredStr,
 				Result:  fmt.Sprintf("the pod '%v' in the namespace '%v' belongs to a StatefulSet and will be ignored.", podName, namespace),
 			}, nil, nil
 		}
@@ -198,7 +200,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 				if healthyReplicasCount < minHealthyReplicasValue {
 					return utils.LogLine{
 						Objects: objects,
-						Status:  "ignored",
+						Status:  ignoredStr,
 						Result:  fmt.Sprintf("the pod '%v' in the namespace '%v' belongs to a ReplicaSet without enough healthy replicas and will be ignored.", podName, namespace),
 					}, nil, nil
 				}
@@ -214,7 +216,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 				if healthyReplicasPercent < minHealthyReplicasValue {
 					return utils.LogLine{
 						Objects: objects,
-						Status:  "ignored",
+						Status:  ignoredStr,
 						Result:  fmt.Sprintf("the pod '%v' in the namespace '%v' belongs to a ReplicaSet without enough healthy replicas and will be ignored.", podName, namespace),
 					}, nil, nil
 				}
@@ -224,7 +226,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 		if parameters.IgnoreStandalonePods {
 			return utils.LogLine{
 				Objects: objects,
-				Status:  "ignored",
+				Status:  ignoredStr,
 				Result:  fmt.Sprintf("the pod '%v' in the namespace '%v' is a standalone pod and will be ignored.", podName, namespace),
 			}, nil, nil
 		}

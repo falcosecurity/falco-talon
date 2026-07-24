@@ -21,7 +21,7 @@ func validateRules(rules *[]*ruleengine.Rule) bool {
 					Rule:      rule.GetName(),
 					Action:    action.GetName(),
 					Actionner: action.GetActionner(),
-					Message:   "rules",
+					Message:   rulesStr,
 				})
 				valid = false
 				continue
@@ -33,7 +33,7 @@ func validateRules(rules *[]*ruleengine.Rule) bool {
 					Rule:      rule.GetName(),
 					Action:    action.GetName(),
 					Actionner: action.GetActionner(),
-					Message:   "rules",
+					Message:   rulesStr,
 				})
 				valid = false
 			}
@@ -46,7 +46,7 @@ func validateRules(rules *[]*ruleengine.Rule) bool {
 						Rule:      rule.GetName(),
 						Action:    action.GetName(),
 						Actionner: action.GetActionner(),
-						Message:   "rules",
+						Message:   rulesStr,
 					})
 					valid = false
 				}
@@ -60,7 +60,7 @@ func validateRules(rules *[]*ruleengine.Rule) bool {
 					Rule:         rule.GetName(),
 					Action:       action.GetName(),
 					OutputTarget: output.GetTarget(),
-					Message:      "rules",
+					Message:      rulesStr,
 				})
 				valid = false
 				continue
@@ -72,7 +72,7 @@ func validateRules(rules *[]*ruleengine.Rule) bool {
 					Rule:         rule.GetName(),
 					Action:       action.GetName(),
 					OutputTarget: output.GetTarget(),
-					Message:      "rules",
+					Message:      rulesStr,
 				})
 				valid = false
 				continue
@@ -84,7 +84,7 @@ func validateRules(rules *[]*ruleengine.Rule) bool {
 					Rule:         rule.GetName(),
 					Action:       action.GetName(),
 					OutputTarget: output.GetTarget(),
-					Message:      "rules",
+					Message:      rulesStr,
 				})
 				valid = false
 			}

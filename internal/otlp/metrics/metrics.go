@@ -22,6 +22,8 @@ import (
 
 const meterName = "github.com/falcosecurity/falco-talon"
 const metricPrefix = "falcosecurity_falco_talon_"
+const messageInit = "init"
+const categoryOtlp = "otlp"
 
 var (
 	eventCounters        metric.Int64Counter
@@ -38,7 +40,7 @@ func Init() {
 
 	exporter, err := prometheus.New()
 	if err != nil {
-		utils.PrintLog(utils.FatalStr, utils.LogLine{Error: err.Error(), Message: "init", Category: "otlp"})
+		utils.PrintLog(utils.FatalStr, utils.LogLine{Error: err.Error(), Message: messageInit, Category: categoryOtlp})
 		log.Fatal(err)
 	}
 
@@ -53,7 +55,7 @@ func Init() {
 	if config.Otel.MetricsEnabled {
 		otlpExporter, err2 := newOtlpMetricExporter(config)
 		if err2 != nil {
-			utils.PrintLog(utils.FatalStr, utils.LogLine{Error: err2.Error(), Message: "init", Category: "otlp"})
+			utils.PrintLog(utils.FatalStr, utils.LogLine{Error: err2.Error(), Message: messageInit, Category: categoryOtlp})
 			log.Fatal(err2)
 		}
 		metricOpts = append(metricOpts, sdk.WithReader(sdk.NewPeriodicReader(otlpExporter)))

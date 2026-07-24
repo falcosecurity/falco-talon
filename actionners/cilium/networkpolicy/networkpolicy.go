@@ -102,6 +102,7 @@ const (
 	managedByStr      string = "app.k8s.io/managed-by"
 	netpolDescription string = "Network policy created by Falco Talon"
 	namespaceKey             = "k8s.io/metadata.name"
+	anyCIDR                  = "0.0.0.0/0"
 )
 
 type Actionner struct{}
@@ -131,7 +132,7 @@ func (a Actionner) Information() models.Information {
 }
 func (a Actionner) Parameters() models.Parameters {
 	return Parameters{
-		AllowCIDR:       []string{"0.0.0.0/0"},
+		AllowCIDR:       []string{anyCIDR},
 		AllowNamespaces: []string{},
 	}
 }
@@ -191,7 +192,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 					nil,
 					err2
 			}
-			owner = u.ObjectMeta.Name
+			owner = u.Name
 			labels = u.Spec.Selector.MatchLabels
 		case "StatefulSet":
 			u, err2 := k8sClient.GetStatefulsetFromPod(pod)
@@ -204,7 +205,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 					nil,
 					err2
 			}
-			owner = u.ObjectMeta.Name
+			owner = u.Name
 			labels = u.Spec.Selector.MatchLabels
 		case "ReplicaSet":
 			u, err2 := k8sClient.GetReplicasetFromPod(pod)
@@ -217,12 +218,12 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 					nil,
 					err2
 			}
-			owner = u.ObjectMeta.Name
+			owner = u.Name
 			labels = u.Spec.Selector.MatchLabels
 		}
 	} else {
-		owner = pod.ObjectMeta.Name
-		labels = pod.ObjectMeta.Labels
+		owner = pod.Name
+		labels = pod.Labels
 	}
 
 	if owner == "" || len(labels) == 0 {
@@ -268,7 +269,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 	if parameters.AllowCIDR == nil && parameters.AllowNamespaces == nil {
 		allowCIDRRule = &api.EgressRule{
 			EgressCommonRule: api.EgressCommonRule{
-				ToCIDR: api.CIDRSlice{"0.0.0.0/0"},
+				ToCIDR: api.CIDRSlice{anyCIDR},
 			},
 		}
 	} else {
@@ -329,7 +330,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 			err
 	}
 
-	payload.ObjectMeta.ResourceVersion = netpol.ObjectMeta.ResourceVersion
+	payload.ResourceVersion = netpol.ResourceVersion
 	payload.Spec.Egress = netpol.Spec.Egress
 	payload.Spec.EgressDeny = netpol.Spec.EgressDeny
 

@@ -35,6 +35,7 @@ const (
 
 const (
 	defaultContentType string = "text/plain; charset=UTF-8"
+	fileStr            string = "file"
 )
 
 type Parameters struct {
@@ -108,7 +109,7 @@ func (o Output) Run(output *rules.Output, data *models.Data) (utils.LogLine, err
 	default:
 		var s string
 		for i, j := range data.Objects {
-			if i != "file" {
+			if i != fileStr {
 				s += j + "_"
 			}
 		}
@@ -116,7 +117,7 @@ func (o Output) Run(output *rules.Output, data *models.Data) (utils.LogLine, err
 	}
 
 	objects := map[string]string{
-		"file":   data.Name,
+		fileStr:  data.Name,
 		"bucket": parameters.Bucket,
 		"prefix": parameters.Prefix,
 		"key":    key,

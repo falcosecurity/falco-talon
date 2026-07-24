@@ -151,9 +151,9 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 			}, nil, err
 		}
 		objects[nodeStr] = node.Name
-		if node.ObjectMeta.Annotations == nil {
-			node.ObjectMeta.Annotations = make(map[string]string)
-			node.ObjectMeta.Annotations[podStr] = podStr
+		if node.Annotations == nil {
+			node.Annotations = make(map[string]string)
+			node.Annotations[podStr] = podStr
 			parameters.Annotations[podStr] = ""
 			_, err = client.Clientset.CoreV1().Nodes().Update(context.Background(), node, metav1.UpdateOptions{})
 			if err != nil {
@@ -168,9 +168,9 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 		kind = podStr
 		objects[podStr] = podName
 		objects["namespace"] = namespace
-		if pod.ObjectMeta.Annotations == nil {
-			pod.ObjectMeta.Annotations = make(map[string]string)
-			pod.ObjectMeta.Annotations[podStr] = podStr
+		if pod.Annotations == nil {
+			pod.Annotations = make(map[string]string)
+			pod.Annotations[podStr] = podStr
 			parameters.Annotations[podStr] = ""
 			_, err = client.Clientset.CoreV1().Pods(namespace).Update(context.Background(), pod, metav1.UpdateOptions{})
 			if err != nil {

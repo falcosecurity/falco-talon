@@ -50,6 +50,8 @@ rules:
 `
 )
 
+const binSh string = "/bin/sh"
+
 var (
 	RequiredOutputFields = []string{"k8s.ns.name", "k8s.pod.name"}
 )
@@ -87,7 +89,7 @@ func (a Actionner) Information() models.Information {
 func (a Actionner) Parameters() models.Parameters {
 	return Parameters{
 		Command: "",
-		Shell:   "/bin/sh",
+		Shell:   binSh,
 	}
 }
 
@@ -118,7 +120,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 	if parameters.Shell != "" {
 		*shell = parameters.Shell
 	} else {
-		*shell = "/bin/sh"
+		*shell = binSh
 	}
 
 	command := new(string)

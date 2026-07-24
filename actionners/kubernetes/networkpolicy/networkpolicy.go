@@ -178,7 +178,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 					nil,
 					err2
 			}
-			owner = u.ObjectMeta.Name
+			owner = u.Name
 			labels = u.Spec.Selector.MatchLabels
 		case "StatefulSet":
 			u, err2 := client.GetStatefulsetFromPod(pod)
@@ -191,7 +191,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 					nil,
 					err2
 			}
-			owner = u.ObjectMeta.Name
+			owner = u.Name
 			labels = u.Spec.Selector.MatchLabels
 		case "ReplicaSet":
 			u, err2 := client.GetReplicasetFromPod(pod)
@@ -204,12 +204,12 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 					nil,
 					err2
 			}
-			owner = u.ObjectMeta.Name
+			owner = u.Name
 			labels = u.Spec.Selector.MatchLabels
 		}
 	} else {
-		owner = pod.ObjectMeta.Name
-		labels = pod.ObjectMeta.Labels
+		owner = pod.Name
+		labels = pod.Labels
 	}
 
 	if owner == "" || len(labels) == 0 {

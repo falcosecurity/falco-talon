@@ -90,6 +90,18 @@ type KubernetesClient interface {
 	EvictPod(pod corev1.Pod) error
 }
 
+const (
+	appName = "falco-talon"
+
+	labelPartOf    = "app.kubernetes.io/part-of"
+	labelName      = "app.kubernetes.io/name"
+	labelManagedBy = "app.kubernetes.io/managed-by"
+
+	commandSleep    = "sleep"
+	annotationEndAt = "end-at"
+	volumeHostFS    = "host-fs"
+)
+
 var (
 	client          *Client
 	leaseHolderChan chan string
@@ -214,7 +226,7 @@ func (client Client) GetNode(name string) (*corev1.Node, error) {
 
 func (client Client) GetDeploymentFromPod(pod *corev1.Pod) (*appsv1.Deployment, error) {
 	podName := pod.OwnerReferences[0].Name
-	namespace := pod.ObjectMeta.Namespace
+	namespace := pod.Namespace
 	r, err := client.GetDeployment(podName, namespace)
 	if err != nil {
 		return nil, err
@@ -227,7 +239,7 @@ func (client Client) GetDeploymentFromPod(pod *corev1.Pod) (*appsv1.Deployment, 
 
 func (client Client) GetDaemonsetFromPod(pod *corev1.Pod) (*appsv1.DaemonSet, error) {
 	podName := pod.OwnerReferences[0].Name
-	namespace := pod.ObjectMeta.Namespace
+	namespace := pod.Namespace
 	r, err := client.GetDaemonSet(podName, namespace)
 	if err != nil {
 		return nil, err
@@ -240,7 +252,7 @@ func (client Client) GetDaemonsetFromPod(pod *corev1.Pod) (*appsv1.DaemonSet, er
 
 func (client Client) GetStatefulsetFromPod(pod *corev1.Pod) (*appsv1.StatefulSet, error) {
 	podName := pod.OwnerReferences[0].Name
-	namespace := pod.ObjectMeta.Namespace
+	namespace := pod.Namespace
 	r, err := client.GetStatefulSet(podName, namespace)
 	if err != nil {
 		return nil, err
@@ -253,7 +265,7 @@ func (client Client) GetStatefulsetFromPod(pod *corev1.Pod) (*appsv1.StatefulSet
 
 func (client Client) GetReplicasetFromPod(pod *corev1.Pod) (*appsv1.ReplicaSet, error) {
 	podName := pod.OwnerReferences[0].Name
-	namespace := pod.ObjectMeta.Namespace
+	namespace := pod.Namespace
 	r, err := client.GetReplicaSet(podName, namespace)
 	if err != nil {
 		return nil, err
@@ -398,14 +410,14 @@ func (client Client) GetLeaseHolder() (<-chan string, error) {
 	leaderElectionConfig := leaderelection.LeaderElectionConfig{
 		Lock: &resourcelock.LeaseLock{
 			LeaseMeta: metav1.ObjectMeta{
-				Name:      "falco-talon",
+				Name:      appName,
 				Namespace: namespace,
 				Labels: map[string]string{
-					"app.kubernetes.io/part-of": "falco-talon",
-					"app.kubernetes.io/name":    "falco-talon",
+					labelPartOf: appName,
+					labelName:   appName,
 				},
 			},
-			Client: client.Clientset.CoordinationV1(),
+			Client: client.CoordinationV1(),
 			LockConfig: resourcelock.ResourceLockConfig{
 				Identity: *utils.GetLocalIP(),
 			},
@@ -485,7 +497,7 @@ func (client Client) CreateEphemeralContainer(pod *corev1.Pod, container, name, 
 			Name:                     name,
 			Image:                    image,
 			ImagePullPolicy:          corev1.PullAlways,
-			Command:                  []string{"sleep", fmt.Sprintf("%v", ttl)},
+			Command:                  []string{commandSleep, fmt.Sprintf("%v", ttl)},
 			Stdin:                    true,
 			TTY:                      false,
 			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
@@ -612,7 +624,7 @@ func (client Client) CreateJob(jobName, namespace, image, node string, ttl int) 
 	execAction := new(corev1.ExecAction)
 	execAction.Command = []string{"true"}
 	probe := new(corev1.Probe)
-	probe.ProbeHandler.Exec = execAction
+	probe.Exec = execAction
 	probe.InitialDelaySeconds = int32(0)
 
 	endAt := time.Now().Local().Add(time.Duration(int64(ttl)) * time.Second)
@@ -623,12 +635,12 @@ func (client Client) CreateJob(jobName, namespace, image, node string, ttl int) 
 		ObjectMeta: metav1.ObjectMeta{
 			Name: jobName + "-" + uuid,
 			Annotations: map[string]string{
-				"end-at": endAt.Format("2006-01-02 15:04:05"),
+				annotationEndAt: endAt.Format("2006-01-02 15:04:05"),
 			},
 			Labels: map[string]string{
-				"app.kubernetes.io/managed-by": utils.FalcoTalonStr,
-				"app.kubernetes.io/name":       jobName,
-				"app.kubernetes.io/part-of":    utils.FalcoTalonStr,
+				labelManagedBy: utils.FalcoTalonStr,
+				labelName:      jobName,
+				labelPartOf:    utils.FalcoTalonStr,
 			},
 		},
 		Spec: batchv1.JobSpec{
@@ -640,12 +652,12 @@ func (client Client) CreateJob(jobName, namespace, image, node string, ttl int) 
 				ObjectMeta: metav1.ObjectMeta{
 					Name: jobName + "-" + uuid,
 					Annotations: map[string]string{
-						"end-at": endAt.Format("2006-01-02 15:04:05"),
+						annotationEndAt: endAt.Format("2006-01-02 15:04:05"),
 					},
 					Labels: map[string]string{
-						"app.kubernetes.io/managed-by": utils.FalcoTalonStr,
-						"app.kubernetes.io/name":       jobName,
-						"app.kubernetes.io/part-of":    utils.FalcoTalonStr,
+						labelManagedBy: utils.FalcoTalonStr,
+						labelName:      jobName,
+						labelPartOf:    utils.FalcoTalonStr,
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -653,7 +665,7 @@ func (client Client) CreateJob(jobName, namespace, image, node string, ttl int) 
 					Containers: []corev1.Container{
 						{
 							Name:           jobName,
-							Command:        []string{"sleep", strconv.Itoa(ttl)},
+							Command:        []string{commandSleep, strconv.Itoa(ttl)},
 							Ports:          []corev1.ContainerPort{},
 							LivenessProbe:  probe,
 							ReadinessProbe: probe,
@@ -666,7 +678,7 @@ func (client Client) CreateJob(jobName, namespace, image, node string, ttl int) 
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
-									Name:      "host-fs",
+									Name:      volumeHostFS,
 									MountPath: "/host",
 								},
 							},
@@ -674,7 +686,7 @@ func (client Client) CreateJob(jobName, namespace, image, node string, ttl int) 
 					},
 					Volumes: []corev1.Volume{
 						{
-							Name: "host-fs",
+							Name: volumeHostFS,
 							VolumeSource: corev1.VolumeSource{
 								HostPath: utils.Pointer(corev1.HostPathVolumeSource{Path: "/"})},
 						},

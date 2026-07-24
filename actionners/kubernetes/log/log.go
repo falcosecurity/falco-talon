@@ -159,7 +159,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 			}
 			continue
 		}
-		defer logs.Close()
+		defer func() { _ = logs.Close() }()
 
 		buf := new(bytes.Buffer)
 		_, err = io.Copy(buf, logs)

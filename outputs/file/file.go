@@ -64,7 +64,7 @@ func (o Output) Checks(output *rules.Output) error {
 	}
 
 	dstFolder := os.ExpandEnv(parameters.Destination)
-	if _, err := os.Open(dstFolder); os.IsNotExist(err) {
+	if _, err := os.Open(dstFolder); os.IsNotExist(err) { // #nosec G304 -- dstFolder comes from the operator-provided configuration
 		return fmt.Errorf("folder '%v' does not exist", dstFolder)
 	}
 
@@ -91,7 +91,7 @@ func (o Output) Run(output *rules.Output, data *models.Data) (utils.LogLine, err
 	default:
 		var s string
 		for i, j := range data.Objects {
-			if i != "file" {
+			if i != Name {
 				s += j + "_"
 			}
 		}

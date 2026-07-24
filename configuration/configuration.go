@@ -23,6 +23,7 @@ const (
 	defaultOtelCollectorUseInsecureGrpc bool   = false
 	defaultOtelCollectorPort            int    = 4317
 	defaultOtelCollectorGRPCTimeout            = 10
+	configStr                           string = "config"
 )
 
 type Otel struct {
@@ -107,12 +108,12 @@ func CreateConfiguration(configFile string) *Configuration {
 		v.SetConfigFile(configFile)
 		err := v.ReadInConfig()
 		if err != nil {
-			utils.PrintLog(utils.FatalStr, utils.LogLine{Error: fmt.Sprintf("error when reading config file: '%v'", err.Error()), Message: "config"})
+			utils.PrintLog(utils.FatalStr, utils.LogLine{Error: fmt.Sprintf("error when reading config file: '%v'", err.Error()), Message: configStr})
 		}
 	}
 
 	if err := v.Unmarshal(config); err != nil {
-		utils.PrintLog(utils.FatalStr, utils.LogLine{Error: fmt.Sprintf("error unmarshalling config file: '%v'", err.Error()), Message: "config"})
+		utils.PrintLog(utils.FatalStr, utils.LogLine{Error: fmt.Sprintf("error unmarshalling config file: '%v'", err.Error()), Message: configStr})
 	}
 
 	return config

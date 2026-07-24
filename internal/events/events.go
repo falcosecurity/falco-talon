@@ -154,21 +154,21 @@ func (event *Event) ExportEnvVars() {
 		key := strings.ReplaceAll(strings.ToUpper(i), ".", "_")
 		key = strings.ReplaceAll(key, "[", "_")
 		key = strings.ReplaceAll(key, "]", "")
-		os.Setenv(key, fmt.Sprintf("%v", j))
+		_ = os.Setenv(key, fmt.Sprintf("%v", j))
 	}
 	for i, j := range event.Context {
 		key := strings.ReplaceAll(strings.ToUpper(i), ".", "_")
-		os.Setenv(key, fmt.Sprintf("%v", j))
+		_ = os.Setenv(key, fmt.Sprintf("%v", j))
 	}
-	os.Setenv("PRIORITY", event.Priority)
-	os.Setenv("HOSTNAME", event.Hostname)
-	os.Setenv("RULE", event.Rule)
-	os.Setenv("SOURCE", event.Source)
+	_ = os.Setenv("PRIORITY", event.Priority)
+	_ = os.Setenv("HOSTNAME", event.Hostname)
+	_ = os.Setenv("RULE", event.Rule)
+	_ = os.Setenv("SOURCE", event.Source)
 	var tags []string
 	for _, i := range event.Tags {
 		tags = append(tags, fmt.Sprintf("%v", i))
 	}
-	os.Setenv("TAGS", strings.Join(tags, ","))
+	_ = os.Setenv("TAGS", strings.Join(tags, ","))
 }
 
 func (event *Event) String() string {
