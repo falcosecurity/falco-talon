@@ -12,14 +12,14 @@ import (
 )
 
 var outputsCmd = &cobra.Command{
-	Use:   "outputs",
+	Use:   outputsStr,
 	Short: "Manage the Outputs",
 	Long:  "Manage the Outputs.",
 	Run:   nil,
 }
 
 var outputsListCmd = &cobra.Command{
-	Use:   "list",
+	Use:   listStr,
 	Short: "List the available Outputs",
 	Long:  "List the available Outputs.",
 	Run: func(_ *cobra.Command, _ []string) {
@@ -45,7 +45,7 @@ var outputsListCmd = &cobra.Command{
 
 			if p := i.Parameters(); p != nil {
 				valueOf := reflect.ValueOf(i.Parameters())
-				if valueOf.Kind() == reflect.Ptr {
+				if valueOf.Kind() == reflect.Pointer {
 					valueOf = valueOf.Elem()
 				}
 

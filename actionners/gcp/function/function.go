@@ -226,7 +226,7 @@ func (a Actionner) RunWithClient(c client.GCPClientAPI, event *events.Event, act
 			Status:  utils.FailureStr,
 		}, nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {

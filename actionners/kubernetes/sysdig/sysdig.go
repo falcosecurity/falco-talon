@@ -85,6 +85,7 @@ const (
 	defaultDuration    int    = 5
 	defaultMaxDuration int    = 30
 	defaultBufferSize  int    = 2048
+	scriptPath         string = "/tmp/talon-script.sh"
 )
 
 type Actionner struct{}
@@ -131,8 +132,8 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 	namespace := event.GetNamespaceName()
 
 	objects := map[string]string{
-		"pod":       podName,
-		"namespace": namespace,
+		defaultScope: podName,
+		"namespace":  namespace,
 	}
 
 	var parameters Parameters
@@ -220,9 +221,9 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 		}
 	}
 
-	command := []string{"tee", "/tmp/talon-script.sh", "/dev/null"}
+	command := []string{"tee", scriptPath, "/dev/null"}
 	sysdigCmd := fmt.Sprintf("sysdig --modern-bpf --cri /run/containerd/containerd.sock -M %v -s %v -z -w /tmp/sysdig.scap.gz", parameters.Duration, parameters.BufferSize)
-	if parameters.Scope == "pod" {
+	if parameters.Scope == defaultScope {
 		containers := []string{}
 		for _, i := range pod.Status.ContainerStatuses {
 			containers = append(containers, strings.ReplaceAll(i.ContainerID, "containerd://", "")[:12])
@@ -239,7 +240,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 		}, nil, err
 	}
 
-	command = []string{"sh", "/tmp/talon-script.sh"}
+	command = []string{"sh", scriptPath}
 	_, err = client.Exec(namespace, jPod, jContainer, command, "")
 	if err != nil {
 		return utils.LogLine{

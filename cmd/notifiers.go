@@ -19,7 +19,7 @@ var notifiersCmd = &cobra.Command{
 }
 
 var notifiersListCmd = &cobra.Command{
-	Use:   "list",
+	Use:   listStr,
 	Short: "List the available Notifiers",
 	Long:  "List the available Notifiers.",
 	Run: func(_ *cobra.Command, _ []string) {
@@ -43,7 +43,7 @@ var notifiersListCmd = &cobra.Command{
 
 			if p := i.Parameters(); p != nil {
 				valueOf := reflect.ValueOf(i.Parameters())
-				if valueOf.Kind() == reflect.Ptr {
+				if valueOf.Kind() == reflect.Pointer {
 					valueOf = valueOf.Elem()
 				}
 

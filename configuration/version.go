@@ -50,14 +50,14 @@ func (i *Info) String() string {
 	b := strings.Builder{}
 	w := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)
 
-	fmt.Fprintf(w, "GitVersion:\t%s\n", i.GitVersion)
-	fmt.Fprintf(w, "GitCommit:\t%s\n", i.GitCommit)
-	fmt.Fprintf(w, "GitTreeState:\t%s\n", i.GitTreeState)
-	fmt.Fprintf(w, "BuildDate:\t%s\n", i.BuildDate)
-	fmt.Fprintf(w, "GoVersion:\t%s\n", i.GoVersion)
-	fmt.Fprintf(w, "Compiler:\t%s\n", i.Compiler)
-	fmt.Fprintf(w, "Platform:\t%s\n", i.Platform)
+	_, _ = fmt.Fprintf(w, "GitVersion:\t%s\n", i.GitVersion)
+	_, _ = fmt.Fprintf(w, "GitCommit:\t%s\n", i.GitCommit)
+	_, _ = fmt.Fprintf(w, "GitTreeState:\t%s\n", i.GitTreeState)
+	_, _ = fmt.Fprintf(w, "BuildDate:\t%s\n", i.BuildDate)
+	_, _ = fmt.Fprintf(w, "GoVersion:\t%s\n", i.GoVersion)
+	_, _ = fmt.Fprintf(w, "Compiler:\t%s\n", i.Compiler)
+	_, _ = fmt.Fprintf(w, "Platform:\t%s\n", i.Platform)
 
-	w.Flush()
+	_ = w.Flush()
 	return b.String()
 }

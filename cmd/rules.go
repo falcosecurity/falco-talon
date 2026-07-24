@@ -13,31 +13,31 @@ import (
 )
 
 var rulesCmd = &cobra.Command{
-	Use:   "rules",
+	Use:   rulesStr,
 	Short: "Manage Falco Talon rules",
 	Long:  `Manage the rules loaded by Falco Talon. You can print them in the stdout or check their validity.`,
 }
 
 var rulesChecksCmd = &cobra.Command{
 	Use:   "check",
-	Short: "Check Falco Talon Rules file",
-	Long:  "Check Falco Talon Rules file",
+	Short: checkRulesStr,
+	Long:  checkRulesStr,
 	Run: func(cmd *cobra.Command, _ []string) {
 		configFile, _ := cmd.Flags().GetString("config")
 		config := configuration.CreateConfiguration(configFile)
 		utils.SetLogFormat(config.LogFormat)
-		rulesFiles, _ := cmd.Flags().GetStringArray("rules")
+		rulesFiles, _ := cmd.Flags().GetStringArray(rulesStr)
 		if len(rulesFiles) != 0 {
 			config.RulesFiles = rulesFiles
 		}
 		rules := ruleengine.ParseRules(config.RulesFiles)
 		if rules == nil {
-			utils.PrintLog(utils.FatalStr, utils.LogLine{Error: "invalid rules", Message: "rules"})
+			utils.PrintLog(utils.FatalStr, utils.LogLine{Error: invalidRulesStr, Message: rulesStr})
 		}
 		if !validateRules(rules) {
-			utils.PrintLog(utils.FatalStr, utils.LogLine{Error: "invalid rules", Message: "rules"})
+			utils.PrintLog(utils.FatalStr, utils.LogLine{Error: invalidRulesStr, Message: rulesStr})
 		}
-		utils.PrintLog(utils.InfoStr, utils.LogLine{Result: "rules file valid", Message: "rules"})
+		utils.PrintLog(utils.InfoStr, utils.LogLine{Result: "rules file valid", Message: rulesStr})
 	},
 }
 
@@ -49,13 +49,13 @@ var rulesPrintCmd = &cobra.Command{
 		configFile, _ := cmd.Flags().GetString("config")
 		config := configuration.CreateConfiguration(configFile)
 		utils.SetLogFormat(config.LogFormat)
-		rulesFiles, _ := cmd.Flags().GetStringArray("rules")
+		rulesFiles, _ := cmd.Flags().GetStringArray(rulesStr)
 		if len(rulesFiles) != 0 {
 			config.RulesFiles = rulesFiles
 		}
 		rules := ruleengine.ParseRules(config.RulesFiles)
 		if rules == nil {
-			utils.PrintLog(utils.FatalStr, utils.LogLine{Error: "invalid rules", Message: "rules"})
+			utils.PrintLog(utils.FatalStr, utils.LogLine{Error: invalidRulesStr, Message: rulesStr})
 		}
 		type yamlFile struct {
 			Name        string   `yaml:"rule"`

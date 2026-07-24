@@ -87,7 +87,7 @@ func GetPublisher() *Client {
 
 func (client *Client) ConsumeMsg() (chan MessageWithContext, error) {
 	c := make(chan MessageWithContext, 20)
-	_, err := client.JetStreamContext.Subscribe(streamSubjects, func(m *nats.Msg) {
+	_, err := client.Subscribe(streamSubjects, func(m *nats.Msg) {
 		propagator := otel.GetTextMapPropagator()
 		ctx := propagator.Extract(context.Background(), propagation.HeaderCarrier(m.Header))
 
@@ -125,14 +125,14 @@ func (client *Client) PublishMsg(ctx context.Context, id, msg string) error {
 }
 
 func (client *Client) createStream(timeWindow int) error {
-	stream, err := client.JetStreamContext.StreamInfo(streamName)
+	stream, err := client.StreamInfo(streamName)
 	if err != nil {
 		if err != nats.ErrStreamNotFound {
 			return err
 		}
 	}
 	if stream == nil {
-		_, err = client.JetStreamContext.AddStream(&nats.StreamConfig{
+		_, err = client.AddStream(&nats.StreamConfig{
 			Name:              streamName,
 			Subjects:          []string{streamSubjects},
 			Duplicates:        time.Duration(timeWindow) * time.Second,

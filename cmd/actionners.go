@@ -12,14 +12,14 @@ import (
 )
 
 var actionnersCmd = &cobra.Command{
-	Use:   "actionners",
-	Short: "Manage the actionners",
-	Long:  "Manage the actionners",
+	Use:   actionnersStr,
+	Short: manageActionnersStr,
+	Long:  manageActionnersStr,
 	Run:   nil,
 }
 
 var actionnersListCmd = &cobra.Command{
-	Use:   "list",
+	Use:   listStr,
 	Short: "List the available Actionners",
 	Long:  "List the available Actionners.",
 	Run: func(_ *cobra.Command, _ []string) {
@@ -57,7 +57,7 @@ var actionnersListCmd = &cobra.Command{
 
 			if p := i.Parameters(); p != nil {
 				valueOf := reflect.ValueOf(i.Parameters())
-				if valueOf.Kind() == reflect.Ptr {
+				if valueOf.Kind() == reflect.Pointer {
 					valueOf = valueOf.Elem()
 				}
 
