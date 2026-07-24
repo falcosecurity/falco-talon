@@ -509,7 +509,7 @@ func StartConsumer(eventsC <-chan nats.MessageWithContext) {
 				trace.WithAttributes(attribute.String("event.rule", event.Rule)),
 				trace.WithAttributes(attribute.String("event.output", event.Output)),
 				trace.WithAttributes(attribute.String("event.source", event.Source)),
-				trace.WithAttributes(attribute.String("event.source", event.TraceID)),
+				trace.WithAttributes(attribute.String("event.trace_id", event.TraceID)),
 				trace.WithAttributes(attribute.String("rule.name", i.GetName())),
 				trace.WithAttributes(attribute.String("rule.description", i.GetDescription())),
 			)
