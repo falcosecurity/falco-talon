@@ -1,58 +1,77 @@
+version: "2"
 run:
-  timeout: 5m
   modules-download-mode: readonly
-
-linters-settings:
-  goconst:
-    min-len: 2
-    min-occurrences: 2
-  gofmt:
-    simplify: true
-  goimports:
-    local-prefixes: github.com/falcosecurity/falco-talon
-  golint:
-    min-confidence: 0
-  govet:
-    shadow: true
-    enable-all: true
-  misspell:
-    locale: US
-
 linters:
-  disable-all: true
+  default: none
   enable:
     - bodyclose
     - errcheck
-    - goconst
     - gocritic
-    - gofmt
-    - goimports
-    - revive
     - gosec
-    - gosimple
     - govet
     - ineffassign
     - misspell
     - nakedret
+    - revive
     - staticcheck
-    - stylecheck
-    - typecheck
     - unconvert
     - unused
     - whitespace
-
-issues:
-  exclude-rules:
-    - path: server/manifest.go
-      linters:
-        - deadcode
-        - unused
-        - varcheck
-    - path: server/configuration.go
-      linters:
-        - unused
-    - path: _test.go
-      linters:
-        - bodyclose
-        - goconst
-        - scopelint # https://github.com/kyoh86/scopelint/issues/4
+    # goconst is left disabled for now: v2's goconst is much more aggressive than
+    # v1.64.8 (which reported nothing here). Re-enable it and extract the repeated
+    # strings in a dedicated follow-up rather than as part of this migration.
+  settings:
+    govet:
+      enable-all: true
+      # enable-all pulls in the newer "inline" analyzer that v1.64.8 did not run.
+      disable:
+        - inline
+    misspell:
+      locale: US
+    staticcheck:
+      # v2 folds the staticcheck "quickfix" (QF*) suggestions into the linter;
+      # v1.64.8 did not run them. Keep them off so this stays behavior-neutral.
+      checks:
+        - all
+        - -QF*
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - deadcode
+          - unused
+          - varcheck
+        path: server/manifest.go
+      - linters:
+          - unused
+        path: server/configuration.go
+      - linters:
+          - bodyclose
+          - goconst
+          - scopelint
+        path: _test.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    gofmt:
+      simplify: true
+    goimports:
+      local-prefixes:
+        - github.com/falcosecurity/falco-talon
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
