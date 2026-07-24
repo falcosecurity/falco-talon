@@ -10,7 +10,7 @@ import (
 // type. The getters used to assert .(string) on the value directly, which
 // panicked the (recover-less) consumer goroutine and took the whole process
 // down on a single alert carrying a non-string value. These tests pin the
-// guarded behaviour.
+// guarded behavior.
 
 func TestGetPodNameNonStringValueDoesNotPanic(t *testing.T) {
 	var of map[string]any
