@@ -80,6 +80,7 @@ const (
 	defaultTTL      int    = 60
 	defaultDuration int    = 5
 	defaulSnaplen   int    = 4096
+	scriptPath      string = "/tmp/talon-script.sh"
 )
 
 type Actionner struct{}
@@ -171,7 +172,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 		}, nil, err
 	}
 
-	command := []string{"tee", "/tmp/talon-script.sh", "/dev/null"}
+	command := []string{"tee", scriptPath, "/dev/null"}
 	script := fmt.Sprintf("timeout %vs tcpdump -n -i any -s %v -w /tmp/tcpdump.pcap || [ $? -eq 124 ] && echo OK || exit 1\n", parameters.Duration, parameters.Snaplen)
 	_, err = client.Exec(namespace, podName, ephemeralContainerName, command, script)
 	if err != nil {
@@ -182,7 +183,7 @@ func (a Actionner) Run(event *events.Event, action *rules.Action) (utils.LogLine
 		}, nil, err
 	}
 
-	command = []string{"sh", "/tmp/talon-script.sh"}
+	command = []string{"sh", scriptPath}
 	_, err = client.Exec(namespace, podName, ephemeralContainerName, command, "")
 	if err != nil {
 		return utils.LogLine{

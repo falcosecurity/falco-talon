@@ -59,8 +59,10 @@ var defaultActionners *Actionners
 var enabledActionners *Actionners
 
 const (
-	trueStr  string = "true"
-	falseStr string = "false"
+	trueStr   string = "true"
+	falseStr  string = "false"
+	outputStr string = "output"
+	eventStr  string = "event"
 )
 
 func init() {
@@ -274,10 +276,10 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 	go notifiers.Notify(actx, rule, action, event, log)
 
 	if actionner.Information().RequireOutput {
-		octx, span := tracer.Start(actx, "output")
+		octx, span := tracer.Start(actx, outputStr)
 
 		logO := utils.LogLine{
-			Message: "output",
+			Message: outputStr,
 			Action:  action.GetName(),
 			TraceID: event.TraceID,
 		}
@@ -379,10 +381,10 @@ func runAction(mctx context.Context, rule *rules.Rule, action *rules.Action, eve
 	}
 
 	if actionner.Information().AllowOutput && output != nil && data != nil {
-		octx, span := tracer.Start(actx, "output")
+		octx, span := tracer.Start(actx, outputStr)
 
 		logO := utils.LogLine{
-			Message: "output",
+			Message: outputStr,
 			Rule:    rule.GetName(),
 			Action:  action.GetName(),
 			TraceID: event.TraceID,
@@ -476,7 +478,7 @@ func StartConsumer(eventsC <-chan nats.MessageWithContext) {
 		}
 
 		log := utils.LogLine{
-			Message:  "event",
+			Message:  eventStr,
 			Event:    event.Rule,
 			Priority: event.Priority,
 			Output:   event.Output,

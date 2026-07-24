@@ -17,6 +17,8 @@ import (
 	"github.com/falcosecurity/falco-talon/utils"
 )
 
+const fileStr string = "file"
+
 const (
 	Name        string = "s3"
 	Category    string = "aws"
@@ -108,7 +110,7 @@ func (o Output) Run(output *rules.Output, data *models.Data) (utils.LogLine, err
 	default:
 		var s string
 		for i, j := range data.Objects {
-			if i != "file" {
+			if i != fileStr {
 				s += j + "_"
 			}
 		}
@@ -125,7 +127,7 @@ func (o Output) Run(output *rules.Output, data *models.Data) (utils.LogLine, err
 	}
 
 	objects := map[string]string{
-		"file":   data.Name,
+		fileStr:  data.Name,
 		"bucket": parameters.Bucket,
 		"prefix": parameters.Prefix,
 		"key":    key,

@@ -12,6 +12,8 @@ import (
 	"github.com/falcosecurity/falco-talon/utils"
 )
 
+const fileStr string = "file"
+
 const (
 	Name        string = "gcs"
 	Category    string = "gcp"
@@ -130,7 +132,7 @@ func (o Output) RunWithClient(client client.GcpGcsAPI, output *rules.Output, dat
 	default:
 		var s string
 		for i, j := range data.Objects {
-			if i != "file" {
+			if i != fileStr {
 				s += j + "_"
 			}
 		}
@@ -138,7 +140,7 @@ func (o Output) RunWithClient(client client.GcpGcsAPI, output *rules.Output, dat
 	}
 
 	objects := map[string]string{
-		"file":   data.Name,
+		fileStr:  data.Name,
 		"bucket": parameters.Bucket,
 		"prefix": parameters.Prefix,
 		"key":    key,
@@ -165,7 +167,7 @@ func putObject(ctx context.Context, storageClient client.GcpGcsAPI, bucketName, 
 	bucket := storageClient.Bucket(bucketName)
 	objectName := prefix + key
 	wc := bucket.Object(objectName).NewWriter(ctx)
-	defer wc.Close()
+	defer func() { _ = wc.Close() }()
 
 	if _, err := wc.Write(data.Bytes); err != nil {
 		return err
