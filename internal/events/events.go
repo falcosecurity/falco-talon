@@ -54,27 +54,30 @@ func DecodeEvent(payload io.Reader) (*Event, error) {
 	return &event, nil
 }
 
-func (event *Event) GetPodName() string {
-	if event.OutputFields["k8s.pod.name"] != nil {
-		return event.OutputFields["k8s.pod.name"].(string)
-	}
-	if event.OutputFields["ka.target.pod.name"] != nil {
-		return event.OutputFields["ka.target.pod.name"].(string)
-	}
-	if event.OutputFields["ka.target.name"] != nil {
-		return event.OutputFields["ka.target.name"].(string)
+// getOutputFieldString returns the value of the first present output field
+// among keys, as a string. Because DecodeEvent uses json.Decoder.UseNumber(),
+// non-string fields (e.g. numeric values decoded as json.Number) would panic
+// on a bare type assertion; they are formatted with fmt.Sprintf instead.
+func (event *Event) getOutputFieldString(keys ...string) string {
+	for _, key := range keys {
+		v, ok := event.OutputFields[key]
+		if !ok || v == nil {
+			continue
+		}
+		if s, ok := v.(string); ok {
+			return s
+		}
+		return fmt.Sprintf("%v", v)
 	}
 	return ""
 }
 
+func (event *Event) GetPodName() string {
+	return event.getOutputFieldString("k8s.pod.name", "ka.target.pod.name", "ka.target.name")
+}
+
 func (event *Event) GetNamespaceName() string {
-	if event.OutputFields["k8s.ns.name"] != nil {
-		return event.OutputFields["k8s.ns.name"].(string)
-	}
-	if event.OutputFields["ka.target.namespace"] != nil {
-		return event.OutputFields["ka.target.namespace"].(string)
-	}
-	return ""
+	return event.getOutputFieldString("k8s.ns.name", "ka.target.namespace")
 }
 
 func (event *Event) GetHostname() string {
@@ -82,54 +85,27 @@ func (event *Event) GetHostname() string {
 }
 
 func (event *Event) GetTargetName() string {
-	if event.OutputFields["ka.target.name"] != nil {
-		return event.OutputFields["ka.target.name"].(string)
-	}
-	return ""
+	return event.getOutputFieldString("ka.target.name")
 }
 
 func (event *Event) GetTargetNamespace() string {
-	if event.OutputFields["ka.target.namespace"] != nil {
-		return event.OutputFields["ka.target.namespace"].(string)
-	}
-	return ""
+	return event.getOutputFieldString("ka.target.namespace")
 }
 
 func (event *Event) GetTargetResource() string {
-	if event.OutputFields["ka.target.resource"] != nil {
-		return event.OutputFields["ka.target.resource"].(string)
-	}
-	return ""
+	return event.getOutputFieldString("ka.target.resource")
 }
 
 func (event *Event) GetRemoteIP() string {
-	if i := event.OutputFields["fd.rip"]; i != nil {
-		return i.(string)
-	}
-	if i := event.OutputFields["fd.sip"]; i != nil {
-		return i.(string)
-	}
-	return ""
+	return event.getOutputFieldString("fd.rip", "fd.sip")
 }
 
 func (event *Event) GetRemotePort() string {
-	if i := event.OutputFields["fd.rport"]; i != nil {
-		return i.(string)
-	}
-	if i := event.OutputFields["fd.sport"]; i != nil {
-		return i.(string)
-	}
-	return ""
+	return event.getOutputFieldString("fd.rport", "fd.sport")
 }
 
 func (event *Event) GetRemoteProtocol() string {
-	if i := event.OutputFields["fd.rproto"]; i != nil {
-		return i.(string)
-	}
-	if i := event.OutputFields["fd.rproto"]; i != nil {
-		return i.(string)
-	}
-	return ""
+	return event.getOutputFieldString("fd.rproto")
 }
 
 func (event *Event) AddContext(elements map[string]any) {
