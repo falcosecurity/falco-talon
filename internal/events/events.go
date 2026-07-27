@@ -54,11 +54,13 @@ func DecodeEvent(payload io.Reader) (*Event, error) {
 	return &event, nil
 }
 
-// getOutputFieldString returns the value of the first present output field
+// GetOutputFieldString returns the value of the first present output field
 // among keys, as a string. Because DecodeEvent uses json.Decoder.UseNumber(),
 // non-string fields (e.g. numeric values decoded as json.Number) would panic
 // on a bare type assertion; they are formatted with fmt.Sprintf instead.
-func (event *Event) getOutputFieldString(keys ...string) string {
+// It is exported so consumers reading raw output fields (e.g. the checks
+// package) can go through the same safe accessor.
+func (event *Event) GetOutputFieldString(keys ...string) string {
 	for _, key := range keys {
 		v, ok := event.OutputFields[key]
 		if !ok || v == nil {
@@ -73,11 +75,11 @@ func (event *Event) getOutputFieldString(keys ...string) string {
 }
 
 func (event *Event) GetPodName() string {
-	return event.getOutputFieldString("k8s.pod.name", "ka.target.pod.name", "ka.target.name")
+	return event.GetOutputFieldString("k8s.pod.name", "ka.target.pod.name", "ka.target.name")
 }
 
 func (event *Event) GetNamespaceName() string {
-	return event.getOutputFieldString("k8s.ns.name", "ka.target.namespace")
+	return event.GetOutputFieldString("k8s.ns.name", "ka.target.namespace")
 }
 
 func (event *Event) GetHostname() string {
@@ -85,27 +87,27 @@ func (event *Event) GetHostname() string {
 }
 
 func (event *Event) GetTargetName() string {
-	return event.getOutputFieldString("ka.target.name")
+	return event.GetOutputFieldString("ka.target.name")
 }
 
 func (event *Event) GetTargetNamespace() string {
-	return event.getOutputFieldString("ka.target.namespace")
+	return event.GetOutputFieldString("ka.target.namespace")
 }
 
 func (event *Event) GetTargetResource() string {
-	return event.getOutputFieldString("ka.target.resource")
+	return event.GetOutputFieldString("ka.target.resource")
 }
 
 func (event *Event) GetRemoteIP() string {
-	return event.getOutputFieldString("fd.rip", "fd.sip")
+	return event.GetOutputFieldString("fd.rip", "fd.sip")
 }
 
 func (event *Event) GetRemotePort() string {
-	return event.getOutputFieldString("fd.rport", "fd.sport")
+	return event.GetOutputFieldString("fd.rport", "fd.sport")
 }
 
 func (event *Event) GetRemoteProtocol() string {
-	return event.getOutputFieldString("fd.rproto")
+	return event.GetOutputFieldString("fd.rproto")
 }
 
 func (event *Event) AddContext(elements map[string]any) {

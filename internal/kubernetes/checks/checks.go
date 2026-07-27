@@ -74,12 +74,12 @@ func CheckRemoteIP(event *events.Event) error {
 		return errors.New("missing IP field(s) (fd.sip or fd.rip)")
 	}
 	if event.OutputFields["fd.sip"] != nil {
-		if net.ParseIP(event.OutputFields["fd.sip"].(string)) == nil {
+		if net.ParseIP(event.GetOutputFieldString("fd.sip")) == nil {
 			return errors.New("wrong value for fd.sip")
 		}
 	}
 	if event.OutputFields["fd.rip"] != nil {
-		if net.ParseIP(event.OutputFields["fd.rip"].(string)) == nil {
+		if net.ParseIP(event.GetOutputFieldString("fd.rip")) == nil {
 			return errors.New("wrong value for fd.rip")
 		}
 	}
