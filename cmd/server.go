@@ -97,7 +97,7 @@ var serverCmd = &cobra.Command{
 						// both replace the inode the file watch was on, and
 						// only directory events reveal the replacement.
 						if err := watcher.Add(filepath.Dir(i)); err != nil {
-							utils.PrintLog(utils.InfoStr, utils.LogLine{Error: err.Error(), Message: rulesStr})
+							utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Message: rulesStr})
 						}
 					}
 				}
