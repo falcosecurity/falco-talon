@@ -78,7 +78,6 @@ var serverCmd = &cobra.Command{
 
 		if config.WatchRules {
 			go func() {
-				ignore := false
 				watcher, err := fsnotify.NewWatcher()
 				if err != nil {
 					utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Message: rulesStr})
@@ -87,33 +86,53 @@ var serverCmd = &cobra.Command{
 				defer func() { _ = watcher.Close() }()
 				watchRulesFiles := func() {
 					for _, i := range config.RulesFiles {
+						// best effort: the inode may be gone while a swap is in
+						// flight, the directory watch below is the reliable one
 						if err := watcher.Add(i); err != nil {
-							utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Message: rulesStr})
-							return
+							utils.PrintLog(utils.WarningStr, utils.LogLine{Error: err.Error(), Message: rulesStr})
 						}
-						// the parent directory is watched too (best effort):
-						// Kubernetes updates ConfigMap volumes with a symlink
-						// swap and editors save with write-tmp-then-rename,
-						// both replace the inode the file watch was on, and
-						// only directory events reveal the replacement.
+						// the parent directory is watched too: Kubernetes updates
+						// ConfigMap volumes with a symlink swap and editors save
+						// with write-tmp-then-rename, both replace the inode the
+						// file watch was on, and only directory events reveal it.
 						if err := watcher.Add(filepath.Dir(i)); err != nil {
 							utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Message: rulesStr})
 						}
 					}
 				}
 				watchRulesFiles()
+				reload := func() {
+					utils.PrintLog(utils.InfoStr, utils.LogLine{Result: "changes detected", Message: rulesStr})
+					newRules := ruleengine.ParseRules(config.RulesFiles)
+					if newRules == nil {
+						utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: invalidRulesStr, Message: rulesStr})
+						return
+					}
+					if !validateRules(newRules) {
+						utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: invalidRulesStr, Message: rulesStr})
+						return
+					}
+					utils.PrintLog(utils.InfoStr, utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*newRules)), Message: rulesStr})
+					rules = newRules
+					if err := actionners.Init(); err != nil {
+						utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Message: actionnersStr})
+					}
+				}
+				// a ConfigMap swap emits a burst of events, and "..data" still
+				// points to the old directory when the first one arrives. The
+				// reload is therefore debounced on the trailing edge: the timer
+				// is rearmed on every event and only fires once the burst is
+				// over. A nil channel blocks forever in select, so nothing is
+				// pending until the first event.
+				var debounce <-chan time.Time
 				for {
 					select {
 					case event := <-watcher.Events:
-						if ignore {
-							continue
-						}
-						// only events about the rules files or their directory
-						// (symlink swaps like the ConfigMap "..data" one happen
-						// in the same directory)
+						// only events about the rules files themselves or the
+						// ConfigMap swap marker in their directory
 						watched := false
 						for _, i := range config.RulesFiles {
-							if event.Name == i || filepath.Dir(event.Name) == filepath.Dir(i) {
+							if event.Name == i || (filepath.Base(event.Name) == "..data" && filepath.Dir(event.Name) == filepath.Dir(i)) {
 								watched = true
 								break
 							}
@@ -124,39 +143,18 @@ var serverCmd = &cobra.Command{
 						if !event.Has(fsnotify.Write) && !event.Has(fsnotify.Create) && !event.Has(fsnotify.Remove) && !event.Has(fsnotify.Rename) {
 							continue
 						}
-						ignore = true
-						go func() {
-							time.Sleep(1 * time.Second)
-							ignore = false
-						}()
-						// re-register the file watches, the inode may have
-						// been replaced by a rename/symlink swap
+						debounce = time.After(1 * time.Second)
+					case <-debounce:
+						debounce = nil
 						watchRulesFiles()
-						utils.PrintLog(utils.InfoStr, utils.LogLine{Result: "changes detected", Message: rulesStr})
-						newRules := ruleengine.ParseRules(config.RulesFiles)
-						if newRules == nil {
-							utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: invalidRulesStr, Message: rulesStr})
-							break
-						}
-
-						if newRules != nil {
-							if !validateRules(newRules) {
-								utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: invalidRulesStr, Message: rulesStr})
-								break
-							}
-							utils.PrintLog(utils.InfoStr, utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*newRules)), Message: rulesStr})
-							rules = newRules
-							if err := actionners.Init(); err != nil {
-								utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Message: actionnersStr})
-								break
-							}
-						}
+						reload()
 					case err := <-watcher.Errors:
 						utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Message: rulesStr})
 					}
 				}
 			}()
 		}
+
 		// start the local NATS
 		ns, err := nats.StartServer(config.Deduplication.TimeWindowSeconds)
 		if err != nil {
