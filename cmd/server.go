@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -84,39 +85,70 @@ var serverCmd = &cobra.Command{
 					return
 				}
 				defer func() { _ = watcher.Close() }()
-				for _, i := range config.RulesFiles {
-					if err := watcher.Add(i); err != nil {
-						utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Message: rulesStr})
-						return
+				watchRulesFiles := func() {
+					for _, i := range config.RulesFiles {
+						if err := watcher.Add(i); err != nil {
+							utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Message: rulesStr})
+							return
+						}
+						// the parent directory is watched too (best effort):
+						// Kubernetes updates ConfigMap volumes with a symlink
+						// swap and editors save with write-tmp-then-rename,
+						// both replace the inode the file watch was on, and
+						// only directory events reveal the replacement.
+						if err := watcher.Add(filepath.Dir(i)); err != nil {
+							utils.PrintLog(utils.InfoStr, utils.LogLine{Error: err.Error(), Message: rulesStr})
+						}
 					}
 				}
+				watchRulesFiles()
 				for {
 					select {
 					case event := <-watcher.Events:
-						if event.Has(fsnotify.Write) && !ignore {
-							ignore = true
-							go func() {
-								time.Sleep(1 * time.Second)
-								ignore = false
-							}()
-							utils.PrintLog(utils.InfoStr, utils.LogLine{Result: "changes detected", Message: rulesStr})
-							newRules := ruleengine.ParseRules(config.RulesFiles)
-							if newRules == nil {
+						if ignore {
+							continue
+						}
+						// only events about the rules files or their directory
+						// (symlink swaps like the ConfigMap "..data" one happen
+						// in the same directory)
+						watched := false
+						for _, i := range config.RulesFiles {
+							if event.Name == i || filepath.Dir(event.Name) == filepath.Dir(i) {
+								watched = true
+								break
+							}
+						}
+						if !watched {
+							continue
+						}
+						if !(event.Has(fsnotify.Write) || event.Has(fsnotify.Create) || event.Has(fsnotify.Remove) || event.Has(fsnotify.Rename)) {
+							continue
+						}
+						ignore = true
+						go func() {
+							time.Sleep(1 * time.Second)
+							ignore = false
+						}()
+						// re-register the file watches, the inode may have
+						// been replaced by a rename/symlink swap
+						watchRulesFiles()
+						utils.PrintLog(utils.InfoStr, utils.LogLine{Result: "changes detected", Message: rulesStr})
+						newRules := ruleengine.ParseRules(config.RulesFiles)
+						if newRules == nil {
+							utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: invalidRulesStr, Message: rulesStr})
+							break
+						}
+
+						if newRules != nil {
+							if !validateRules(newRules) {
 								utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: invalidRulesStr, Message: rulesStr})
 								break
 							}
-
-							if newRules != nil {
-								if !validateRules(newRules) {
-									utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: invalidRulesStr, Message: rulesStr})
-									break
-								}
-								utils.PrintLog(utils.InfoStr, utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*newRules)), Message: rulesStr})
-								rules = newRules
-								if err := actionners.Init(); err != nil {
-									utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Message: actionnersStr})
-									break
-								}
+							utils.PrintLog(utils.InfoStr, utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*newRules)), Message: rulesStr})
+							rules = newRules
+							if err := actionners.Init(); err != nil {
+								utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Message: actionnersStr})
+								break
 							}
 						}
 					case err := <-watcher.Errors:
