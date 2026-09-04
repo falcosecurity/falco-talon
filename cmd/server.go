@@ -121,7 +121,7 @@ var serverCmd = &cobra.Command{
 						if !watched {
 							continue
 						}
-						if !(event.Has(fsnotify.Write) || event.Has(fsnotify.Create) || event.Has(fsnotify.Remove) || event.Has(fsnotify.Rename)) {
+						if !event.Has(fsnotify.Write) && !event.Has(fsnotify.Create) && !event.Has(fsnotify.Remove) && !event.Has(fsnotify.Rename) {
 							continue
 						}
 						ignore = true
