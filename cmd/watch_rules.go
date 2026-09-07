@@ -19,13 +19,22 @@ const swapMarker = "..data"
 // edge: a ConfigMap swap emits a burst of events while "..data" still points
 // to the old directory when the first one arrives, so the timer is rearmed
 // on every event and only fires once the burst is over.
-func watchRules(rulesFiles []string, reload func()) {
+// done closes the watcher when closed; a nil done channel never stops it.
+func watchRules(rulesFiles []string, done <-chan struct{}, reload func()) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Message: rulesStr})
 		return
 	}
 	defer func() { _ = watcher.Close() }()
+
+	// fsnotify reports event names in cleaned form, so the paths the
+	// filter compares against have to be cleaned too.
+	files := make([]string, 0, len(rulesFiles))
+	for _, i := range rulesFiles {
+		files = append(files, filepath.Clean(i))
+	}
+	rulesFiles = files
 
 	watchRulesFiles := func() {
 		for _, i := range rulesFiles {
@@ -64,6 +73,8 @@ func watchRules(rulesFiles []string, reload func()) {
 			reload()
 		case err := <-watcher.Errors:
 			utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Message: rulesStr})
+		case <-done:
+			return
 		}
 	}
 }

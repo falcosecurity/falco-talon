@@ -2,8 +2,9 @@
 
 package cmd
 
-// 场景测试（ConfigMap 交换/重命名保存）依赖 inotify 的目录事件语义，
-// 仅在 Linux 上运行（macOS 的 kqueue 后端不产生目录内容事件）。
+// The scenario tests (ConfigMap swap / rename save) rely on inotify's
+// directory event semantics and only run on Linux (the kqueue backend on
+// macOS does not emit directory content events).
 
 import (
 	"os"
@@ -27,12 +28,12 @@ func skipIfNotLinux(t *testing.T) {
 
 // setupConfigMapLayout builds a temp dir mimicking a Kubernetes ConfigMap
 // volume: rules.yaml is a symlink chain into a versioned "..data" dir.
-func setupConfigMapLayout(t *testing.T, version string) (root, rulesFile string) {
+func setupConfigMapLayout(t *testing.T) (root, rulesFile string) {
 	t.Helper()
 	root = t.TempDir()
 	v1 := filepath.Join(root, "v1")
-	require.NoError(t, os.MkdirAll(v1, 0o755))
-	require.NoError(t, os.WriteFile(filepath.Join(v1, "rules.yaml"), []byte("v1"), 0o644))
+	require.NoError(t, os.MkdirAll(v1, 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(v1, "rules.yaml"), []byte("v1"), 0o600))
 	require.NoError(t, os.Symlink(v1, filepath.Join(root, swapMarker)))
 	rulesFile = filepath.Join(root, "rules.yaml")
 	require.NoError(t, os.Symlink(filepath.Join(root, swapMarker, "rules.yaml"), rulesFile))
@@ -44,8 +45,8 @@ func setupConfigMapLayout(t *testing.T, version string) (root, rulesFile string)
 func swapConfigMap(t *testing.T, root, content string) {
 	t.Helper()
 	v2 := filepath.Join(root, "v2")
-	require.NoError(t, os.MkdirAll(v2, 0o755))
-	require.NoError(t, os.WriteFile(filepath.Join(v2, "rules.yaml"), []byte(content), 0o644))
+	require.NoError(t, os.MkdirAll(v2, 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(v2, "rules.yaml"), []byte(content), 0o600))
 	tmp := filepath.Join(root, swapMarker+"_tmp")
 	require.NoError(t, os.Symlink(v2, tmp))
 	require.NoError(t, os.Rename(tmp, filepath.Join(root, swapMarker)))
@@ -72,11 +73,11 @@ func TestIsRulesEvent(t *testing.T) {
 }
 
 // TestWatchRulesConfigMapSwap is the regression test for the original bug:
-// a ConfigMap-style symlink swap must trigger a reload, and the reload must
-// observe the NEW content (trailing-edge debounce).
+// a ConfigMap-style symlink swap must be collapsed into exactly one reload
+// on the trailing edge, and that reload must observe the swapped-in content.
 func TestWatchRulesConfigMapSwap(t *testing.T) {
 	skipIfNotLinux(t)
-	root, rulesFile := setupConfigMapLayout(t, "v1")
+	root, rulesFile := setupConfigMapLayout(t)
 
 	var calls atomic.Int32
 	var seen atomic.Value
@@ -84,11 +85,11 @@ func TestWatchRulesConfigMapSwap(t *testing.T) {
 	var once sync.Once
 	reload := func() {
 		calls.Add(1)
-		b, _ := os.ReadFile(rulesFile)
+		b, _ := os.ReadFile(rulesFile) //nolint:gosec // test-controlled temp path
 		seen.Store(string(b))
 		once.Do(func() { close(done) })
 	}
-	go watchRules([]string{rulesFile}, reload)
+	go watchRules([]string{rulesFile}, nil, reload)
 
 	// give the watcher a moment to register
 	time.Sleep(300 * time.Millisecond)
@@ -100,6 +101,10 @@ func TestWatchRulesConfigMapSwap(t *testing.T) {
 		t.Fatal("no reload happened within 5s after the ConfigMap swap")
 	}
 	require.Equal(t, "v2", seen.Load(), "reload must observe the swapped-in content")
+
+	// the swap emits a burst; the trailing edge must collapse it into one reload
+	time.Sleep(2 * time.Second) // debounce is 1s, let it settle
+	require.Equal(t, int32(1), calls.Load(), "the burst must produce exactly one reload")
 }
 
 // TestWatchRulesDirectWrite covers the plain editor write path.
@@ -107,15 +112,15 @@ func TestWatchRulesDirectWrite(t *testing.T) {
 	skipIfNotLinux(t)
 	dir := t.TempDir()
 	rulesFile := filepath.Join(dir, "rules.yaml")
-	require.NoError(t, os.WriteFile(rulesFile, []byte("v1"), 0o644))
+	require.NoError(t, os.WriteFile(rulesFile, []byte("v1"), 0o600))
 
 	done := make(chan struct{})
 	var once sync.Once
 	reload := func() { once.Do(func() { close(done) }) }
-	go watchRules([]string{rulesFile}, reload)
+	go watchRules([]string{rulesFile}, nil, reload)
 
 	time.Sleep(300 * time.Millisecond)
-	require.NoError(t, os.WriteFile(rulesFile, []byte("v2"), 0o644))
+	require.NoError(t, os.WriteFile(rulesFile, []byte("v2"), 0o600))
 
 	select {
 	case <-done:
@@ -124,21 +129,45 @@ func TestWatchRulesDirectWrite(t *testing.T) {
 	}
 }
 
+// TestWatchRulesUncleanPathDirectWrite covers rules paths given in unclean
+// form (e.g. -r ./rules.yaml): fsnotify reports cleaned event names, so the
+// filter must compare cleaned paths or the reload never fires.
+func TestWatchRulesUncleanPathDirectWrite(t *testing.T) {
+	skipIfNotLinux(t)
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "rules.yaml"), []byte("v1"), 0o600))
+	unclean := filepath.Join(dir, ".", "rules.yaml")
+
+	done := make(chan struct{})
+	var once sync.Once
+	reload := func() { once.Do(func() { close(done) }) }
+	go watchRules([]string{unclean}, nil, reload)
+
+	time.Sleep(300 * time.Millisecond)
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "rules.yaml"), []byte("v2"), 0o600))
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("no reload after a direct write with an unclean rules path")
+	}
+}
+
 // TestWatchRulesRenameSave covers the write-tmp-then-rename editor save.
 func TestWatchRulesRenameSave(t *testing.T) {
 	skipIfNotLinux(t)
 	dir := t.TempDir()
 	rulesFile := filepath.Join(dir, "rules.yaml")
-	require.NoError(t, os.WriteFile(rulesFile, []byte("v1"), 0o644))
+	require.NoError(t, os.WriteFile(rulesFile, []byte("v1"), 0o600))
 
 	done := make(chan struct{})
 	var once sync.Once
 	reload := func() { once.Do(func() { close(done) }) }
-	go watchRules([]string{rulesFile}, reload)
+	go watchRules([]string{rulesFile}, nil, reload)
 
 	time.Sleep(300 * time.Millisecond)
 	tmp := filepath.Join(dir, ".rules.yaml.swp")
-	require.NoError(t, os.WriteFile(tmp, []byte("v2"), 0o644))
+	require.NoError(t, os.WriteFile(tmp, []byte("v2"), 0o600))
 	require.NoError(t, os.Rename(tmp, rulesFile))
 
 	select {
@@ -146,4 +175,26 @@ func TestWatchRulesRenameSave(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("no reload happened within 5s after a rename save")
 	}
+}
+
+// TestWatchRulesCancellation covers the done channel: once closed, the
+// watcher stops and no further reload fires.
+func TestWatchRulesCancellation(t *testing.T) {
+	skipIfNotLinux(t)
+	dir := t.TempDir()
+	rulesFile := filepath.Join(dir, "rules.yaml")
+	require.NoError(t, os.WriteFile(rulesFile, []byte("v1"), 0o600))
+
+	var calls atomic.Int32
+	reload := func() { calls.Add(1) }
+	done := make(chan struct{})
+	go watchRules([]string{rulesFile}, done, reload)
+
+	time.Sleep(300 * time.Millisecond)
+	close(done)
+	time.Sleep(300 * time.Millisecond)
+
+	require.NoError(t, os.WriteFile(rulesFile, []byte("v2"), 0o600))
+	time.Sleep(1500 * time.Millisecond) // debounce is 1s
+	require.Equal(t, int32(0), calls.Load(), "no reload must fire after cancellation")
 }

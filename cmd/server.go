@@ -74,7 +74,7 @@ var serverCmd = &cobra.Command{
 		}
 
 		if config.WatchRules {
-			go watchRules(config.RulesFiles, func() {
+			go watchRules(config.RulesFiles, nil, func() {
 				utils.PrintLog(utils.InfoStr, utils.LogLine{Result: "changes detected", Message: rulesStr})
 				newRules := ruleengine.ParseRules(config.RulesFiles)
 				if newRules == nil {
@@ -86,7 +86,6 @@ var serverCmd = &cobra.Command{
 					return
 				}
 				utils.PrintLog(utils.InfoStr, utils.LogLine{Result: fmt.Sprintf("%v rules have been successfully loaded", len(*newRules)), Message: rulesStr})
-				rules = newRules
 				if err := actionners.Init(); err != nil {
 					utils.PrintLog(utils.ErrorStr, utils.LogLine{Error: err.Error(), Message: actionnersStr})
 				}
