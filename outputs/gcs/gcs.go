@@ -153,10 +153,10 @@ func putObject(ctx context.Context, storageClient client.GcpGcsAPI, bucketName, 
 	bucket := storageClient.Bucket(bucketName)
 	objectName := prefix + key
 	wc := bucket.Object(objectName).NewWriter(ctx)
-	defer func() { _ = wc.Close() }()
 
 	if _, err := wc.Write(data.Bytes); err != nil {
+		_ = wc.Close()
 		return err
 	}
-	return nil
+	return wc.Close()
 }
