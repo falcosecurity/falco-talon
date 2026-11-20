@@ -72,7 +72,7 @@ func Init() error {
 		var err error
 
 		if gcpConfig.CredentialsPath != "" {
-			creds, err = google.CredentialsFromJSON(context.Background(), []byte(gcpConfig.CredentialsPath), functionServiceScope)
+			creds, err = google.CredentialsFromJSONWithType(context.Background(), []byte(gcpConfig.CredentialsPath), google.ServiceAccount, functionServiceScope)
 			if err != nil {
 				initErr = fmt.Errorf("unable to load credentials from file: %v", err)
 				return
