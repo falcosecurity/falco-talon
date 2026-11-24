@@ -43,11 +43,11 @@ require (
 	golang.org/x/text v0.43.0
 	google.golang.org/api v0.215.0
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.33.4
+	k8s.io/api v0.37.2
 	k8s.io/apimachinery v0.37.2
-	k8s.io/client-go v0.33.4
+	k8s.io/client-go v0.37.2
 	k8s.io/klog/v2 v2.140.0
-	k8s.io/kubectl v0.32.3
+	k8s.io/kubectl v0.37.2
 )
 
 require (
@@ -212,7 +212,6 @@ require (
 	k8s.io/utils v0.0.0-20260626114624-be93311217bd // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
-	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
