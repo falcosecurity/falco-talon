@@ -23,8 +23,8 @@ require (
 	github.com/jinzhu/copier v0.4.0
 	github.com/magefile/mage v1.15.0
 	github.com/minio/minio-go/v7 v7.2.1
-	github.com/nats-io/nats-server/v2 v2.14.4
-	github.com/nats-io/nats.go v1.52.0
+	github.com/nats-io/nats-server/v2 v2.15.3
+	github.com/nats-io/nats.go v1.55.0
 	github.com/projectcalico/api v0.0.0-20241106234619-d6b63b533e68
 	github.com/prometheus/client_golang v1.25.0
 	github.com/rs/zerolog v1.35.1
@@ -62,7 +62,7 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.25.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.49.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.49.0 // indirect
-	github.com/antithesishq/antithesis-sdk-go v0.7.2-default-no-op // indirect
+	github.com/antithesishq/antithesis-sdk-go v0.9.0-default-no-op // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.27 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.12 // indirect
@@ -130,7 +130,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.24.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.20.1 // indirect
+	github.com/klauspost/compress v1.20.4 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
 	github.com/klauspost/crc32 v1.3.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
@@ -147,8 +147,8 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/nats-io/jwt/v2 v2.8.2 // indirect
-	github.com/nats-io/nkeys v0.4.16 // indirect
+	github.com/nats-io/jwt/v2 v2.8.3 // indirect
+	github.com/nats-io/nkeys v0.4.17 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opentracing/opentracing-go v1.2.1-0.20220228012449-10b1cf09e00b // indirect
@@ -192,9 +192,9 @@ require (
 	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f // indirect
 	golang.org/x/net v0.60.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
-	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
 	golang.org/x/term v0.47.0 // indirect
-	golang.org/x/time v0.15.0 // indirect
+	golang.org/x/time v0.16.0 // indirect
 	golang.org/x/tools v0.51.0 // indirect
 	google.golang.org/genproto v0.0.0-20241118233622-e639e219e697 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20241209162323-e6fa225c2576 // indirect
